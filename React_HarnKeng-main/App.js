@@ -16,6 +16,7 @@ import Page2Screen from './Page2Screen';
 import GroupScreen from './GroupScreen';
 import Group2Screen from './Group2Screen';
 import Group3Screen from './Group3Screen';
+import ProScreen from './ProScreen';
 
 const Stack = createStackNavigator();
 
@@ -38,6 +39,7 @@ export default function App() {
         <Stack.Screen name="GroupScreen" component={GroupScreen} />
         <Stack.Screen name="Group2Screen" component={Group2Screen} />
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
+        <Stack.Screen name="ProScreen" component={ProScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
