@@ -26,11 +26,16 @@ const Group2Screen = ({ navigation }) => {
     Alert.alert('ลิงก์ถูกคัดลอกแล้ว', 'คุณสามารถส่งลิงก์นี้ให้เพื่อนได้');
   };
 
+  // Function to go to chat screen (Group4Screen)
+  const handleGoToChat = () => {
+    navigation.navigate('Group4Screen', { groupName });
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={require('./assets/images/p1.png')} // Path to your background image
-        style={styles.container} // Set background image as container's background
+        source={require('./assets/images/p1.png')}
+        style={styles.container}
       >
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.header}>
@@ -43,7 +48,7 @@ const Group2Screen = ({ navigation }) => {
 
           {/* Content */}
           <View style={styles.content}>
-            {/* Logo above the text */}
+            {/* Logo */}
             <View style={styles.logoContainer}>
               <Image source={require('./assets/images/logo.png')} style={styles.logo} />
             </View>
@@ -59,6 +64,12 @@ const Group2Screen = ({ navigation }) => {
                 <Text style={styles.buttonText}>แชร์ลิงก์</Text>
               </TouchableOpacity>
             </View>
+
+            {/* New Button: Go to Chat */}
+            <TouchableOpacity style={styles.chatButton} onPress={handleGoToChat}>
+              <Text style={styles.chatButtonText}>ไปหน้าช่องแชท</Text>
+            </TouchableOpacity>
+
           </View>
         </ScrollView>
       </ImageBackground>
@@ -67,59 +78,18 @@ const Group2Screen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  backButton: {
-    padding: 10,
-  },
-  backArrow: {
-    fontSize: 16,
-    color: '#007BFF',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  content: {
-    marginTop: 40,
-    alignItems: 'center',
-  },
-  logoContainer: {
-    marginBottom: 20,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    resizeMode: 'contain',
-  },
-  infoText: {
-    fontSize: 16,
-    marginBottom: 10,
-    color: '#333',
-  },
-  linkText: {
-    fontSize: 18,
-    color: '#007BFF',
-    marginBottom: 20,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
+  container: { flex: 1 },
+  scrollContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 40 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
+  backButton: { padding: 10 },
+  backArrow: { fontSize: 16, color: '#007BFF' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
+  content: { marginTop: 40, alignItems: 'center' },
+  logoContainer: { marginBottom: 20 },
+  logo: { width: 100, height: 100, resizeMode: 'contain' },
+  infoText: { fontSize: 16, marginBottom: 10, color: '#333' },
+  linkText: { fontSize: 18, color: '#007BFF', marginBottom: 20 },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%' },
   button: {
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
@@ -128,11 +98,19 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+
+  // New Chat Button
+  chatButton: {
+    backgroundColor: '#4CAF50', 
+    paddingVertical: 14,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    marginTop: 270,
+    alignItems: 'center',
+    width: '100%',
   },
+  chatButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default Group2Screen;

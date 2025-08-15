@@ -1,5 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Image, ImageBackground, Alert, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Image,
+  ImageBackground,
+  Alert,
+  SafeAreaView,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const GroupScreen = () => {
@@ -11,52 +22,63 @@ const GroupScreen = () => {
     { name: 'อาหาร', icon: require('./assets/images/food.png') },
     { name: 'เครื่องดื่ม', icon: require('./assets/images/drink.png') },
     { name: 'ท่องเที่ยว', icon: require('./assets/images/travel.png') },
-    { name: 'ออกกำลังกาย', icon: require('./assets/images/exercise.png') }
+    { name: 'ออกกำลังกาย', icon: require('./assets/images/exercise.png') },
   ];
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
   };
 
-  // ฟังก์ชันที่ตรวจสอบ groupName และ selectedCategory ก่อนนำทางไป Group2Screen
-  const handleCreateGroup = () => {
+  // ปุ่ม "เสร็จ" -> ไปหน้า Group2Screen
+  const handleDone = () => {
     if (groupName && selectedCategory) {
-      console.log(`Group Name: ${groupName}, Category: ${selectedCategory.name}`);
-      // ส่ง groupName ไปยัง Group2Screen
-      navigation.navigate('Group2Screen', { groupName: groupName });
+      navigation.navigate('Group2Screen', {
+        groupName,
+        category: selectedCategory.name,
+      });
     } else {
-      alert('กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม');
+      Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม');
+    }
+  };
+
+  // ปุ่ม "ถัดไป" -> ไปหน้า Group2Screen
+  const handleNext = () => {
+    if (groupName && selectedCategory) {
+      navigation.navigate('Group2Screen', {
+        groupName,
+        category: selectedCategory.name,
+      });
+    } else {
+      Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ImageBackground
-        source={require('./assets/images/p1.png')} // Path to your background image
-        style={styles.container} // Set background image as container's background
+        // หมายเหตุ: ปรับ path ถ้าไฟล์นี้อยู่ในโฟลเดอร์ย่อย (เช่น ../assets/images/p1.png)
+        source={require('./assets/images/p1.png')}
+        style={styles.container}
       >
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.header}>
             {/* Back Button */}
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
               <Text style={styles.backArrow}>กลับ</Text>
             </TouchableOpacity>
-            
+
             {/* Title */}
             <Text style={styles.title}>สร้างกลุ่ม</Text>
-            
+
             {/* Done Button */}
-            <TouchableOpacity style={styles.editButton}>
+            <TouchableOpacity style={styles.editButton} onPress={handleDone} activeOpacity={0.7}>
               <Text style={styles.editText}>เสร็จ</Text>
             </TouchableOpacity>
           </View>
 
           {/* Camera Section */}
           <View style={styles.cameraSection}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.cameraButton}
               onPress={() => Alert.alert('กล้อง', 'เปิดกล้องเพื่อถ่ายรูปกลุ่ม')}
             >
@@ -79,7 +101,10 @@ const GroupScreen = () => {
             {categories.map((category, index) => (
               <TouchableOpacity
                 key={index}
-                style={[styles.categoryItem, selectedCategory?.name === category.name && styles.selectedCategory]}
+                style={[
+                  styles.categoryItem,
+                  selectedCategory?.name === category.name && styles.selectedCategory,
+                ]}
                 onPress={() => handleCategorySelect(category)}
               >
                 <Image source={category.icon} style={styles.categoryIcon} />
@@ -91,7 +116,7 @@ const GroupScreen = () => {
 
         {/* Next Button Container */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={handleCreateGroup}>
+          <TouchableOpacity style={styles.button} onPress={handleNext} activeOpacity={0.8}>
             <Text style={styles.buttonText}>ถัดไป</Text>
           </TouchableOpacity>
         </View>
@@ -168,6 +193,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 15,
     marginBottom: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   categoryLabel: {
     fontSize: 16,
@@ -208,13 +234,17 @@ const styles = StyleSheet.create({
   buttonContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: '#f0f2f5',
+    backgroundColor: 'rgba(240, 242, 245, 0.9)',
   },
   button: {
     backgroundColor: '#4CAF50',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
     color: '#fff',

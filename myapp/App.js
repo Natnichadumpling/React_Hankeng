@@ -1,11 +1,11 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import HomeScreen from './HomeScreen'; 
+import HomeScreen from './HomeScreen';
 import Home2Screen from './Home2Screen';
-import Home3Screen from './Home3Screen'; 
-import Home4Screen from './Home4Screen';  
-import LoginScreen from './LoginScreen';  
+import Home3Screen from './Home3Screen';
+import Home4Screen from './Home4Screen';
+import LoginScreen from './LoginScreen';
 import SingupScreen from './SingupScreen';
 import Singup2Screen from './Singup2Screen';
 import Singup3Screen from './Singup3Screen';
@@ -16,7 +16,7 @@ import Page2Screen from './Page2Screen';
 import GroupScreen from './GroupScreen';
 import Group2Screen from './Group2Screen';
 import Group3Screen from './Group3Screen';
-import ProScreen from './ProScreen';
+import Group4Screen from './Group4Screen'; // เพิ่มการ import Group4Screen
 
 const Stack = createStackNavigator();
 
@@ -39,7 +39,7 @@ export default function App() {
         <Stack.Screen name="GroupScreen" component={GroupScreen} />
         <Stack.Screen name="Group2Screen" component={Group2Screen} />
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
-        <Stack.Screen name="ProScreen" component={ProScreen} />
+        <Stack.Screen name="Group4Screen" component={Group4Screen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

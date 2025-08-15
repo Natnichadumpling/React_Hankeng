@@ -4,6 +4,11 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ImageBac
 const Group3Screen = ({ navigation }) => {
   const [searchText, setSearchText] = useState(''); // State for the search input
 
+  // Function to handle join group button press
+  const handleJoinGroup = () => {
+    navigation.navigate('GroupScreen'); // Navigate to GroupScreen
+  };
+
   return (
     <ImageBackground
       source={require('./assets/images/p1.png')} // Path to your background image
@@ -22,9 +27,7 @@ const Group3Screen = ({ navigation }) => {
                 value={searchText}
                 onChangeText={setSearchText}
               />
-                <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
-                <Text style={styles.diamondIcon}>💎</Text>
-              </TouchableOpacity>
+              <Text style={styles.diamondIcon}>💎</Text>
             </View>
           </View>
 
@@ -39,7 +42,11 @@ const Group3Screen = ({ navigation }) => {
             เพื่อใช้ในการรายงานและสอบถามข้อมูล
           </Text>
 
-          <TouchableOpacity style={styles.joinGroupButton}>
+          <TouchableOpacity 
+            style={styles.joinGroupButton}
+            onPress={handleJoinGroup}
+            activeOpacity={0.7}
+          >
             <Text style={styles.joinGroupText}>เริ่มกลุ่ม</Text>
           </TouchableOpacity>
         </View>
@@ -98,19 +105,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   searchBar: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#fff',
-  borderRadius: 8,
-  width: 350,  // Set a fixed width in pixels to make it longer
-  paddingHorizontal: 10,
-  paddingVertical: 5,
-  shadowColor: '#000',
-  shadowOpacity: 0.1,
-  shadowRadius: 5,
-  elevation: 3,
-},
-
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    width: 350,  // Set a fixed width in pixels to make it longer
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
   searchIcon: {
     fontSize: 18,
     color: '#555',
@@ -152,6 +158,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     width: '50%',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   joinGroupText: {
     color: '#fff',
