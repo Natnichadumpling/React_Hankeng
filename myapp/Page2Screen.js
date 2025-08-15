@@ -79,7 +79,9 @@ const Page2Screen = () => {
               value={searchText}
               onChangeText={setSearchText}
             />
-            <Text style={styles.diamondIcon}>💎</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+                <Text style={styles.diamondIcon}>💎</Text>
+              </TouchableOpacity>
           </View>
         </View>
 
