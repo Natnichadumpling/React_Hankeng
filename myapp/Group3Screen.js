@@ -6,7 +6,7 @@ const Group3Screen = ({ navigation }) => {
 
   // Function to handle join group button press
   const handleJoinGroup = () => {
-    navigation.navigate('GroupScreen'); // Navigate to GroupScreen
+    navigation.navigate('Group5Screen'); // Navigate to GroupScreen
   };
 
   return (

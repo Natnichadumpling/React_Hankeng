@@ -17,6 +17,7 @@ import GroupScreen from './GroupScreen';
 import Group2Screen from './Group2Screen';
 import Group3Screen from './Group3Screen';
 import Group4Screen from './Group4Screen'; // เพิ่มการ import Group4Screen
+import Group5Screen from './Group5Screen';
 
 const Stack = createStackNavigator();
 
@@ -40,6 +41,7 @@ export default function App() {
         <Stack.Screen name="Group2Screen" component={Group2Screen} />
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
+        <Stack.Screen name="Group5Screen" component={Group5Screen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
