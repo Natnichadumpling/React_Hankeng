@@ -1,6 +1,6 @@
 # รวมสิ่งที่แก้ไข(s)
 
-1. เปลี่ยนจาก Hard-coded เป็นการใช้ Environment Variables ([supabaseClient.js](myapp\supabaseClient.js), [.env.example](myapp\.env.example))
+1. เปลี่ยนจาก Hard-coded เป็นการใช้ Environment Variables ([supabaseClient.js](myapp/supabaseClient.js), [.env.example](myapp/.env.example))
 
    ```js
    const supabaseUrl = 'https://xxxx.supabase.co'
@@ -34,7 +34,7 @@
     | ----------------------------------------- | ---------------------------------------- |
     | ![alt text](attachments/animal_table.png) | ![alt text](attachments/aniaml_data.png) |
 
-    ทดสอบดึงข้อมูล ([HomeScreen.js](myapp\HomeScreen.js))
+    ทดสอบดึงข้อมูล ([HomeScreen.js](myapp/HomeScreen.js))
 
     ```jsx
     function AnimalsList() {
