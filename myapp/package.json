@@ -4,14 +4,15 @@
   "main": "index.js",
   "scripts": {
     "start": "expo start",
-    "android": "dotenv -- expo start --android",
-    "ios": "dotenv -- expo start --ios",
-    "web": "dotenv -- expo start --web"
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
   },
   "dependencies": {
     "@react-native-picker/picker": "^2.11.1",
     "@react-navigation/native": "^7.1.17",
     "@react-navigation/stack": "^7.4.5",
+    "@supabase/supabase-js": "^2.56.0",
     "expo": "~53.0.20",
     "expo-status-bar": "~2.2.3",
     "react": "19.0.0",
@@ -25,8 +26,7 @@
     "react-native-vector-icons": "^10.3.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0",
-    "dotenv-cli": "^10.0.0"
+    "@babel/core": "^7.20.0"
   },
   "private": true
 }

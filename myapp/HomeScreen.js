@@ -1,67 +1,38 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Dimensions } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useState, useCallback } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { supabase } from './supabaseClient';
 
-const HomeScreen = () => {
-  const navigation = useNavigation();
-
+function AnimalsList() {
   const [data, setData] = useState();
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const fetchAnimals = async () => {
-      const { data } = await supabase.from('animals').select()
-      setData(data)
+      const { data, error } = await supabase.from('animals').select()
+      if (error) {
+        console.error('Error', error);
+        return;
+      }
 
       console.log('Animals data', data);
+      setData(data)
     }
     fetchAnimals()
-  }, []);
+  }, []));
 
+  return <View>
+    {(data || []).map((animal) => (
+      <View key={animal.id}>
+        <Text>{animal.name} มี {animal.legs} ขา</Text>
+        <Image source={{ uri: animal.picture }} style={{ width: 200, height: 200 }} />
+      </View>
+    ))}
+  </View>
+}
+
+const HomeScreen = () => {
   return (
     <View style={styles.container}>
-      <Image source={require('./assets/images/p.png')} style={styles.backgroundImage} />
-
-      <View style={styles.innerContainer}>
-        {/* Logo Circle */}
-        <View style={styles.logoContainer}>
-          <Image source={require('./assets/images/logo.png')} style={styles.logo} />
-        </View>
-
-        <View style={styles.spacer} />
-
-        {/* Sign Up Button */}
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: 'rgb(19, 117, 22)' }]}
-          onPress={() => navigation.navigate('SingupScreen')}
-        >
-          <Text style={styles.buttonText}>สมัครใช้งาน</Text>
-        </TouchableOpacity>
-
-        {/* Reduced spacer height for better alignment */}
-        <View style={styles.spacerSmall} />
-
-        {/* Login Button - Moved upwards */}
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: 'rgb(90, 100, 90)' }]}
-          onPress={() => navigation.navigate('LoginScreen')}
-        >
-          <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
-        </TouchableOpacity>
-
-        <View style={styles.footer}>
-          {/* Links at the bottom */}
-          <TouchableOpacity onPress={() => navigation.navigate('Home2Screen')}>
-            <Text style={styles.footerLink}>ข้อกำหนด</Text>
-          </TouchableOpacity>
-          <Text style={styles.footerText}> | </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Home3Screen')}>
-            <Text style={styles.footerLink}>นโยบายความเป็นส่วนตัว</Text>
-          </TouchableOpacity>
-          <Text style={styles.footerText}> | </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Home4Screen')}>
-            <Text style={styles.footerLink}>ติดต่อเรา</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <AnimalsList />
     </View>
   );
 };

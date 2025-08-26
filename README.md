@@ -31,3 +31,35 @@
     ซึ่งตอนนี้เราจะลองสร้างแบบ **ไม่มี RLS ก่อน**
 
     ![alt text](attachments/animal_table.png)
+
+    ทดสอบดึงข้อมูล
+
+    ```jsx
+    function AnimalsList() {
+      const [data, setData] = useState();
+      useFocusEffect(useCallback(() => {
+        const fetchAnimals = async () => {
+          const { data, error } = await supabase.from('animals').select()
+          if (error) {
+            console.error('Error', error);
+            return;
+          }
+
+          console.log('Animals data', data);
+          setData(data)
+        }
+        fetchAnimals()
+      }, []));
+
+      return <View>
+        {(data || []).map((animal) => (
+          <View key={animal.id}>
+            <Text>{animal.name} มี {animal.legs} ขา</Text>
+            <Image source={{ uri: animal.picture }} style={{ width: 200, height: 200 }} />
+          </View>
+        ))}
+      </View>
+    }
+    ```
+
+    ![alt text](attachments/select_animals.png)
