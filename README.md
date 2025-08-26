@@ -10,8 +10,8 @@
    เปลี่ยนเป็น
 
    ```js
-   const supabaseUrl = process.env.SUPABASE_URL
-   const supabaseKey = process.env.SUPABASE_KEY
+   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+   const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_KEY
    ```
 
    > **วิธีใช้ให้?**: copy ไฟล์ `.env.example` เป็น `.env` และกรอกค่าให้ถูกต้อง
