@@ -30,7 +30,9 @@
 
     ซึ่งตอนนี้เราจะลองสร้างแบบ **ไม่มี RLS ก่อน**
 
-    ![alt text](attachments/animal_table.png)
+    | ตัวอย่างตาราง                               | ตัวอย่างข้อมูล                               |
+    | ----------------------------------------- | ---------------------------------------- |
+    | ![alt text](attachments/animal_table.png) | ![alt text](attachments/aniaml_data.png) |
 
     ทดสอบดึงข้อมูล
 
