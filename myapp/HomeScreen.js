@@ -1,9 +1,20 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
   const navigation = useNavigation();
+
+  const [data, setData] = useState();
+  useEffect(() => {
+    const fetchAnimals = async () => {
+      const { data } = await supabase.from('animals').select()
+      setData(data)
+
+      console.log('Animals data', data);
+    }
+    fetchAnimals()
+  }, []);
 
   return (
     <View style={styles.container}>
