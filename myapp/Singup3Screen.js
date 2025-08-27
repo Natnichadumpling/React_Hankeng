@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker'; // นำเข้า Picker จากไลบรารีใหม่
 
@@ -9,91 +9,99 @@ const Singup3Screen = () => {
   const navigation = useNavigation();
 
   return (
-    
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* AppBar */}
-      <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Text style={styles.closeText}>กลับ</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.body}>
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <Image source={require('./assets/images/logo.png')} style={styles.logo} />
-        </View>
-
-        <Text style={styles.title}>สมัครใช้งาน</Text>
-
-        {/* Username Form */}
-        <TextInput
-          style={styles.input}
-          placeholder="ชื่อผู้ใช้"
-        />
-        <View style={styles.phoneContainer}>
-          {/* Country Code Dropdown */}
-          <Picker
-            selectedValue={selectedCountryCode}
-            style={styles.picker}
-            onValueChange={(itemValue) => setSelectedCountryCode(itemValue)}
-          >
-            <Picker.Item label="+66" value="+66" />
-            <Picker.Item label="+1" value="+1" />
-            <Picker.Item label="+44" value="+44" />
-            <Picker.Item label="+81" value="+81" />
-          </Picker>
-          {/* Phone Number Input */}
-          <TextInput
-            style={styles.input}
-            placeholder="หมายเลขโทรศัพท์"
-            keyboardType="phone-pad"
-            value={phoneNumber}
-            onChangeText={setPhoneNumber}
-          />
-        </View>
-
-        <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
-
-        {/* Next Button */}
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]}
-          onPress={() => navigation.navigate('Page2Screen')}
-        >
-          <Text style={styles.buttonText}>ถัดไป</Text>
-        </TouchableOpacity>
-
-        {/* Change Currency */}
-        <View style={styles.currencyContainer}>
-          <Text style={styles.currencyText}>ฉันใช้ THB (฿) เป็นสกุลเงินของฉัน</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('ChangeScreen')}>
-            <Text style={styles.changeCurrencyText}>เปลี่ยน &gt;&gt;</Text>
+    <ImageBackground source={require('./assets/images/p.png')} style={styles.backgroundImage}>
+      <ScrollView contentContainerStyle={styles.container}>
+        {/* AppBar */}
+        <View style={styles.appBar}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+            <Text style={styles.closeText}>กลับ</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Accept Terms and Policies */}
-        <View style={styles.termsContainer}>
-          <Text style={styles.termsText}>การสมัครใช้งานถือว่าคุณยอมรับ</Text>
-          <View style={styles.termsLinks}>
-            <TouchableOpacity onPress={() => navigation.navigate('Home2Screen')}>
-              <Text style={styles.termsLink}>ข้อกำหนดการให้บริการ</Text>
+        <View style={styles.body}>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image source={require('./assets/images/logo.png')} style={styles.logo} />
+          </View>
+
+          <Text style={styles.title}>สมัครใช้งาน</Text>
+
+          {/* Username Form */}
+          <TextInput
+            style={styles.input}
+            placeholder="ชื่อผู้ใช้"
+          />
+          <View style={styles.phoneContainer}>
+            {/* Country Code Dropdown */}
+            <Picker
+              selectedValue={selectedCountryCode}
+              style={styles.picker}
+              onValueChange={(itemValue) => setSelectedCountryCode(itemValue)}
+            >
+              <Picker.Item label="+66" value="+66" />
+              <Picker.Item label="+1" value="+1" />
+              <Picker.Item label="+44" value="+44" />
+              <Picker.Item label="+81" value="+81" />
+            </Picker>
+            {/* Phone Number Input */}
+            <TextInput
+              style={styles.input}
+              placeholder="หมายเลขโทรศัพท์"
+              keyboardType="phone-pad"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+            />
+          </View>
+
+          <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
+
+          {/* Next Button */}
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]}
+            onPress={() => navigation.navigate('Page2Screen')}
+          >
+            <Text style={styles.buttonText}>ถัดไป</Text>
+          </TouchableOpacity>
+
+          {/* Change Currency */}
+          <View style={styles.currencyContainer}>
+            <Text style={styles.currencyText}>ฉันใช้ THB (฿) เป็นสกุลเงินของฉัน</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('ChangeScreen')}>
+              <Text style={styles.changeCurrencyText}>เปลี่ยน &gt;&gt;</Text>
             </TouchableOpacity>
-            <Text style={styles.termsText}> และ </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Home3Screen')}>
-              <Text style={styles.termsLink}>นโยบายความเป็นส่วนตัว</Text>
-            </TouchableOpacity>
-            <Text style={styles.termsText}> ของ HarnKeng</Text>
+          </View>
+
+          {/* Accept Terms and Policies */}
+          <View style={styles.termsContainer}>
+            <Text style={styles.termsText}>การสมัครใช้งานถือว่าคุณยอมรับ</Text>
+            <View style={styles.termsLinks}>
+              <TouchableOpacity onPress={() => navigation.navigate('Home2Screen')}>
+                <Text style={styles.termsLink}>ข้อกำหนดการให้บริการ</Text>
+              </TouchableOpacity>
+              <Text style={styles.termsText}> และ </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Home3Screen')}>
+                <Text style={styles.termsLink}>นโยบายความเป็นส่วนตัว</Text>
+              </TouchableOpacity>
+              <Text style={styles.termsText}> ของ HarnKeng</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </ImageBackground>
   );
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
   container: {
     flex: 1,
     padding: 16,
+    width: '100%',
   },
   appBar: {
     backgroundColor: 'transparent',
@@ -164,7 +172,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#232323',
     alignSelf: 'flex-start',
-    marginBottom: 30,
+    marginBottom: 30,  
   },
   button: {
     width: '100%',
