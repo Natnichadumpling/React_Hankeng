@@ -88,7 +88,7 @@ const Group4Screen = ({ navigation, route }) => {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
-          <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Group2Screen')}>
+          <TouchableOpacity style={styles.menuButton} onPress={() => Alert.alert('เชิญเพื่อน', 'ยังไม่เชื่อมต่อ backend')}>
             <Text style={styles.menuText}>เชิญเพื่อน</Text>
           </TouchableOpacity>
         </View>
