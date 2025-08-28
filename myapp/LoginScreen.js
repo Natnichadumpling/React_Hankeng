@@ -1,61 +1,100 @@
-import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Import the icon library
+import { supabase } from './supabaseClient';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Email validation function
+  const validateEmail = (email) => {
+    const re = /^(([^<>()\[\]\\.,;:\s@\"]+(\.[^<>()\[\]\\.,;:\s@\"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert('กรุณากรอกอีเมลและรหัสผ่าน');
+      return;
+    }
+    if (!validateEmail(email)) {
+      alert('รูปแบบอีเมลไม่ถูกต้อง');
+      return;
+    }
+    if (password.length < 8) {
+      alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+      return;
+    }
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .eq('password', password);
+    setLoading(false);
+    if (error || !data || data.length === 0) {
+      alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    } else {
+      navigation.navigate('PageScreen');
+    }
+  };
 
   return (
     <ImageBackground
-      source={require('./assets/images/p.png')} // Path to your background image
-      style={styles.container}
+      source={require('./assets/images/p.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {/* AppBar */}
-        <View style={styles.appBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Icon name="home" size={30} color="black" />
-          <Text style={styles.closeText}>Home</Text>  {/* ข้อความต้องห่อด้วย Text */}
-          </TouchableOpacity>
-        </View>
-
-        
-
-
-        {/* Body Content */}
+      {/* AppBar */}
+      <View style={styles.appBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <Icon name="home" size={28} color="black" />
+          <Text style={styles.closeText}>Home</Text>
+        </TouchableOpacity>
+      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.body}>
-          {/* โลโก้ */}
           <View style={styles.logoContainer}>
             <Image source={require('./assets/images/logo.png')} style={styles.logo} />
           </View>
-
           <Text style={styles.title}>เข้าสู่ระบบ</Text>
-
-          {/* Form Inputs */}
           <TextInput
-            style={styles.input}
+            style={[styles.input, { marginBottom: 12 }]}
             placeholder="ที่อยู่อีเมล"
             placeholderTextColor="#aaa"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
-          <TextInput
-            style={styles.input}
-            placeholder="รหัสผ่าน"
-            secureTextEntry
-            placeholderTextColor="#aaa"
-          />
-
-          {/* Validation Message */}
+          <View style={[styles.passwordRow, { marginBottom: 12 }]}> 
+            <TextInput
+              style={[styles.input, { flex: 1, marginBottom: 0 }]}
+              placeholder="รหัสผ่าน"
+              secureTextEntry={!showPassword}
+              placeholderTextColor="#aaa"
+              value={password}
+              onChangeText={setPassword}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
+              <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#232323" />
+            </TouchableOpacity>
+          </View>
           <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
-
-          {/* Buttons */}
-          <TouchableOpacity 
-            style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]} 
-            onPress={() => navigation.navigate('PageScreen')}>
-            <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)', marginBottom: 18 }]}
+            onPress={handleLogin}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>}
           </TouchableOpacity>
-
-          {/* Forgot Password Link */}
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={styles.forgotPasswordText}>ลืมรหัสผ่าน?</Text>
           </TouchableOpacity>
@@ -66,26 +105,36 @@ const LoginScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  backgroundImage: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  contentContainer: {
-    padding: 16,
-    flex: 1,
+    padding: 0,
+    minHeight: '100%',
   },
   appBar: {
     backgroundColor: 'transparent',
     elevation: 0,
-    paddingTop: 20,
-    paddingLeft: 10,
+    paddingTop: 32,
+    paddingLeft: 16,
     width: '100%',
-    flexDirection: 'row', // Ensures elements are aligned horizontally
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 10,
   },
   closeButton: {
-    position: 'absolute',
-    left: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   closeText: {
     color: 'black',
@@ -95,64 +144,84 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 30,
-    paddingTop: 50,
+    width: '100%',
+    maxWidth: 350,
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 32,
   },
   logoContainer: {
-    height: 150,
-    width: 150,
+    height: 140,
+    width: 140,
     backgroundColor: 'white',
-    borderRadius: 75,
+    borderRadius: 70,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 70,
+    marginBottom: 18,
+    elevation: 3,
   },
   logo: {
     width: 120,
     height: 120,
-    resizeMode: 'cover',
+    resizeMode: 'contain',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 50,
+    marginBottom: 18,
     color: 'black',
+    textAlign: 'center',
   },
   input: {
     width: '100%',
-    maxWidth: 400, // Set a max width for large screens
-    height: 50,
+    minWidth: 180,
+    maxWidth: 320,
+    height: 44,
     borderWidth: 1,
     borderRadius: 8,
-    paddingLeft: 15,
+    paddingLeft: 12,
     backgroundColor: '#f0f0f0',
-    marginBottom: 15,
-    fontSize: 16, // Adjust font size for readability
+    marginBottom: 10,
+    fontSize: 15,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    minWidth: 180,
+    maxWidth: 320,
+    marginBottom: 10,
   },
   validationText: {
     fontSize: 12,
     fontWeight: 'bold',
     color: '#232323',
     alignSelf: 'flex-start',
-    marginBottom: 30,
+    marginBottom: 14,
+    marginLeft: 4,
   },
   button: {
     width: '100%',
-    maxWidth: 400, // Set a max width for large screens
-    height: 50,
+    minWidth: 180,
+    maxWidth: 320,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
     marginBottom: 10,
+    elevation: 2,
   },
   buttonText: {
     color: 'white',
-    fontSize: 20,
+    fontSize: 18,
   },
   forgotPasswordText: {
     color: 'rgb(2, 99, 53)',
-    fontSize: 16,
+    fontSize: 15,
     textDecorationLine: 'underline',
+    marginTop: 8,
+    alignSelf: 'center',
   },
 });
 
