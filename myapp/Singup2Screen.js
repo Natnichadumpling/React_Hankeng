@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Picker } from '@react-native-picker/picker';  // นำเข้าจาก @react-native-picker/picker
 
 const Singup2Screen = () => {
-  const [selectedCountryCode, setSelectedCountryCode] = useState('+66'); // Default to Thailand code
-  const [phoneNumber, setPhoneNumber] = useState('');
   const navigation = useNavigation();
+  const route = useRoute();
+  const { email, password } = route.params;
+  const [name, setName] = useState('');
+  const [selectedCountryCode, setSelectedCountryCode] = useState('+66');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
   return (
     <ImageBackground
@@ -32,6 +35,8 @@ const Singup2Screen = () => {
         <TextInput
           style={styles.input}
           placeholder="ชื่อผู้ใช้"
+          value={name}
+          onChangeText={setName}
         />
         <View style={styles.phoneContainer}>
           {/* Country Code Dropdown */}
@@ -57,7 +62,12 @@ const Singup2Screen = () => {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]}
-          onPress={() => navigation.navigate('Singup3Screen')}
+          onPress={() => navigation.navigate('Singup3Screen', {
+            email,
+            password,
+            name,
+            phone: selectedCountryCode + phoneNumber
+          })}
         >
           <Text style={styles.buttonText}>ถัดไป</Text>
         </TouchableOpacity>

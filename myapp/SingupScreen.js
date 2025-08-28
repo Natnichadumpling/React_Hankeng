@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'; // นำเข้าไอคอน
 
 const SingupScreen = () => {
   const navigation = useNavigation();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   return (
     <ImageBackground
@@ -31,11 +33,15 @@ const SingupScreen = () => {
         <TextInput
           style={styles.input}
           placeholder="ที่อยู่อีเมล"
+          value={email}
+          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="รหัสผ่าน"
           secureTextEntry
+          value={password}
+          onChangeText={setPassword}
         />
 
         {/* Validation Message */}
@@ -44,7 +50,7 @@ const SingupScreen = () => {
         {/* Button to go to next screen */}
         <TouchableOpacity 
           style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]} 
-          onPress={() => navigation.navigate('Singup2Screen')}>
+          onPress={() => navigation.navigate('Singup2Screen', { email, password })}>
           <Text style={styles.buttonText}>ถัดไป</Text>
         </TouchableOpacity>
       </View>

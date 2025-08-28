@@ -1,12 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker'; // นำเข้า Picker จากไลบรารีใหม่
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground, Alert } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { Picker } from '@react-native-picker/picker';
+import { supabase } from './supabaseClient';
 
 const Singup3Screen = () => {
-  const [selectedCountryCode, setSelectedCountryCode] = useState('+66'); // Default to Thailand code
+  const [selectedCountryCode, setSelectedCountryCode] = useState('+66');
   const [phoneNumber, setPhoneNumber] = useState('');
   const navigation = useNavigation();
+  const route = useRoute();
+  // รับข้อมูลจาก Singup2Screen
+  const { email, password, name, phone } = route.params || {};
+
+  // ฟังก์ชันบันทึกข้อมูลลง Supabase
+  const handleSignup = async () => {
+    // ตรวจสอบอีเมลซ้ำก่อนบันทึก
+    const { data: existing } = await supabase
+      .from('users')
+      .select('email')
+      .eq('email', email);
+    if (existing && existing.length > 0) {
+      Alert.alert('อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น');
+      return;
+    }
+    // ใช้ข้อมูลจาก route.params ถ้ามี
+    const userData = {
+      email: email || '',
+      password: password || '',
+      name: name || '',
+      phone: phone || (selectedCountryCode + phoneNumber)
+    };
+    const { data, error } = await supabase
+      .from('users')
+      .insert([userData]);
+    if (error) {
+      Alert.alert('เกิดข้อผิดพลาด', error.message);
+    } else {
+      Alert.alert('สมัครสมาชิกสำเร็จ');
+      navigation.navigate('HomeScreen');
+    }
+  };
 
   return (
     <ImageBackground source={require('./assets/images/p.png')} style={styles.backgroundImage}>
@@ -30,26 +63,24 @@ const Singup3Screen = () => {
           <TextInput
             style={styles.input}
             placeholder="ชื่อผู้ใช้"
+            value={name}
+            editable={false}
           />
           <View style={styles.phoneContainer}>
             {/* Country Code Dropdown */}
             <Picker
-              selectedValue={selectedCountryCode}
+              selectedValue={phone?.slice(0,3) || '+66'}
               style={styles.picker}
-              onValueChange={(itemValue) => setSelectedCountryCode(itemValue)}
+              enabled={false}
             >
-              <Picker.Item label="+66" value="+66" />
-              <Picker.Item label="+1" value="+1" />
-              <Picker.Item label="+44" value="+44" />
-              <Picker.Item label="+81" value="+81" />
+              <Picker.Item label={phone?.slice(0,3) || '+66'} value={phone?.slice(0,3) || '+66'} />
             </Picker>
             {/* Phone Number Input */}
             <TextInput
               style={styles.input}
               placeholder="หมายเลขโทรศัพท์"
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
+              value={phone?.slice(3) || ''}
+              editable={false}
             />
           </View>
 
@@ -58,9 +89,9 @@ const Singup3Screen = () => {
           {/* Next Button */}
           <TouchableOpacity
             style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]}
-            onPress={() => navigation.navigate('Page2Screen')}
+            onPress={handleSignup}
           >
-            <Text style={styles.buttonText}>ถัดไป</Text>
+            <Text style={styles.buttonText}>สมัครสมาชิก</Text>
           </TouchableOpacity>
 
           {/* Change Currency */}
