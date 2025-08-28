@@ -1,43 +1,10 @@
-// SignupScreen.tsx
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ImageBackground } from 'react-native';
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'; 
-import { supabase } from './supabase';  // Import supabase client
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'; // นำเข้าไอคอน
 
 const SingupScreen = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [validationMessage, setValidationMessage] = useState('');
   const navigation = useNavigation();
-
-  // Function to handle user signup
-  const handleSignup = async () => {
-    if (password.length < 8) {
-      setValidationMessage('*Password must be at least 8 characters');
-      return;
-    }
-
-    try {
-      // Sign up user using email and password
-      const { data, error } = await supabase
-        .from('users')  // Assuming your table name is 'users'
-        .insert([
-          { email: email, password: password },
-        ]);
-
-      if (error) {
-        console.log(error.message);
-        setValidationMessage('*Something went wrong. Please try again.');
-      } else {
-        console.log('User registered:', data);
-        navigation.navigate('Singup2Screen');  // Navigate to next screen
-      }
-    } catch (err) {
-      console.log(err);
-      setValidationMessage('*An error occurred. Please try again.');
-    }
-  };
 
   return (
     <ImageBackground
@@ -47,13 +14,13 @@ const SingupScreen = () => {
       {/* App Bar */}
       <View style={styles.appBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <MaterialCommunityIcons name="home" size={30} color="black" />
+          <MaterialCommunityIcons name="home" size={30} color="black" /> {/* ไอคอนบ้าน */}
         </TouchableOpacity>
       </View>
 
       {/* Body Content */}
       <View style={styles.body}>
-        {/* Logo */}
+        {/* โลโก้ */}
         <View style={styles.logoContainer}>
           <Image source={require('./assets/images/logo.png')} style={styles.logo} />
         </View>
@@ -64,24 +31,20 @@ const SingupScreen = () => {
         <TextInput
           style={styles.input}
           placeholder="ที่อยู่อีเมล"
-          value={email}
-          onChangeText={setEmail}
         />
         <TextInput
           style={styles.input}
           placeholder="รหัสผ่าน"
           secureTextEntry
-          value={password}
-          onChangeText={setPassword}
         />
 
         {/* Validation Message */}
-        <Text style={styles.validationText}>{validationMessage}</Text>
+        <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
 
         {/* Button to go to next screen */}
         <TouchableOpacity 
           style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]} 
-          onPress={handleSignup}>
+          onPress={() => navigation.navigate('Singup2Screen')}>
           <Text style={styles.buttonText}>ถัดไป</Text>
         </TouchableOpacity>
       </View>

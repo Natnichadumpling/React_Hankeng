@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+// import { SUPABASE_URL, SUPABASE_KEY } from '@env';
+// console.log(SUPABASE_URL, SUPABASE_KEY);
 import HomeScreen from './HomeScreen';
 import Home2Screen from './Home2Screen';
 import Home3Screen from './Home3Screen';
