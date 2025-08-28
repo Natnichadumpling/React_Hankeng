@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ScrollView, ImageBackground, Alert, Modal
+  ScrollView, ImageBackground, Alert, Modal, TextInput
 } from 'react-native';
 
 const Group4Screen = ({ navigation, route }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [showMenuOptions, setShowMenuOptions] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
+  const [selectedCurrency, setSelectedCurrency] = useState(''); // State สำหรับสกุลเงินที่เลือก
+  const [amount, setAmount] = useState(''); // จำนวนเงินที่จะแปลง
+  const [convertedAmount, setConvertedAmount] = useState(null); // ผลลัพธ์การแปลงสกุลเงิน
 
   // params จาก Group5Screen
-  const { groupName: gNameFromNav, transferKey, from, to, amount } = route?.params || {};
+  const { groupName: gNameFromNav, transferKey, from, to, amount: amountParam } = route?.params || {};
   const groupName = gNameFromNav || route?.params?.groupName || 'กลุ่มของเรา';
 
   const isSendDisabled = selectedImages.length === 0;
@@ -34,8 +37,37 @@ const Group4Screen = ({ navigation, route }) => {
   };
 
   const handleMenuOption = (option) => {
-    setShowMenuOptions(false);
-    Alert.alert('เลือกตัวเลือก', `เลือก${option}แล้ว`);
+    if (option === 'แปลงสกุลเงิน') {
+      setShowMenuOptions(true); // แสดง modal เลือกสกุลเงิน
+    } else {
+      Alert.alert('เลือกตัวเลือก', `เลือก${option}แล้ว`);
+    }
+  };
+
+  const handleCurrencySelect = (currency) => {
+    setSelectedCurrency(currency); // เก็บสกุลเงินที่เลือก
+    Alert.alert('เลือกสกุลเงิน', `คุณเลือกสกุลเงิน: ${currency}`);
+    setShowMenuOptions(false); // ปิด modal หลังจากเลือก
+  };
+
+  const handleConvertCurrency = () => {
+    let result = null;
+    const amountNumber = parseFloat(amount);
+
+    if (isNaN(amountNumber) || amountNumber <= 0) {
+      Alert.alert('ข้อผิดพลาด', 'กรุณากรอกจำนวนเงินที่ถูกต้อง');
+      return;
+    }
+
+    if (selectedCurrency === 'THB') {
+      // แปลงจาก THB → USD
+      result = amountNumber / 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+    } else if (selectedCurrency === 'USD') {
+      // แปลงจาก USD → THB
+      result = amountNumber * 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+    }
+
+    setConvertedAmount(result); // ตั้งค่าให้แสดงผลลัพธ์
   };
 
   const removeImage = (index) => {
@@ -65,7 +97,7 @@ const Group4Screen = ({ navigation, route }) => {
         {(from || to) && (
           <View style={styles.transferInfo}>
             <Text style={styles.transferInfoText}>
-              รายการ: {from} → {to} จำนวน ฿{Number(amount || 0).toFixed(2)}
+              รายการ: {from} → {to} จำนวน ฿{Number(amountParam || 0).toFixed(2)}
             </Text>
           </View>
         )}
@@ -152,6 +184,47 @@ const Group4Screen = ({ navigation, route }) => {
             </View>
           </View>
         </Modal>
+
+        {/* Currency Selection Modal */}
+        <Modal visible={showMenuOptions && selectedCurrency === ''} transparent animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
+
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
+                <Text style={styles.modalOptionText}>THB (บาทไทย)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
+                <Text style={styles.modalOptionText}>USD (ดอลลาร์สหรัฐ)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowMenuOptions(false)}>
+                <Text style={styles.modalCancelText}>ยกเลิก</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Currency Input & Result */}
+        {selectedCurrency && (
+          <View style={styles.currencyContainer}>
+            <Text style={styles.currencyTitle}>แปลงสกุลเงิน</Text>
+            <TextInput
+              style={styles.currencyInput}
+              placeholder="กรอกจำนวนเงิน"
+              keyboardType="numeric"
+              value={amount}
+              onChangeText={setAmount}
+            />
+            <TouchableOpacity style={styles.convertButton} onPress={handleConvertCurrency}>
+              <Text style={styles.convertText}>แปลง</Text>
+            </TouchableOpacity>
+            {convertedAmount !== null && (
+              <Text style={styles.convertResult}>ผลลัพธ์: {convertedAmount} {selectedCurrency === 'THB' ? 'USD' : 'THB'}</Text>
+            )}
+          </View>
+        )}
       </SafeAreaView>
     </ImageBackground>
   );
@@ -203,6 +276,13 @@ const styles = StyleSheet.create({
   modalOptionText: { fontSize: 16, color: '#333' },
   modalCancelButton: { paddingVertical: 15, marginTop: 10, backgroundColor: '#f8f8f8', borderRadius: 10, alignItems: 'center' },
   modalCancelText: { fontSize: 16, color: '#666', fontWeight: 'bold' },
+
+  currencyContainer: { padding: 20, backgroundColor: 'rgba(255,255,255,0.9)', marginTop: 20, borderRadius: 10 },
+  currencyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
+  currencyInput: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginVertical: 10, borderRadius: 5 },
+  convertButton: { backgroundColor: '#4a90e2', padding: 10, borderRadius: 20, alignItems: 'center' },
+  convertText: { color: '#fff', fontSize: 16 },
+  convertResult: { fontSize: 16, color: '#333', marginTop: 10 },
 });
 
 export default Group4Screen;
