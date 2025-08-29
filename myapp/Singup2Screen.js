@@ -6,7 +6,8 @@ import { Picker } from '@react-native-picker/picker';  // นำเข้าจ�
 const Singup2Screen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { email, password } = route.params;
+  // ป้องกัน error ถ้า route.params เป็น undefined
+  const { email = '', password = '' } = route.params || {};
   const [name, setName] = useState('');
   const [selectedCountryCode, setSelectedCountryCode] = useState('+66');
   const [phoneNumber, setPhoneNumber] = useState('');
