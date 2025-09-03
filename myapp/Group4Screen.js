@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 
 const API_URL =
-  'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgczzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD';
+  'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD';
 
 const Group4Screen = ({ navigation, route }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
