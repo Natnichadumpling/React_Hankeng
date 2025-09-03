@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
-const Page1Screen = () => {
+const Page1Screen = ({ route }) => {
   const navigation = useNavigation();
+  const email = route?.params?.email;
 
   return (
     <ImageBackground
@@ -68,7 +69,7 @@ const Page1Screen = () => {
         {/* Finish Button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('Page2Screen')}
+          onPress={() => navigation.navigate('Page2Screen', { email })}
         >
           <Text style={styles.buttonText}>เสร็จสิ้น</Text>
         </TouchableOpacity>
