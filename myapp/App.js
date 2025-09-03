@@ -23,7 +23,7 @@ import Group4Screen from './Group4Screen';   // แนบหลักฐาน
 import Group5Screen from './Group5Screen';
 import SettingScreen from './SettingScreen';
 
-// ✅ เพิ่มหน้าสรุปรายการโอน
+// ✅ หน้าสรุปรายการโอน
 import Group6Screen from './Group6Screen';
 
 const Stack = createStackNavigator();
@@ -31,7 +31,10 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="HomeScreen" screenOptions={{ headerTitleAlign: 'center' }}>
+      <Stack.Navigator
+        initialRouteName="HomeScreen"
+        screenOptions={{ headerTitleAlign: 'center' }}
+      >
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="Home2Screen" component={Home2Screen} />
         <Stack.Screen name="Home3Screen" component={Home3Screen} />
@@ -49,7 +52,6 @@ export default function App() {
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
         <Stack.Screen name="Group5Screen" component={Group5Screen} />
-        {/* ✅ หน้าสรุปรายการโอน */}
         <Stack.Screen
           name="Group6Screen"
           component={Group6Screen}
