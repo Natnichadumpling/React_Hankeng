@@ -1,8 +1,10 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-// import { SUPABASE_URL, SUPABASE_KEY } from '@env';
-// console.log(SUPABASE_URL, SUPABASE_KEY);
+
+// เพิ่มการ import หน้าจอที่ต้องการเชื่อมไป
+import AddPersonScreen from './AddPersonScreen';  // นำเข้าหน้าเพิ่มสมาชิก
+import AddItemScreen from './AddItemScreen';      // นำเข้าหน้าเพิ่มรายการค่าใช้จ่าย
 import HomeScreen from './HomeScreen';
 import Home2Screen from './Home2Screen';
 import Home3Screen from './Home3Screen';
@@ -18,7 +20,7 @@ import Page2Screen from './Page2Screen';
 import GroupScreen from './GroupScreen';
 import Group2Screen from './Group2Screen';
 import Group3Screen from './Group3Screen';
-import Group4Screen from './Group4Screen'; // เพิ่มการ import Group4Screen
+import Group4Screen from './Group4Screen'; 
 import Group5Screen from './Group5Screen';
 // import Group6Screen from './Group6Screen';
 
@@ -28,6 +30,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="HomeScreen">
+        {/* หน้าเดิม */}
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="Home2Screen" component={Home2Screen} />
         <Stack.Screen name="Home3Screen" component={Home3Screen} />
@@ -45,6 +48,8 @@ export default function App() {
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
         <Stack.Screen name="Group5Screen" component={Group5Screen} />
+        <Stack.Screen name="AddPerson" component={AddPersonScreen} />
+        <Stack.Screen name="AddItem" component={AddItemScreen} />
         {/* <Stack.Screen name="Group6Screen" component={Group6Screen} /> */}
       </Stack.Navigator>
     </NavigationContainer>
