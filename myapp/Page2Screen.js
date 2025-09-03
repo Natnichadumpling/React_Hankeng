@@ -68,23 +68,22 @@ const Page2Screen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="ค้นหา"
-              placeholderTextColor="#999"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
-                <Text style={styles.diamondIcon}>💎</Text>
-              </TouchableOpacity>
-          </View>
+        <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="ค้นหา"
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          
+          <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+            <Text style={styles.diamondIcon}>💎</Text>
+          </TouchableOpacity>
         </View>
 
+      
         {/* Main Card */}
         <View style={styles.mainCard}>
           <View style={styles.cardHeader}>
@@ -146,6 +145,7 @@ const Page2Screen = () => {
         </View>
       </ScrollView>
 
+    
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         {bottomTabs.map((tab, index) => (
@@ -154,12 +154,16 @@ const Page2Screen = () => {
             style={[styles.bottomTab, tab.active && styles.bottomTabActive]}
             onPress={() => {
               if (tab.name === 'กลุ่ม') {
-                handleNavigateToGroup3(); // Navigate to Group3Screen when 'กลุ่ม' is pressed
+                handleNavigateToGroup3(); // ไป Group3Screen
+              } else if (tab.name === 'บัญชี') {
+                navigation.navigate('SettingScreen'); // ไป SettingScreen
               }
             }}
           >
-            <Image source={tab.icon} style={styles.bottomTabIcon} /> {/* แสดงภาพแทนไอคอน */}
-            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>{tab.name}</Text>
+            <Image source={tab.icon} style={styles.bottomTabIcon} />
+            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>
+              {tab.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>

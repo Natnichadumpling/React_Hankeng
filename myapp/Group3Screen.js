@@ -27,7 +27,10 @@ const Group3Screen = ({ navigation }) => {
                 value={searchText}
                 onChangeText={setSearchText}
               />
-              <Text style={styles.diamondIcon}>💎</Text>
+              {/* 💎 กดแล้วไป ProScreen */}
+              <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+                <Text style={styles.diamondIcon}>💎</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -53,38 +56,28 @@ const Group3Screen = ({ navigation }) => {
 
         {/* Bottom Navigation Bar */}
         <View style={styles.bottomTabBar}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Home')}>
-            <Image
-              source={require('./assets/images/logo1.png')}
-              style={styles.iconImage}
-            />
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Page2Screen')}>
+            <Image source={require('./assets/images/logo1.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>หน้าหลัก</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Group')}>
-            <Image
-              source={require('./assets/images/logo2.png')}
-              style={styles.iconImage}
-            />
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Group3Screen')}>
+            <Image source={require('./assets/images/logo2.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>กลุ่ม</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Activities')}>
-            <Image
-              source={require('./assets/images/logo3.png')}
-              style={styles.iconImage}
-            />
+            <Image source={require('./assets/images/logo3.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>กิจกรรม</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Account')}>
-            <Image
-              source={require('./assets/images/logo4.png')}
-              style={styles.iconImage}
-            />
+          {/* ⬇️ เปลี่ยนตรงนี้ */}
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('SettingScreen')}>
+            <Image source={require('./assets/images/logo4.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>บัญชี</Text>
           </TouchableOpacity>
         </View>
+
       </SafeAreaView>
     </ImageBackground>
   );
