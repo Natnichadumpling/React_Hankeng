@@ -43,7 +43,7 @@ const LoginScreen = () => {
     if (error || !data || data.length === 0) {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
-      navigation.navigate('PageScreen');
+      navigation.navigate('PageScreen', { email });
     }
   };
 

@@ -1,11 +1,26 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, ImageBackground, Image } from 'react-native';
+import { supabase } from './supabaseClient';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 
 const PageScreen = ({ route }) => {
   const navigation = useNavigation();
-  const userName = route?.params?.name || 'Sopitnana';
+  const email = route?.params?.email;
+  const [userName, setUserName] = useState('Sopitnana');
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!email) return;
+      const { data, error } = await supabase
+        .from('users')
+        .select('name')
+        .eq('email', email)
+        .single();
+      if (data && data.name) setUserName(data.name);
+    };
+    fetchUserName();
+  }, [email]);
 
   return (
     <ImageBackground
