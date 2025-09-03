@@ -1,38 +1,66 @@
+// Group5Screen.js
 import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  Modal,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  TextInput, Alert, Modal,
 } from 'react-native';
 
-/* =========================================================================
- * 1) DEFAULTS
- * ========================================================================= */
-const DEFAULT_GROUP = {
-  groupName: 'กลุ่มของเรา',
-  members: ['คุณ', 'เพื่อน A', 'เพื่อน B'],
+const round2 = (x) => Math.round(x * 100) / 100;
+const evenSplitMap = (total, names) => {
+  const n = names.length;
+  if (!n) return {};
+  const cents = Math.round(total * 100);
+  const base = Math.floor(cents / n);
+  let rem = cents - base * n;
+  const res = {};
+  names.forEach((name) => {
+    const add = rem > 0 ? 1 : 0;
+    res[name] = (base + add) / 100;
+    if (rem > 0) rem -= 1;
+  });
+  return res;
 };
 
-/* เช็กบ็อกซ์แบบกดได้ ใช้ได้ทั้ง Android/iOS */
-const CheckBox = ({ checked, onToggle, label }) => (
-  <TouchableOpacity onPress={onToggle} style={styles.checkboxRow} activeOpacity={0.7}>
-    <View style={[styles.checkboxSquare, checked && styles.checkboxSquareOn]}>
-      {checked ? <Text style={styles.checkboxTick}>✓</Text> : null}
-    </View>
-    {label ? <Text style={styles.checkboxRowLabel}>{label}</Text> : null}
-  </TouchableOpacity>
-);
+const DEFAULT_GROUP = { groupName: 'กลุ่มของเรา', members: ['คุณ', 'เพื่อน A', 'เพื่อน B'] };
 
-/* =========================================================================
- * 2) COMPONENT
- * ========================================================================= */
-const Group5Screen = ({ route, navigation }) => {
-  // -------- 2.1 Props & State
+const NetBadge = ({ net }) => {
+  if (Math.abs(net) < 0.01) return <Text style={[styles.badge, styles.badgeGrey]}>เท่ากันพอดี</Text>;
+  if (net > 0) return <Text style={[styles.badge, styles.badgeGreen]}>รับคืน ฿{net.toFixed(2)}</Text>;
+  return <Text style={[styles.badge, styles.badgeRed]}>ต้องจ่าย ฿{Math.abs(net).toFixed(2)}</Text>;
+};
+
+const PersonCard = ({ name, paidTotal, oweTotal, paidItems, owedItems, expanded, onToggle }) => {
+  const net = round2(paidTotal - oweTotal);
+  return (
+    <View style={styles.card}>
+      <TouchableOpacity style={styles.cardHead} onPress={onToggle} activeOpacity={0.7}>
+        <Text style={styles.personTitle}>{name}</Text>
+        <NetBadge net={net} />
+      </TouchableOpacity>
+
+      <View style={styles.row}><Text style={styles.rowLabel}>ออกให้กลุ่ม</Text><Text style={styles.rowValue}>฿{paidTotal.toFixed(2)}</Text></View>
+      <View style={styles.row}><Text style={styles.rowLabel}>ส่วนที่ต้องรับผิดชอบ</Text><Text style={styles.rowValue}>฿{oweTotal.toFixed(2)}</Text></View>
+
+      {expanded && (
+        <View style={styles.detailBox}>
+          <Text style={styles.detailTitle}>รายการที่จ่ายให้กลุ่ม</Text>
+          {paidItems.length ? paidItems.map((it, i) => (
+            <Text key={`p-${i}`} style={styles.dot}>• {it.itemName}: ฿{it.amount.toFixed(2)}</Text>
+          )) : <Text style={styles.muted}>— ไม่มี —</Text>}
+
+          <View style={styles.divider} />
+
+          <Text style={styles.detailTitle}>รายละเอียดที่ควรจ่าย</Text>
+          {owedItems.length ? owedItems.map((it, i) => (
+            <Text key={`o-${i}`} style={styles.dot}>• {it.itemName}: ฿{it.share.toFixed(2)}</Text>
+          )) : <Text style={styles.muted}>— ไม่มี —</Text>}
+        </View>
+      )}
+    </View>
+  );
+};
+
+export default function Group5Screen({ route, navigation }) {
   const groupData = route?.params?.groupData || DEFAULT_GROUP;
 
   const [people, setPeople] = useState(groupData.members);
@@ -45,196 +73,135 @@ const Group5Screen = ({ route, navigation }) => {
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
   const [isAddItemOpen, setIsAddItemOpen] = useState(false);
 
-  // โอนที่ “ทำเครื่องหมายว่าชำระแล้ว” (key = `${from}|${to}`)
-  const [settledMap, setSettledMap] = useState({});
-  const [showSettled, setShowSettled] = useState(false);
+  const [editPayersOpen, setEditPayersOpen] = useState(false);
+  const [editItemId, setEditItemId] = useState(null);
+  const [editAmounts, setEditAmounts] = useState({});
 
-  /* =========================================================================
-   * 3) HELPERS
-   * ========================================================================= */
-  const makeTransferKey = (from, to) => `${from}|${to}`;
+  const [expandedMap, setExpandedMap] = useState({});
 
-  const confirm = (title, message, onConfirm) => {
-    Alert.alert(title, message, [
-      { text: 'ยกเลิก', style: 'cancel' },
-      { text: 'ตกลง', onPress: onConfirm },
-    ]);
-  };
-
-  /* =========================================================================
-   * 4) MEMOIZED SUMMARIES
-   * ========================================================================= */
   const summary = useMemo(() => {
-    const balances = {};
-    const shouldPayDetail = {};
-    const paidDetail = {};
+    const balances = {}, shouldPayDetail = {}, paidDetail = {};
+    people.forEach((p) => { balances[p] = 0; shouldPayDetail[p] = []; paidDetail[p] = []; });
 
-    people.forEach((p) => {
-      balances[p] = 0;
-      shouldPayDetail[p] = [];
-      paidDetail[p] = [];
-    });
-
-    items.forEach((item) => {
-      const { paidBy, sharedBy, price, name } = item;
-      const n = sharedBy.length;
-      if (n === 0) return;
-
+    items.forEach(({ price, name, sharedBy = [], paidByMap = {} }) => {
+      const n = sharedBy.length; if (!n) return;
       const share = price / n;
-
-      // ผู้จ่ายล่วงหน้า
-      balances[paidBy] += price;
-      paidDetail[paidBy].push({ itemName: name, amount: price });
-
-      // ผู้ร่วมหาร
-      sharedBy.forEach((p) => {
-        balances[p] -= share;
-        shouldPayDetail[p].push({ itemName: name, share });
+      Object.entries(paidByMap).forEach(([payer, amt]) => {
+        if (!(payer in balances)) return;
+        balances[payer] += amt;
+        paidDetail[payer].push({ itemName: name, amount: amt });
+      });
+      sharedBy.forEach((person) => {
+        if (!(person in balances)) return;
+        balances[person] -= share;
+        shouldPayDetail[person].push({ itemName: name, share });
       });
     });
-
     return { balances, shouldPayDetail, paidDetail };
   }, [items, people]);
 
-  // ลูกหนี้->เจ้าหนี้
-  const allTransfers = useMemo(() => {
-    const debtors = [];
-    const creditors = [];
-
-    Object.entries(summary.balances).forEach(([person, amt]) => {
-      if (amt < -0.01) debtors.push({ person, amount: Math.abs(amt) });
-      else if (amt > 0.01) creditors.push({ person, amount: amt });
-    });
-
-    debtors.sort((a, b) => b.amount - a.amount);
-    creditors.sort((a, b) => b.amount - a.amount);
-
-    const list = [];
-    let i = 0, j = 0;
-
-    while (i < debtors.length && j < creditors.length) {
-      const d = debtors[i];
-      const c = creditors[j];
-      const amount = Math.min(d.amount, c.amount);
-
-      if (amount > 0.01) {
-        const key = makeTransferKey(d.person, c.person);
-        const settled = !!settledMap[key];
-        list.push({ from: d.person, to: c.person, amount, key, settled, note: settledMap[key]?.note });
-      }
-
-      d.amount -= amount;
-      c.amount -= amount;
-      if (d.amount < 0.01) i++;
-      if (c.amount < 0.01) j++;
-    }
-
-    return list;
-  }, [summary.balances, settledMap]);
-
-  const transfers = useMemo(
-    () => allTransfers.filter((t) => (showSettled ? true : !t.settled)),
-    [allTransfers, showSettled]
-  );
-
-  /* =========================================================================
-   * 5) EVENT HANDLERS
-   * ========================================================================= */
-  // People
   const onAddPerson = () => {
-    const name = newPersonName.trim();
-    if (!name) return;
-    setPeople((prev) => [...prev, name]);
-    setNewPersonName('');
-    setIsAddPersonOpen(false);
+    const name = newPersonName.trim(); if (!name) return;
+    setPeople((p) => [...p, name]); setNewPersonName(''); setIsAddPersonOpen(false);
   };
 
   const onRemovePerson = (person) => {
-    if (people.length <= 1) {
-      Alert.alert('ไม่สามารถลบได้', 'ต้องมีสมาชิกอย่างน้อย 1 คน');
-      return;
-    }
-    confirm(
-      'ยืนยันการลบ',
-      `ต้องการลบ "${person}" ออกจากกลุ่มใช่หรือไม่?\n\nจะลบออกจากรายการค่าใช้จ่ายทั้งหมดด้วย`,
-      () => {
-        setPeople((prev) => prev.filter((p) => p !== person));
-        setItems((prev) =>
-          prev.map((item) => ({
-            ...item,
-            paidBy: item.paidBy === person ? people.find((p) => p !== person) : item.paidBy,
-            sharedBy: item.sharedBy.filter((p) => p !== person),
-          }))
-        );
-      }
-    );
-  };
-
-  // Items
-  const onAddItem = () => {
-    const name = newItemName.trim();
-    const price = parseFloat(newItemPrice);
-
-    if (!name || !newItemPrice.trim() || isNaN(price) || price <= 0) {
-      Alert.alert('ข้อผิดพลาด', 'กรุณาใส่ชื่อรายการและราคาที่ถูกต้อง');
-      return;
-    }
-
-    setItems((prev) => [
-      ...prev,
-      { id: Date.now(), name, price, paidBy: 'คุณ', sharedBy: [] },
+    if (people.length <= 1) return Alert.alert('ไม่สามารถลบได้', 'ต้องมีสมาชิกอย่างน้อย 1 คน');
+    Alert.alert('ยืนยันการลบ', `ลบ "${person}" ออกจากกลุ่มและรายการทั้งหมด`, [
+      { text: 'ยกเลิก', style: 'cancel' },
+      {
+        text: 'ตกลง', onPress: () => {
+          setPeople((prev) => prev.filter((p) => p !== person));
+          setItems((prev) => prev.map((it) => {
+            const nextPaid = { ...(it.paidByMap || {}) }; delete nextPaid[person];
+            return { ...it, paidByMap: nextPaid, sharedBy: (it.sharedBy || []).filter((p) => p !== person) };
+          }));
+        }
+      },
     ]);
-    setNewItemName('');
-    setNewItemPrice('');
-    setIsAddItemOpen(false);
   };
 
-  const onRemoveItem = (itemId) => setItems((prev) => prev.filter((it) => it.id !== itemId));
+  const onAddItem = () => {
+    const name = newItemName.trim(); const price = parseFloat(newItemPrice);
+    if (!name || !newItemPrice.trim() || isNaN(price) || price <= 0)
+      return Alert.alert('ข้อผิดพลาด', 'กรุณาใส่ชื่อรายการและราคาที่ถูกต้อง');
 
-  const onUpdatePaidBy = (itemId, person) => {
-    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, paidBy: person } : it)));
+    setItems((prev) => [...prev, { id: Date.now(), name, price: round2(price), paidByMap: { คุณ: round2(price) }, sharedBy: [] }]);
+    setNewItemName(''); setNewItemPrice(''); setIsAddItemOpen(false);
+  };
+
+  const onRemoveItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
+
+  const onTogglePayer = (itemId, person) => {
+    setItems((prev) => prev.map((it) => {
+      if (it.id !== itemId) return it;
+      const selected = Object.entries(it.paidByMap || {}).filter(([, a]) => a > 0.0001).map(([n]) => n);
+      let next = selected.includes(person)
+        ? (selected.length === 1 ? selected : selected.filter((n) => n !== person))
+        : [...selected, person];
+      if (!next.length) next = ['คุณ'];
+      return { ...it, paidByMap: evenSplitMap(it.price, next) };
+    }));
+  };
+
+  const openEditPayers = (item) => {
+    const map = item.paidByMap || {};
+    const selected = Object.entries(map).filter(([, a]) => a > 0.0001).map(([n]) => n);
+    const init = selected.length ? map : { คุณ: item.price };
+    const asStr = {}; Object.entries(init).forEach(([n, a]) => (asStr[n] = String(a)));
+    setEditItemId(item.id); setEditAmounts(asStr); setEditPayersOpen(true);
+  };
+
+  const confirmEditPayers = () => {
+    const price = items.find((it) => it.id === editItemId)?.price || 0;
+    const parsed = {}; let sum = 0;
+    Object.entries(editAmounts).forEach(([n, v]) => {
+      const val = parseFloat(v); if (!isNaN(val) && val > 0) { parsed[n] = round2(val); sum += round2(val); }
+    });
+    if (Math.abs(sum - price) > 0.009)
+      return Alert.alert('ยอดไม่ตรง', `ยอดรวมผู้จ่ายต้องเท่ากับราคา ฿${price.toFixed(2)} (ตอนนี้รวมได้ ฿${sum.toFixed(2)})`);
+
+    setItems((prev) => prev.map((it) => (it.id === editItemId ? { ...it, paidByMap: parsed } : it)));
+    setEditPayersOpen(false); setEditItemId(null); setEditAmounts({});
   };
 
   const onToggleSharedBy = (itemId, person) => {
-    setItems((prev) =>
-      prev.map((it) => {
-        if (it.id !== itemId) return it;
-        const included = it.sharedBy.includes(person);
-        return {
-          ...it,
-          sharedBy: included ? it.sharedBy.filter((p) => p !== person) : [...it.sharedBy, person],
-        };
-      })
-    );
+    setItems((prev) => prev.map((it) => {
+      if (it.id !== itemId) return it;
+      const on = (it.sharedBy || []).includes(person);
+      return { ...it, sharedBy: on ? it.sharedBy.filter((p) => p !== person) : [...it.sharedBy, person] };
+    }));
   };
 
-  // Settlements
-  const onClearAllSettled = () => confirm('ยืนยัน', 'ล้างสถานะชำระแล้วทั้งหมด?', () => setSettledMap({}));
+  const goSummary = () => {
+    navigation.navigate('Group6Screen', { groupName: groupData.groupName || 'กลุ่มของเรา', people, items });
+  };
 
-  /* =========================================================================
-   * 6) UI
-   * ========================================================================= */
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 32 }}>
-      {/* Header */}
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.header}>{groupData.groupName}</Text>
-      <Text style={styles.subHeader}>หารค่าใช้จ่าย</Text>
+      <Text style={styles.subHeader}>จัดรายการ + สรุปยอดต่อคน</Text>
+
+      <View style={{ alignItems: 'center', marginBottom: 12 }}>
+        <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#10b981' }]} onPress={goSummary}>
+          <Text style={styles.primaryBtnText}>หน้าสรุปรายการ</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Members */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>รายชื่อสมาชิก ({people.length} คน)</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsAddPersonOpen(true)} activeOpacity={0.8}>
-            <Text style={styles.addButtonText}>+ เพิ่มคน</Text>
+          <Text style={styles.sectionTitle}>สมาชิก ({people.length})</Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => setIsAddPersonOpen(true)}>
+            <Text style={styles.primaryBtnText}>+ เพิ่มคน</Text>
           </TouchableOpacity>
         </View>
-
-        <View style={styles.peopleContainer}>
+        <View style={styles.peopleWrap}>
           {people.map((person) => (
             <View key={person} style={styles.personChip}>
-              <Text style={styles.personName}>{person}</Text>
-              <TouchableOpacity onPress={() => onRemovePerson(person)} style={styles.removePersonButton} activeOpacity={0.8}>
-                <Text style={styles.removePersonButtonText}>×</Text>
+              <Text style={styles.personText}>{person}</Text>
+              <TouchableOpacity onPress={() => onRemovePerson(person)} style={styles.personRemove}>
+                <Text style={styles.personRemoveText}>×</Text>
               </TouchableOpacity>
             </View>
           ))}
@@ -244,65 +211,64 @@ const Group5Screen = ({ route, navigation }) => {
       {/* Items */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>รายการค่าใช้จ่าย ({items.length} รายการ)</Text>
-          <TouchableOpacity style={styles.addButton} onPress={() => setIsAddItemOpen(true)} activeOpacity={0.8}>
-            <Text style={styles.addButtonText}>+ เพิ่มรายการ</Text>
+          <Text style={styles.sectionTitle}>รายการ ({items.length})</Text>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => setIsAddItemOpen(true)}>
+            <Text style={styles.primaryBtnText}>+ เพิ่มรายการ</Text>
           </TouchableOpacity>
         </View>
 
         {items.map((item) => {
-          const perHead = item.sharedBy.length > 0 ? (item.price / item.sharedBy.length).toFixed(2) : null;
+          const perHead = (item.sharedBy?.length || 0) > 0 ? (item.price / item.sharedBy.length).toFixed(2) : null;
+          const selectedPayers = Object.entries(item.paidByMap || {}).filter(([, a]) => a > 0.0001).map(([n]) => n);
+          const payerSummary = selectedPayers.map((n) => `${n}: ฿${(item.paidByMap[n] || 0).toFixed(2)}`).join(', ');
 
           return (
             <View key={item.id} style={styles.itemCard}>
-              {/* ชื่อรายการ / ราคา / ลบ */}
-              <View style={styles.itemHeader}>
+              <View style={styles.itemHead}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemPrice}>฿{item.price.toFixed(2)}</Text>
-                <TouchableOpacity onPress={() => onRemoveItem(item.id)} style={styles.deleteButton} activeOpacity={0.8}>
-                  <Text style={styles.deleteButtonText}>×</Text>
+                <TouchableOpacity onPress={() => onRemoveItem(item.id)} style={styles.deleteBtn}>
+                  <Text style={styles.deleteBtnText}>×</Text>
                 </TouchableOpacity>
               </View>
 
-              {/* ผู้จ่าย */}
-              <Text style={styles.itemSubtext}>จ่ายโดย:</Text>
-              <View style={styles.checkboxContainer}>
-                {people.map((p) => (
-                  <TouchableOpacity
-                    key={`${item.id}-paid-${p}`}
-                    style={[styles.checkbox, item.paidBy === p && styles.paidByChecked]}
-                    onPress={() => onUpdatePaidBy(item.id, p)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.checkboxText, item.paidBy === p && styles.paidByTextChecked]}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
+              <Text style={styles.helpText}>จ่ายโดย (เลือกได้หลายคน):</Text>
+              <View style={styles.wrapRow}>
+                {people.map((p) => {
+                  const on = selectedPayers.includes(p);
+                  return (
+                    <TouchableOpacity key={`${item.id}-payer-${p}`} onPress={() => onTogglePayer(item.id, p)} style={[styles.chip, on && styles.chipPayerOn]}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{p}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
 
-              {/* ผู้ร่วมหาร */}
-              <Text style={styles.itemSubtext}>คนที่ต้องหาร:</Text>
-              <View style={styles.checkboxContainer}>
-                {people.map((p) => (
-                  <TouchableOpacity
-                    key={`${item.id}-share-${p}`}
-                    style={[styles.checkbox, item.sharedBy.includes(p) && styles.checkboxChecked]}
-                    onPress={() => onToggleSharedBy(item.id, p)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.checkboxText, item.sharedBy.includes(p) && styles.checkboxTextChecked]}>{p}</Text>
-                  </TouchableOpacity>
-                ))}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
+                <Text style={styles.helpText}>ยอดที่ออกจริง: </Text>
+                <Text style={styles.helpTextStrong}>{payerSummary || '-'}</Text>
               </View>
 
-              {/* Breakdown ต่อหัว */}
+              <TouchableOpacity style={[styles.smallBtn, { backgroundColor: '#8e44ad' }]} onPress={() => openEditPayers(item)}>
+                <Text style={styles.smallBtnText}>แก้ไขยอดผู้จ่าย</Text>
+              </TouchableOpacity>
+
+              <Text style={[styles.helpText, { marginTop: 10 }]}>คนที่ต้องหาร:</Text>
+              <View style={styles.wrapRow}>
+                {people.map((p) => {
+                  const on = (item.sharedBy || []).includes(p);
+                  return (
+                    <TouchableOpacity key={`${item.id}-share-${p}`} onPress={() => onToggleSharedBy(item.id, p)} style={[styles.chip, on && styles.chipShareOn]}>
+                      <Text style={[styles.chipText, on && styles.chipTextOn]}>{p}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {perHead && (
-                <View style={styles.shareDetailContainer}>
-                  <Text style={styles.shareInfo}>หารกัน {item.sharedBy.length} คน = ฿{perHead}/คน</Text>
-                  <View style={styles.shareBreakdown}>
-                    {item.sharedBy.map((p) => (
-                      <Text key={`${item.id}-line-${p}`} style={styles.shareBreakdownItem}>• {p}: ฿{perHead}</Text>
-                    ))}
-                  </View>
+                <View style={styles.breakdownBox}>
+                  <Text style={styles.breakdownTitle}>หาร {item.sharedBy.length} คน = ฿{perHead}/คน</Text>
+                  {item.sharedBy.map((p) => (<Text key={`${item.id}-${p}`} style={styles.dot}>• {p}: ฿{perHead}</Text>))}
                 </View>
               )}
             </View>
@@ -310,194 +276,99 @@ const Group5Screen = ({ route, navigation }) => {
         })}
       </View>
 
-      {/* Summary per person */}
+      {/* สรุปต่อคน */}
       {items.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>สรุปยอดแต่ละคน (พร้อมรายละเอียด)</Text>
-
-          {people.map((person) => {
-            const paidItems = summary.paidDetail[person] || [];
-            const owedItems = summary.shouldPayDetail[person] || [];
-
-            const totalPaid = paidItems.reduce((s, it) => s + it.amount, 0);
-            const totalOwed = owedItems.reduce((s, it) => s + it.share, 0);
-            const balance = summary.balances[person] || 0;
-
-            return (
-              <View key={`sum-${person}`} style={styles.balanceCard}>
-                <Text style={styles.personNameLarge}>{person}</Text>
-
-                <Text style={[styles.balanceItem, { fontWeight: '600', marginTop: 6 }]}>รายการที่จ่ายให้กลุ่ม:</Text>
-                {paidItems.length ? (
-                  <View style={{ paddingLeft: 8, marginTop: 4 }}>
-                    {paidItems.map((it, idx) => (
-                      <Text key={`paid-${person}-${idx}`} style={styles.balanceItem}>• {it.itemName}: ฿{it.amount.toFixed(2)}</Text>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={[styles.balanceItem, { paddingLeft: 8 }]}>• ไม่มีรายการที่จ่ายให้กลุ่ม</Text>
-                )}
-
-                <Text style={[styles.balanceItem, { fontWeight: '600', marginTop: 10 }]}>รายละเอียดที่ควรจ่าย:</Text>
-                {owedItems.length ? (
-                  <View style={{ paddingLeft: 8, marginTop: 4 }}>
-                    {owedItems.map((it, idx) => (
-                      <Text key={`owed-${person}-${idx}`} style={styles.balanceItem}>• {it.itemName}: ฿{it.share.toFixed(2)}</Text>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={[styles.balanceItem, { paddingLeft: 8 }]}>• ไม่มีรายการที่ต้องจ่าย</Text>
-                )}
-
-                <View style={styles.separator} />
-                <View style={styles.balanceDetails}>
-                  <Text style={styles.balanceItem}>จ่ายไปแล้วรวม: <Text style={styles.paidAmount}>฿{totalPaid.toFixed(2)}</Text></Text>
-                  <Text style={styles.balanceItem}>ควรจ่ายรวม: <Text style={styles.owedAmount}>฿{totalOwed.toFixed(2)}</Text></Text>
-                  <View style={styles.separator} />
-                  {balance > 0.01 ? (
-                    <Text style={styles.balanceItem}>ยอดคงเหลือ (จะได้รับคืน): <Text style={styles.positiveBalance}>฿{balance.toFixed(2)}</Text></Text>
-                  ) : balance < -0.01 ? (
-                    <Text style={styles.balanceItem}>ยอดคงเหลือ (ต้องจ่ายเพิ่ม): <Text style={styles.negativeBalance}>฿{Math.abs(balance).toFixed(2)}</Text></Text>
-                  ) : (
-                    <Text style={styles.balanceItem}>ยอดคงเหลือ: <Text style={styles.evenBalance}>เท่ากันพอดี</Text></Text>
-                  )}
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Transfers (with settle + attach proof) */}
-      {items.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, styles.headerShrink]}>สรุปรายการชำระ/โอน</Text>
-
-            <View style={styles.actionsRow}>
-              {/* toggle show settled */}
-              <TouchableOpacity
-                style={[styles.addButton, styles.actionButton, { backgroundColor: showSettled ? '#7f8c8d' : '#3498db' }]}
-                onPress={() => setShowSettled((s) => !s)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.addButtonText}>
-                  {showSettled ? 'ซ่อนที่ชำระแล้ว' : 'แสดงที่ชำระแล้ว'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* clear all settled */}
-              <TouchableOpacity
-                style={[styles.addButton, styles.actionButton, { backgroundColor: '#e74c3c' }]}
-                onPress={onClearAllSettled}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.addButtonText}>ล้างสถานะทั้งหมด</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {transfers.length ? (
-            transfers.map((t) => {
-              const isSettled = !!settledMap[t.key];
-
-              const toggleSettle = () => {
-                setSettledMap((prev) => {
-                  const next = { ...prev };
-                  if (next[t.key]) delete next[t.key];
-                  else next[t.key] = { note: '' };
-                  return next;
-                });
-              };
-
-              const goAttachProof = () => {
-                navigation.navigate('Group4Screen', {
-                  groupName: route?.params?.groupData?.groupName || 'กลุ่มของเรา',
-                  transferKey: t.key,
-                  from: t.from,
-                  to: t.to,
-                  amount: t.amount,
-                });
-              };
+          <Text style={styles.sectionTitle}>สรุปยอดแต่ละคน</Text>
+          {people
+            .slice()
+            .sort((a, b) => (summary.balances[a] || 0) - (summary.balances[b] || 0)) // ต้องจ่ายขึ้นก่อน
+            .map((person) => {
+              const paidItems = (summary.paidDetail[person] || []).map((it) => ({ ...it, amount: round2(it.amount) }));
+              const owedItems = summary.shouldPayDetail[person] || [];
+              const paidTotal = paidItems.reduce((s, it) => s + it.amount, 0);
+              const oweTotal = owedItems.reduce((s, it) => s + it.share, 0);
 
               return (
-                <View key={t.key} style={styles.transferCard}>
-                  <Text style={styles.transferText}>
-                    <Text style={styles.fromPerson}>{t.from}</Text>
-                    {' ต้องโอนให้ '}
-                    <Text style={styles.toPerson}>{t.to}</Text>
-                    {' จำนวน '}
-                    <Text style={styles.transferAmount}>฿{t.amount.toFixed(2)}</Text>
-                  </Text>
-
-                  <View style={styles.transferActions}>
-                    <CheckBox checked={isSettled} onToggle={toggleSettle} label="ทำเครื่องหมายว่าชำระแล้ว" />
-
-                    <TouchableOpacity onPress={goAttachProof} style={styles.attachButton} activeOpacity={0.8}>
-                      <Text style={styles.attachButtonText}>แนบหลักฐาน</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                <PersonCard
+                  key={`sum-${person}`}
+                  name={person}
+                  paidTotal={paidTotal}
+                  oweTotal={oweTotal}
+                  paidItems={paidItems}
+                  owedItems={owedItems}
+                  expanded={!!expandedMap[person]}
+                  onToggle={() => setExpandedMap((m) => ({ ...m, [person]: !m[person] }))}
+                />
               );
-            })
-          ) : (
-            <View style={styles.transferCard}>
-              <Text style={styles.transferText}>ไม่มีรายการที่ต้องชำระเพิ่มเติม</Text>
-            </View>
-          )}
+            })}
         </View>
       )}
 
-      {/* Modal: Add Person */}
+      {/* ---------- Modals ---------- */}
+      {/* Add Person */}
       <Modal transparent animationType="slide" visible={isAddPersonOpen}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>เพิ่มสมาชิกใหม่</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="ชื่อสมาชิก"
-              value={newPersonName}
-              onChangeText={setNewPersonName}
-              autoCorrect={false}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddPersonOpen(false)}>
-                <Text style={styles.cancelButtonText}>ยกเลิก</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmButton} onPress={onAddPerson}>
-                <Text style={styles.confirmButtonText}>เพิ่ม</Text>
-              </TouchableOpacity>
+            <TextInput style={styles.input} placeholder="ชื่อสมาชิก" value={newPersonName} onChangeText={setNewPersonName} />
+            <View style={styles.modalRow}>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnGrey]} onPress={() => setIsAddPersonOpen(false)}><Text style={styles.modalBtnText}>ยกเลิก</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnBlue]} onPress={onAddPerson}><Text style={styles.modalBtnText}>เพิ่ม</Text></TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Modal: Add Item */}
+      {/* Add Item */}
       <Modal transparent animationType="slide" visible={isAddItemOpen}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>เพิ่มรายการค่าใช้จ่าย</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="ชื่อรายการ เช่น ข้าวผัด"
-              value={newItemName}
-              onChangeText={setNewItemName}
-              autoCorrect={false}
-            />
-            <TextInput
-              style={styles.textInput}
-              placeholder="ราคา เช่น 50"
-              value={newItemPrice}
-              onChangeText={setNewItemPrice}
-              keyboardType="numeric"
-              autoCorrect={false}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setIsAddItemOpen(false)}>
-                <Text style={styles.cancelButtonText}>ยกเลิก</Text>
+            <TextInput style={styles.input} placeholder="ชื่อรายการ เช่น kfc" value={newItemName} onChangeText={setNewItemName} />
+            <TextInput style={styles.input} placeholder="ราคา เช่น 160" keyboardType="numeric" value={newItemPrice} onChangeText={setNewItemPrice} />
+            <View style={styles.modalRow}>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnGrey]} onPress={() => setIsAddItemOpen(false)}><Text style={styles.modalBtnText}>ยกเลิก</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnBlue]} onPress={onAddItem}><Text style={styles.modalBtnText}>เพิ่ม</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit payers */}
+      <Modal transparent animationType="fade" visible={editPayersOpen}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>แก้ไขยอดผู้จ่าย</Text>
+            <Text style={styles.muted}>ใส่ยอดที่ออกจริงของแต่ละคน (ผลรวมต้องเท่ากับราคาของรายการ)</Text>
+
+            {Object.keys(editAmounts).length
+              ? Object.entries(editAmounts).map(([name, val]) => (
+                  <View key={`edit-${name}`} style={{ marginTop: 8 }}>
+                    <Text style={{ marginBottom: 6, color: '#111827' }}>{name}</Text>
+                    <TextInput style={styles.input} keyboardType="numeric" value={String(val)} onChangeText={(t) => setEditAmounts((prev) => ({ ...prev, [name]: t }))} />
+                  </View>
+                ))
+              : <Text style={[styles.muted, { marginTop: 8 }]}>ยังไม่มีผู้จ่าย</Text>}
+
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginTop: 10 }}>
+              {people.map((p) => {
+                const on = Object.prototype.hasOwnProperty.call(editAmounts, p);
+                return (
+                  <TouchableOpacity key={`toggle-${p}`} style={[styles.chip, on && styles.chipPayerOn, { marginBottom: 8 }]}
+                    onPress={() => setEditAmounts((prev) => { const n = { ...prev }; if (on) delete n[p]; else n[p] = '0'; return n; })}>
+                    <Text style={[styles.chipText, on && styles.chipTextOn]}>{p}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalRow}>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnGrey]} onPress={() => { setEditPayersOpen(false); setEditItemId(null); setEditAmounts({}); }}>
+                <Text style={styles.modalBtnText}>ยกเลิก</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.confirmButton} onPress={onAddItem}>
-                <Text style={styles.confirmButtonText}>เพิ่ม</Text>
+              <TouchableOpacity style={[styles.modalBtn, styles.btnBlue]} onPress={confirmEditPayers}>
+                <Text style={styles.modalBtnText}>บันทึก</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -505,112 +376,73 @@ const Group5Screen = ({ route, navigation }) => {
       </Modal>
     </ScrollView>
   );
-};
+}
 
-/* =========================================================================
- * 7) STYLES
- * ========================================================================= */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
+  container:{ flex:1, backgroundColor:'#f5f5f5', padding:16 },
+  header:{ fontSize:24, fontWeight:'700', color:'#111827', textAlign:'center' },
+  subHeader:{ fontSize:14, color:'#6b7280', textAlign:'center', marginBottom:12 },
 
-  header: {
-    fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8, color: '#2c3e50',
-  },
-  subHeader: { fontSize: 16, textAlign: 'center', marginBottom: 20, color: '#7f8c8d' },
+  section:{ backgroundColor:'#fff', borderRadius:12, padding:14, marginBottom:14, elevation:2 },
+  sectionHeader:{ flexDirection:'row', justifyContent:'space-between', marginBottom:10 },
+  sectionTitle:{ fontSize:16, fontWeight:'700', color:'#1f2937' },
 
-  section: {
-    marginBottom: 24, backgroundColor: 'white', borderRadius: 12, padding: 16,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
-  },
+  primaryBtn:{ backgroundColor:'#2563eb', paddingHorizontal:12, paddingVertical:8, borderRadius:10 },
+  primaryBtnText:{ color:'#fff', fontWeight:'700' },
 
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, flexWrap: 'wrap',
-  },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2c3e50' },
-  headerShrink: { flexShrink: 1, maxWidth: '100%' },
+  peopleWrap:{ flexDirection:'row', flexWrap:'wrap' },
+  personChip:{ flexDirection:'row', alignItems:'center', backgroundColor:'#eef2ff', borderRadius:20, paddingHorizontal:12, paddingVertical:6, marginRight:8, marginBottom:8 },
+  personText:{ color:'#1e293b' },
+  personRemove:{ width:18, height:18, borderRadius:9, backgroundColor:'#ef4444', alignItems:'center', justifyContent:'center', marginLeft:6 },
+  personRemoveText:{ color:'#fff', fontWeight:'700', lineHeight:18 },
 
-  addButton: { backgroundColor: '#3498db', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  addButtonText: { color: 'white', fontSize: 14, fontWeight: '600' },
+  itemCard:{ backgroundColor:'#f9fafb', borderRadius:10, padding:12, marginBottom:10, borderWidth:1, borderColor:'#e5e7eb' },
+  itemHead:{ flexDirection:'row', alignItems:'center', marginBottom:6 },
+  itemName:{ flex:1, fontSize:16, fontWeight:'600', color:'#111827' },
+  itemPrice:{ fontWeight:'700', color:'#ef4444', marginRight:8 },
+  deleteBtn:{ width:24, height:24, borderRadius:12, backgroundColor:'#ef4444', alignItems:'center', justifyContent:'center' },
+  deleteBtnText:{ color:'#fff', fontWeight:'700' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 4 },
-  actionButton: { marginRight: 8, marginBottom: 8 },
+  helpText:{ color:'#374151', fontSize:12 },
+  helpTextStrong:{ color:'#111827', fontSize:12, fontWeight:'600' },
 
-  peopleContainer: { flexDirection: 'row', flexWrap: 'wrap' },
-  personChip: {
-    backgroundColor: '#ecf0f1', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
-    flexDirection: 'row', alignItems: 'center', marginRight: 8, marginBottom: 8,
-  },
-  personName: { fontSize: 14, color: '#34495e', marginRight: 6 },
-  removePersonButton: {
-    backgroundColor: '#e74c3c', width: 16, height: 16, borderRadius: 8, justifyContent: 'center', alignItems: 'center',
-  },
-  removePersonButtonText: { color: 'white', fontSize: 12, fontWeight: 'bold', lineHeight: 16 },
+  wrapRow:{ flexDirection:'row', flexWrap:'wrap', marginTop:6, marginBottom:6 },
+  chip:{ borderWidth:1, borderColor:'#c7d2fe', backgroundColor:'#eef2ff', paddingHorizontal:10, paddingVertical:6, borderRadius:999, marginRight:6 },
+  chipText:{ color:'#374151', fontSize:12 },
+  chipTextOn:{ color:'#fff', fontWeight:'700' },
+  chipPayerOn:{ backgroundColor:'#f59e0b', borderColor:'#d97706' },
+  chipShareOn:{ backgroundColor:'#2563eb', borderColor:'#1d4ed8' },
 
-  itemCard: { backgroundColor: '#f8f9fa', padding: 16, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#e9ecef' },
-  itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  itemName: { fontSize: 16, fontWeight: '600', color: '#2c3e50', flex: 1 },
-  itemPrice: { fontSize: 16, fontWeight: 'bold', color: '#e74c3c', marginRight: 12 },
-  deleteButton: { backgroundColor: '#e74c3c', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  deleteButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  smallBtn:{ alignSelf:'flex-start', paddingHorizontal:10, paddingVertical:6, borderRadius:8 },
+  smallBtnText:{ color:'#fff', fontWeight:'700', fontSize:12 },
 
-  itemSubtext: { fontSize: 14, color: '#7f8c8d', marginBottom: 8 },
-  checkboxContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  checkbox: {
-    backgroundColor: '#ecf0f1', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1,
-    borderColor: '#bdc3c7', marginRight: 8, marginBottom: 8,
-  },
-  checkboxChecked: { backgroundColor: '#3498db', borderColor: '#2980b9' },
-  paidByChecked: { backgroundColor: '#e67e22', borderColor: '#d35400' },
-  checkboxText: { fontSize: 12, color: '#34495e' },
-  checkboxTextChecked: { color: 'white', fontWeight: '600' },
-  paidByTextChecked: { color: 'white', fontWeight: '600' },
+  breakdownBox:{ marginTop:6, backgroundColor:'#effdf7', borderLeftWidth:3, borderLeftColor:'#10b981', padding:8, borderRadius:6 },
+  breakdownTitle:{ color:'#065f46', fontSize:12, fontWeight:'600', marginBottom:4 },
+  dot:{ color:'#374151', fontSize:12, marginBottom:2 },
 
-  shareDetailContainer: { marginTop: 8 },
-  shareInfo: { fontSize: 12, color: '#27ae60', fontWeight: '600', textAlign: 'right', marginBottom: 4 },
-  shareBreakdown: { backgroundColor: '#f8fffe', padding: 8, borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#27ae60' },
-  shareBreakdownItem: { fontSize: 11, color: '#2c3e50', marginBottom: 2 },
+  card:{ backgroundColor:'#fff', borderRadius:12, padding:12, marginTop:10 },
+  cardHead:{ flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:8 },
+  personTitle:{ fontSize:16, fontWeight:'700', color:'#1f2937' },
+  row:{ flexDirection:'row', justifyContent:'space-between', marginVertical:2 },
+  rowLabel:{ color:'#374151' },
+  rowValue:{ color:'#111827', fontWeight:'600' },
+  detailBox:{ backgroundColor:'#f9fafb', borderRadius:8, padding:10, marginTop:8 },
+  detailTitle:{ fontWeight:'700', color:'#111827', marginBottom:6 },
+  muted:{ color:'#9ca3af' },
+  divider:{ height:1, backgroundColor:'#e5e7eb', marginVertical:8 },
 
-  balanceCard: { backgroundColor: '#f8f9fa', padding: 16, borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: '#e9ecef' },
-  personNameLarge: { fontSize: 16, fontWeight: 'bold', color: '#2c3e50', marginBottom: 8 },
-  balanceDetails: { paddingLeft: 12 },
-  balanceItem: { fontSize: 14, color: '#34495e', marginBottom: 4 },
-  paidAmount: { fontWeight: 'bold', color: '#3498db' },
-  owedAmount: { fontWeight: 'bold', color: '#e67e22' },
-  positiveBalance: { fontWeight: 'bold', color: '#27ae60' },
-  negativeBalance: { fontWeight: 'bold', color: '#e74c3c' },
-  evenBalance: { fontWeight: 'bold', color: '#7f8c8d' },
-  separator: { height: 1, backgroundColor: '#ecf0f1', marginVertical: 8 },
+  badge:{ paddingHorizontal:10, paddingVertical:4, borderRadius:999, color:'#fff', fontWeight:'800' },
+  badgeGreen:{ backgroundColor:'#10b981' },
+  badgeRed:{ backgroundColor:'#ef4444' },
+  badgeGrey:{ backgroundColor:'#6b7280' },
 
-  transferCard: { backgroundColor: '#eef8ee', padding: 12, borderRadius: 8, marginBottom: 8, borderLeftWidth: 4, borderLeftColor: '#27ae60' },
-  transferText: { fontSize: 14, color: '#2c3e50' },
-  fromPerson: { fontWeight: 'bold', color: '#e74c3c' },
-  toPerson: { fontWeight: 'bold', color: '#27ae60' },
-  transferAmount: { fontWeight: 'bold', color: '#f39c12', fontSize: 16 },
-
-  // เช็กบ็อกซ์แถว
-  checkboxRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 4, marginRight: 12 },
-  checkboxSquare: {
-    width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: '#95a5a6',
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', marginRight: 8,
-  },
-  checkboxSquareOn: { borderColor: '#27ae60', backgroundColor: '#e8f5e8' },
-  checkboxTick: { fontSize: 16, color: '#27ae60', fontWeight: '700' },
-  checkboxRowLabel: { fontSize: 14, color: '#2c3e50', fontWeight: '600' },
-
-  transferActions: { marginTop: 10, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
-  attachButton: { backgroundColor: '#8e44ad', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-  attachButtonText: { color: '#fff', fontWeight: '600' },
-
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: 'white', borderRadius: 16, padding: 24, width: '85%', maxWidth: 400 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#2c3e50' },
-  textInput: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12, marginBottom: 16, fontSize: 16 },
-
-  modalButtons: { flexDirection: 'row', marginTop: 4 },
-  cancelButton: { flex: 1, backgroundColor: '#95a5a6', padding: 12, borderRadius: 8, alignItems: 'center', marginRight: 8 },
-  cancelButtonText: { color: 'white', fontWeight: '600' },
-  confirmButton: { flex: 1, backgroundColor: '#3498db', padding: 12, borderRadius: 8, alignItems: 'center' },
-  confirmButtonText: { color: 'white', fontWeight: '600' },
+  modalOverlay:{ flex:1, backgroundColor:'rgba(0,0,0,0.5)', alignItems:'center', justifyContent:'center' },
+  modalContent:{ backgroundColor:'#fff', borderRadius:16, padding:18, width:'88%', maxWidth:420 },
+  modalTitle:{ fontSize:18, fontWeight:'700', color:'#111827', marginBottom:8, textAlign:'center' },
+  input:{ borderWidth:1, borderColor:'#e5e7eb', borderRadius:10, padding:10, fontSize:16, marginTop:8 },
+  modalRow:{ flexDirection:'row', marginTop:12 },
+  modalBtn:{ flex:1, padding:12, borderRadius:10, alignItems:'center' },
+  btnGrey:{ backgroundColor:'#6b7280', marginRight:8 },
+  btnBlue:{ backgroundColor:'#2563eb' },
+  modalBtnText:{ color:'#fff', fontWeight:'700' },
 });
-
-export default Group5Screen;
