@@ -10,7 +10,7 @@ const Singup3Screen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   // รับข้อมูลจาก Singup2Screen
-  const { email, password, name, phone } = route.params || {};
+  const { email, hashedPassword, name, phone } = route.params || {};
 
   // ฟังก์ชันบันทึกข้อมูลลง Supabase
   const handleSignup = async () => {
@@ -26,7 +26,7 @@ const Singup3Screen = () => {
     // ใช้ข้อมูลจาก route.params ถ้ามี
     const userData = {
       email: email || '',
-      password: password || '',
+      password: hashedPassword || '',
       name: name || '',
       phone: phone || (selectedCountryCode + phoneNumber)
     };

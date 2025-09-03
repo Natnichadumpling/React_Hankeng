@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
+import { hashPassword } from './utils/hashPassword';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -32,16 +33,17 @@ const LoginScreen = () => {
       return;
     }
     setLoading(true);
+    const hashedInput = await hashPassword(password);
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('email', email)
-      .eq('password', password);
+      .eq('password', hashedInput);
     setLoading(false);
     if (error || !data || data.length === 0) {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
-      navigation.navigate('PageScreen');
+      navigation.navigate('PageScreen', { email });
     }
   };
 

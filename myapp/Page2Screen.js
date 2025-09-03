@@ -1,10 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, ImageBackground, Image } from 'react-native';
+import { supabase } from './supabaseClient';
 import { useNavigation } from '@react-navigation/native';
 
-const Page2Screen = () => {
+const Page2Screen = ({ route }) => {
   const navigation = useNavigation();
   const [searchText, setSearchText] = useState('');
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    const email = route?.params?.email || '';
+    const fetchUserName = async () => {
+      if (!email) return;
+      const { data, error } = await supabase
+        .from('users')
+        .select('name')
+        .eq('email', email)
+        .single();
+      if (data && data.name) setUserName(data.name);
+    };
+    fetchUserName();
+  }, [route]);
 
   const activities = [
     {
@@ -53,7 +69,7 @@ const Page2Screen = () => {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>สวัสดี !</Text>
-            <Text style={styles.nameText}>Sopitnapa</Text>
+            <Text style={styles.nameText}>{userName || '...'}</Text>
           </View>
           {/* Profile Icon - Replace with logo image */}
           <View style={styles.profileIcon}>
@@ -68,23 +84,22 @@ const Page2Screen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="ค้นหา"
-              placeholderTextColor="#999"
-              value={searchText}
-              onChangeText={setSearchText}
-            />
-            <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
-                <Text style={styles.diamondIcon}>💎</Text>
-              </TouchableOpacity>
-          </View>
+        <View style={styles.searchBar}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="ค้นหา"
+            placeholderTextColor="#999"
+            value={searchText}
+            onChangeText={setSearchText}
+          />
+          
+          <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+            <Text style={styles.diamondIcon}>💎</Text>
+          </TouchableOpacity>
         </View>
 
+      
         {/* Main Card */}
         <View style={styles.mainCard}>
           <View style={styles.cardHeader}>
@@ -146,6 +161,7 @@ const Page2Screen = () => {
         </View>
       </ScrollView>
 
+    
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         {bottomTabs.map((tab, index) => (
@@ -154,12 +170,16 @@ const Page2Screen = () => {
             style={[styles.bottomTab, tab.active && styles.bottomTabActive]}
             onPress={() => {
               if (tab.name === 'กลุ่ม') {
-                handleNavigateToGroup3(); // Navigate to Group3Screen when 'กลุ่ม' is pressed
+                handleNavigateToGroup3(); // ไป Group3Screen
+              } else if (tab.name === 'บัญชี') {
+                navigation.navigate('SettingScreen'); // ไป SettingScreen
               }
             }}
           >
-            <Image source={tab.icon} style={styles.bottomTabIcon} /> {/* แสดงภาพแทนไอคอน */}
-            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>{tab.name}</Text>
+            <Image source={tab.icon} style={styles.bottomTabIcon} />
+            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>
+              {tab.name}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
