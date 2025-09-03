@@ -22,6 +22,11 @@ const evenSplitMap = (total, names) => {
   });
   return res;
 };
+const syncReceipts = (receiptByPayer, nextPayers) => {
+  const next = {};
+  nextPayers.forEach((n) => { next[n] = receiptByPayer?.[n] ?? null; });
+  return next;
+};
 
 const DEFAULT_GROUP = { groupName: 'กลุ่มของเรา', members: ['คุณ', 'เพื่อน A', 'เพื่อน B'] };
 
@@ -82,7 +87,8 @@ export default function Group5Screen({ route, navigation }) {
   const groupData = route?.params?.groupData || DEFAULT_GROUP;
 
   const [people, setPeople] = useState(groupData.members);
-  const [items, setItems] = useState([]); // {id, name, price, paidByMap, sharedBy, receiptUri}
+  // item = {id, name, price, paidByMap, sharedBy, receiptByPayer: { [payer]: uri|null }}
+  const [items, setItems] = useState([]);
 
   const [newPersonName, setNewPersonName] = useState('');
   const [newItemName, setNewItemName] = useState('');
@@ -138,7 +144,10 @@ export default function Group5Screen({ route, navigation }) {
           setPeople((prev) => prev.filter((p) => p !== person));
           setItems((prev) => prev.map((it) => {
             const nextPaid = { ...(it.paidByMap || {}) }; delete nextPaid[person];
-            return { ...it, paidByMap: nextPaid, sharedBy: (it.sharedBy || []).filter((p) => p !== person) };
+            const nextShare = (it.sharedBy || []).filter((p) => p !== person);
+            const nextReceipts = { ...(it.receiptByPayer || {}) };
+            delete nextReceipts[person];
+            return { ...it, paidByMap: nextPaid, sharedBy: nextShare, receiptByPayer: nextReceipts };
           }));
         }
       },
@@ -155,25 +164,38 @@ export default function Group5Screen({ route, navigation }) {
     }
     setItems((prev) => [
       ...prev,
-      { id: Date.now(), name, price: round2(price), paidByMap: { คุณ: round2(price) }, sharedBy: [], receiptUri: null },
+      {
+        id: Date.now(),
+        name,
+        price: round2(price),
+        paidByMap: { คุณ: round2(price) },
+        sharedBy: [],
+        receiptByPayer: { คุณ: null }, // 1 รูป/คน/รายการ
+      },
     ]);
     setNewItemName(''); setNewItemPrice(''); setIsAddItemOpen(false);
   };
 
   const onRemoveItem = (id) => setItems((prev) => prev.filter((it) => it.id !== id));
 
-  // เลือกผู้จ่าย (หลายคน) -> แบ่งยอดเท่าๆ กันอัตโนมัติ
+  // เลือกผู้จ่าย (หลายคน) -> แบ่งยอดเท่ากัน + ซิงก์ receiptByPayer
   const onTogglePayer = (itemId, person) => {
     setItems((prev) => prev.map((it) => {
       if (it.id !== itemId) return it;
       const selected = Object.entries(it.paidByMap || {})
         .filter(([, a]) => a > 0.0001)
         .map(([n]) => n);
+
       let next = selected.includes(person)
         ? (selected.length === 1 ? selected : selected.filter((n) => n !== person))
         : [...selected, person];
       if (!next.length) next = ['คุณ'];
-      return { ...it, paidByMap: evenSplitMap(it.price, next) };
+
+      return {
+        ...it,
+        paidByMap: evenSplitMap(it.price, next),
+        receiptByPayer: syncReceipts(it.receiptByPayer, next),
+      };
     }));
   };
 
@@ -197,7 +219,14 @@ export default function Group5Screen({ route, navigation }) {
       Alert.alert('ยอดไม่ตรง', `ยอดรวมผู้จ่ายต้องเท่ากับราคา ฿${price.toFixed(2)} (ตอนนี้รวมได้ ฿${sum.toFixed(2)})`);
       return;
     }
-    setItems((prev) => prev.map((it) => (it.id === editItemId ? { ...it, paidByMap: parsed } : it)));
+    const nextPayers = Object.keys(parsed);
+    setItems((prev) =>
+      prev.map((it) =>
+        it.id === editItemId
+          ? { ...it, paidByMap: parsed, receiptByPayer: syncReceipts(it.receiptByPayer, nextPayers) }
+          : it
+      )
+    );
     setEditPayersOpen(false); setEditItemId(null); setEditAmounts({});
   };
 
@@ -210,8 +239,8 @@ export default function Group5Screen({ route, navigation }) {
     }));
   };
 
-  /* ===== แนบ/ลบสลิปต่อ "รายการ" ===== */
-  const attachReceipt = async (itemId) => {
+  /* ===== แนบ/ลบสลิปต่อ "ผู้จ่าย" ในแต่ละรายการ ===== */
+  const attachReceipt = async (itemId, payerName) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('ต้องการสิทธิ์', 'โปรดอนุญาตเข้าถึงรูปภาพเพื่อแนบสลิป');
@@ -226,11 +255,25 @@ export default function Group5Screen({ route, navigation }) {
     const uri = result.assets?.[0]?.uri;
     if (!uri) return;
 
-    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, receiptUri: uri } : it)));
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        const next = { ...(it.receiptByPayer || {}) };
+        next[payerName] = uri;
+        return { ...it, receiptByPayer: next };
+        })
+    );
   };
 
-  const removeReceipt = (itemId) => {
-    setItems((prev) => prev.map((it) => (it.id === itemId ? { ...it, receiptUri: null } : it)));
+  const removeReceipt = (itemId, payerName) => {
+    setItems((prev) =>
+      prev.map((it) => {
+        if (it.id !== itemId) return it;
+        const next = { ...(it.receiptByPayer || {}) };
+        next[payerName] = null;
+        return { ...it, receiptByPayer: next };
+      })
+    );
   };
 
   /* ===== ไปหน้าสรุปรายการ (Group6) ===== */
@@ -281,8 +324,12 @@ export default function Group5Screen({ route, navigation }) {
 
         {items.map((item) => {
           const perHead = (item.sharedBy?.length || 0) > 0 ? (item.price / item.sharedBy.length).toFixed(2) : null;
-          const selectedPayers = Object.entries(item.paidByMap || {}).filter(([, a]) => a > 0.0001).map(([n]) => n);
-          const payerSummary = selectedPayers.map((n) => `${n}: ฿${(item.paidByMap[n] || 0).toFixed(2)}`).join(', ');
+          const selectedPayers = Object.entries(item.paidByMap || {})
+            .filter(([, a]) => a > 0.0001)
+            .map(([n]) => n);
+          const payerSummary = selectedPayers
+            .map((n) => `${n}: ฿${(item.paidByMap[n] || 0).toFixed(2)}`)
+            .join(', ');
 
           return (
             <View key={item.id} style={styles.itemCard}>
@@ -344,32 +391,50 @@ export default function Group5Screen({ route, navigation }) {
                 </View>
               )}
 
-              {/* แนบสลิป/ใบเสร็จของรายการนี้ */}
+              {/* แนบสลิป/ใบเสร็จ: 1 รูป/ผู้จ่าย */}
               <View style={styles.receiptBox}>
-                <Text style={styles.receiptTitle}>แนบสลิป/ใบเสร็จ (สำหรับรายการนี้)</Text>
+                <Text style={styles.receiptTitle}>แนบสลิป/ใบเสร็จ (ผูกกับผู้จ่ายแต่ละคน)</Text>
 
-                <View style={styles.receiptRow}>
-                  <TouchableOpacity
-                    style={[styles.btn, styles.btnPurple]}
-                    onPress={() => attachReceipt(item.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.btnText}>เลือกภาพ</Text>
-                  </TouchableOpacity>
+                {selectedPayers.length === 0 ? (
+                  <Text style={styles.muted}>— ยังไม่มีผู้จ่าย —</Text>
+                ) : (
+                  selectedPayers.map((payer) => {
+                    const uri = item.receiptByPayer?.[payer] || null;
+                    return (
+                      <View key={`${item.id}-receipt-${payer}`} style={styles.receiptLine}>
+                        <View style={styles.payerTag}>
+                          <Text style={styles.payerTagText}>{payer}</Text>
+                        </View>
 
-                  {item.receiptUri ? (
-                    <View style={styles.receiptPreview}>
-                      <TouchableOpacity
-                        style={[styles.btn, styles.btnGrey]}
-                        onPress={() => removeReceipt(item.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.btnText}>ลบรูป</Text>
-                      </TouchableOpacity>
-                      <Image source={{ uri: item.receiptUri }} style={styles.receiptImage} />
-                    </View>
-                  ) : null}
-                </View>
+                        {!uri ? (
+                          <TouchableOpacity
+                            style={[styles.btn, styles.btnPurple]}
+                            onPress={() => attachReceipt(item.id, payer)}
+                            activeOpacity={0.8}
+                          >
+                            <Text style={styles.btnText}>เลือกภาพ</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <>
+                            <TouchableOpacity
+                              style={[styles.btn, styles.btnPurple, { marginRight: 8 }]}
+                              onPress={() => attachReceipt(item.id, payer)}
+                            >
+                              <Text style={styles.btnText}>เปลี่ยนภาพ</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.btn, styles.btnGrey, { marginRight: 8 }]}
+                              onPress={() => removeReceipt(item.id, payer)}
+                            >
+                              <Text style={styles.btnText}>ลบรูป</Text>
+                            </TouchableOpacity>
+                            <Image source={{ uri }} style={styles.receiptThumb} />
+                          </>
+                        )}
+                      </View>
+                    );
+                  })
+                )}
               </View>
             </View>
           );
@@ -580,9 +645,10 @@ const styles = StyleSheet.create({
   /* receipts */
   receiptBox:{ marginTop:8, backgroundColor:'#f8f9ff', padding:10, borderRadius:8, borderWidth:1, borderColor:'#e5e7eb' },
   receiptTitle:{ fontSize:12, color:'#1f2937', fontWeight:'700', marginBottom:6 },
-  receiptRow:{ flexDirection:'row', alignItems:'center', flexWrap:'wrap' },
-  receiptPreview:{ flexDirection:'row', alignItems:'center', marginLeft:8, marginTop:6 },
-  receiptImage:{ width:90, height:90, borderRadius:8, marginLeft:8 },
+  receiptLine:{ flexDirection:'row', alignItems:'center', marginBottom:8, flexWrap:'wrap' },
+  payerTag:{ backgroundColor:'#eef2ff', borderColor:'#c7d2fe', borderWidth:1, paddingHorizontal:10, paddingVertical:6, borderRadius:999, marginRight:8 },
+  payerTagText:{ color:'#374151', fontSize:12, fontWeight:'700' },
+  receiptThumb:{ width:60, height:60, borderRadius:8 },
 
   btn:{ paddingHorizontal:12, paddingVertical:8, borderRadius:8 },
   btnPurple:{ backgroundColor:'#7c3aed' },
