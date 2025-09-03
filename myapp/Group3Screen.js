@@ -66,13 +66,13 @@ const Group3Screen = ({ navigation }) => {
             <Text style={styles.iconText}>กลุ่ม</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Activities')}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('ActivityScreen')}>
             <Image source={require('./assets/images/logo3.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>กิจกรรม</Text>
           </TouchableOpacity>
 
           {/* ⬇️ เปลี่ยนตรงนี้ */}
-          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('SettingScreen')}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('AccountScreen')}>
             <Image source={require('./assets/images/logo4.png')} style={styles.iconImage} />
             <Text style={styles.iconText}>บัญชี</Text>
           </TouchableOpacity>

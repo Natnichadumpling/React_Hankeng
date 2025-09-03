@@ -1,59 +1,70 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, TextInput, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, ImageBackground } from 'react-native';
+
+const features = [
+  { icon: require('./assets/images/logo.png'), text: 'ค้นหาค่าใช้จ่าย' },
+  { icon: require('./assets/images/logo.png'), text: 'หารกลุ่มได้ไม่จำกัด' },
+  { icon: require('./assets/images/logo.png'), text: 'แนบรูปภาพและใบเสร็จ' },
+  { icon: require('./assets/images/logo.png'), text: 'การแปลงสกุลเงิน' },
+  { icon: require('./assets/images/logo.png'), text: 'แปลภาษา' },
+  { icon: require('./assets/images/logo.png'), text: 'พร้อมสิ่งดีๆ อีกมากมายในอนาคต!' },
+];
 
 const ProScreen = ({ navigation }) => {
   return (
     <ImageBackground
-      source={require('./assets/images/p1.png')} // Set the background image
-      style={styles.backgroundImage} // Apply the image to the background
+      source={require('./assets/images/p1.png')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
       <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.contentContainer}>
-          {/* Header Section */}
+        <ScrollView contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Text style={styles.backText}>{"<"}</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+              <Text style={styles.backText}>{'<'}</Text>
             </TouchableOpacity>
             <Text style={styles.headerTitle}>HarnKeng Pro</Text>
           </View>
 
-            <View style={styles.subscriptionSection}>
-            {/* <Image source={require('./assets/images/logo.png')} style={styles.planImage} /> */}
-            <Text style={styles.planTitle}>อัปเกรดเป็น</Text>
-            <Text style={styles.planTitle}>HarnKeng Pro</Text>
-            <Text style={styles.featuresText}>
-              ค้นหาค่าใช้จ่าย
-              {"\n"}
-              หารกลุ่มได้ไม่จำกัด
-              {"\n"}
-              แนบรูปภาพและใบเสร็จ
-              {"\n"}
-              การแปลงสกุลเงิน
-              {"\n"}
-              แปลภาษา
-              {"\n"}
-              พร้อมสิ่งดีๆ อีกมากมายในอนาคต!
-            </Text>
+          {/* Pro Section */}
+          <View style={styles.proSection}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+              <Text style={styles.upgradeText}>อัปเกรดเป็น </Text>
+              <Text style={styles.proText}>HarnKeng Pro</Text>
+              <Image source={require('./assets/images/logo.png')} style={styles.diamondIcon} />
+            </View>
+            {/* Features */}
+            {features.map((item, idx) => (
+              <View key={idx} style={styles.featureRow}>
+                <Image source={item.icon} style={styles.featureIcon} />
+                <Text style={styles.featureText}>{item.text}</Text>
+              </View>
+            ))}
           </View>
 
           {/* Pricing Section */}
           <View style={styles.pricingSection}>
-          <Text style={styles.priceText}>THB1490 / ปี</Text>
-          <Text style={styles.discountPriceText}>ประหยัด THB898 / ปี</Text>
-          <Text style={styles.orText}>หรือ</Text>
-          <Text style={styles.priceText}>THB199 / เดือน</Text>
-          <Text style={styles.footerText}>เริ่มคืนรายการที่ซื้อ</Text>
+            <TouchableOpacity style={styles.priceBtn}>
+              <Text style={styles.priceBtnText}>THB1490 / ปี</Text>
+            </TouchableOpacity>
+            <Text style={styles.discountText}>ประหยัด THB898 / ปี</Text>
+            <Text style={styles.orText}>หรือ</Text>
+            <TouchableOpacity style={styles.priceBtn}>
+              <Text style={styles.priceBtnText}>THB199 / เดือน</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.refundBtn}>
+              <Text style={styles.refundBtnText}>เริ่มคืนรายการที่ซื้อ</Text>
+            </TouchableOpacity>
           </View>
 
-
-          {/* Action Button */}
-          <TouchableOpacity style={styles.purchaseButton}>
-            <Text style={styles.purchaseButtonText}>เริ่มต้นการสมัครสมาชิก</Text>
-          </TouchableOpacity>
-
-          {/* Footer Section */}
+          {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>เลือกวิธีการชำระเงินที่คุณต้องการ</Text>
+            <Text style={styles.footerText}>เลือกวิธีชำระเงินที่คุณต้องการ</Text>
+            <Text style={styles.footerSubText}>
+              เลือกแผนที่เหมาะสมและคุ้มค่าที่สุด สามารถยกเลิกได้ตลอดเวลา{'\n'}
+              {`นโยบายการคืนเงิน`} และ {`นโยบายความเป็นส่วนตัว`}
+            </Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -69,106 +80,138 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingTop: 20,
   },
   contentContainer: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingBottom: 30,
+    paddingTop: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 18,
+    marginTop: 8,
+  },
+  backBtn: {
+    padding: 4,
+    marginRight: 8,
   },
   backText: {
-    fontSize: 24,
+    fontSize: 26,
+    color: '#222',
     fontWeight: 'bold',
-    color: '#007BFF',
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginLeft: 10,
+    color: '#222',
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 32, // for centering
   },
-  subscriptionSection: {
+  proSection: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 10,
+    borderRadius: 14,
+    padding: 22,
+    marginBottom: 28,
+    alignItems: 'flex-start',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-    marginBottom: 30,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  planTitle: {
-    fontSize: 22,
+  upgradeText: {
+    fontSize: 18,
+    color: '#222',
+    fontWeight: '600',
+  },
+  proText: {
+    fontSize: 18,
+    color: '#1976d2',
     fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 15,
+    marginLeft: 2,
+    marginRight: 2,
   },
-  featuresText: {
-    fontSize: 16,
-    color: '#666',
-    lineHeight: 24,
+  diamondIcon: {
+    width: 20,
+    height: 20,
+    marginLeft: 2,
+    marginTop: 2,
+  },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  featureIcon: {
+    width: 22,
+    height: 22,
+    marginRight: 10,
+    tintColor: '#1976d2',
+  },
+  featureText: {
+    fontSize: 15,
+    color: '#333',
   },
   pricingSection: {
-  backgroundColor: 'transparent', // Ensure background is fully transparent
-  padding: 20,
-  borderRadius: 10,
-  elevation: 3,
-  marginBottom: 30,
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  priceText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-   priceText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    borderWidth: 2,
-    borderColor: '#007BFF', // Blue border color
+  priceBtn: {
+    backgroundColor: '#e6f0f3',
     borderRadius: 8,
-    padding: 10, // Add padding inside the border
-    textAlign: 'center', // Optional, to center the text
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    marginBottom: 8,
+    width: '100%',
+    alignItems: 'center',
   },
-  discountPriceText: {
-    fontSize: 16,
+  priceBtnText: {
+    fontSize: 18,
+    color: '#1976d2',
     fontWeight: 'bold',
+  },
+  discountText: {
+    fontSize: 15,
     color: '#ff6347',
-    marginTop: 5,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   orText: {
-    fontSize: 18,
-    color: '#333',
-    marginVertical: 10,
-    textAlign: 'center',
-  },
-  purchaseButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  purchaseButtonText: {
-    color: '#fff',
     fontSize: 16,
+    color: '#222',
+    marginVertical: 8,
+  },
+  refundBtn: {
+    backgroundColor: '#f2f2f2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    marginTop: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  refundBtnText: {
+    fontSize: 16,
+    color: '#888',
     fontWeight: 'bold',
   },
   footer: {
     alignItems: 'center',
+    marginTop: 10,
   },
   footerText: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: 15,
+    color: '#222',
+    marginBottom: 10,
   },
-  planImage: {
-  width: '100%',
-  height: 150,  // Adjust this value as needed
-  marginBottom: 15,
-},
+  footerSubText: {
+    fontSize: 12,
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 18,
+  },
 });
 
 export default ProScreen;

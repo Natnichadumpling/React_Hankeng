@@ -44,9 +44,9 @@ const Page2Screen = ({ route }) => {
   ];
 
   const bottomTabs = [
-    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false },
-    { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false },
-    { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false },
+    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
+    { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
+    { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
     { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: true }
   ];
 
@@ -79,7 +79,7 @@ const Page2Screen = ({ route }) => {
             />
           </View>
           {/* Settings Icon */}
-          <TouchableOpacity style={styles.settingsIcon}>
+          <TouchableOpacity style={styles.settingsIcon} onPress={() => navigation.navigate('Setting2Screen')}>
             <Text>⚙️</Text>
           </TouchableOpacity>
         </View>
@@ -99,7 +99,6 @@ const Page2Screen = ({ route }) => {
           </TouchableOpacity>
         </View>
 
-      
         {/* Main Card */}
         <View style={styles.mainCard}>
           <View style={styles.cardHeader}>
@@ -161,7 +160,6 @@ const Page2Screen = ({ route }) => {
         </View>
       </ScrollView>
 
-    
       {/* Bottom Navigation */}
       <View style={styles.bottomNavigation}>
         {bottomTabs.map((tab, index) => (
@@ -169,17 +167,15 @@ const Page2Screen = ({ route }) => {
             key={index}
             style={[styles.bottomTab, tab.active && styles.bottomTabActive]}
             onPress={() => {
-              if (tab.name === 'กลุ่ม') {
-                handleNavigateToGroup3(); // ไป Group3Screen
+              if (tab.navigateTo) {
+                navigation.navigate(tab.navigateTo); // นำทางไปที่หน้า ActivityScreen
               } else if (tab.name === 'บัญชี') {
-                navigation.navigate('SettingScreen'); // ไป SettingScreen
+                navigation.navigate('AccountScreen'); // ไป AccountScreen
               }
             }}
           >
             <Image source={tab.icon} style={styles.bottomTabIcon} />
-            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>
-              {tab.name}
-            </Text>
+            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>{tab.name}</Text>
           </TouchableOpacity>
         ))}
       </View>

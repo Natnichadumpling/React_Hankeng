@@ -13,6 +13,7 @@ import SingupScreen from './SingupScreen';
 import Singup2Screen from './Singup2Screen';
 import Singup3Screen from './Singup3Screen';
 import ChangeScreen from './ChangeScreen';
+import ProScreen from './ProScreen';
 import PageScreen from './PageScreen';
 import Page1Screen from './Page1Screen';
 import Page2Screen from './Page2Screen';
@@ -22,6 +23,9 @@ import Group3Screen from './Group3Screen';
 import Group4Screen from './Group4Screen';   // แนบหลักฐาน
 import Group5Screen from './Group5Screen';
 import SettingScreen from './SettingScreen';
+import Setting2Screen from './Setting2Screen';
+import AccountScreen from './AccountScreen';
+import ActivityScreen from './ActivityScreen';
 
 // ✅ เพิ่มหน้าสรุปรายการโอน
 import Group6Screen from './Group6Screen';
@@ -41,6 +45,7 @@ export default function App() {
         <Stack.Screen name="Singup2Screen" component={Singup2Screen} />
         <Stack.Screen name="Singup3Screen" component={Singup3Screen} />
         <Stack.Screen name="ChangeScreen" component={ChangeScreen} />
+        <Stack.Screen name="ProScreen" component={ProScreen} />
         <Stack.Screen name="PageScreen" component={PageScreen} />
         <Stack.Screen name="Page1Screen" component={Page1Screen} />
         <Stack.Screen name="Page2Screen" component={Page2Screen} />
@@ -49,6 +54,9 @@ export default function App() {
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
         <Stack.Screen name="Group5Screen" component={Group5Screen} />
+        <Stack.Screen name="Setting2Screen" component={Setting2Screen} />
+        <Stack.Screen name="AccountScreen" component={AccountScreen} />
+        <Stack.Screen name="ActivityScreen" component={ActivityScreen} />
         {/* ✅ หน้าสรุปรายการโอน */}
         <Stack.Screen
           name="Group6Screen"
