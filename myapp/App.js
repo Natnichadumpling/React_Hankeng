@@ -22,6 +22,7 @@ import Group3Screen from './Group3Screen';
 import Group4Screen from './Group4Screen';   // แนบหลักฐาน
 import Group5Screen from './Group5Screen';
 import SettingScreen from './SettingScreen';
+import ForgotPasswordScreen from './ForgotPasswordScreen';
 
 // ✅ หน้าสรุปรายการโอน
 import Group6Screen from './Group6Screen';
@@ -57,7 +58,8 @@ export default function App() {
           component={Group6Screen}
           options={{ title: 'สรุปรายการโอน' }}
         />
-        <Stack.Screen name="SettingScreen" component={SettingScreen} />
+  <Stack.Screen name="SettingScreen" component={SettingScreen} />
+  <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'ลืมรหัสผ่าน' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
