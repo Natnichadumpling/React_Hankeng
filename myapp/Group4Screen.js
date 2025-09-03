@@ -11,6 +11,32 @@ const Group4Screen = ({ navigation, route }) => {
   const [selectedCurrency, setSelectedCurrency] = useState(''); // State สำหรับสกุลเงินที่เลือก
   const [amount, setAmount] = useState(''); // จำนวนเงินที่จะแปลง
   const [convertedAmount, setConvertedAmount] = useState(null); // ผลลัพธ์การแปลงสกุลเงิน
+  const [rate, setRate] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  //เชื่อมต่อ API ฟรีสำหรับอัตราแลกเปลี่ยน
+  const API_KEY = "fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl";
+  const API_URL = `https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD`;
+
+  const fetchRate = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+
+      const data = await res.json();
+      // data.data.THB คือจำนวนเงินบาทต่อ 1 USD
+      setRate(data.data.THB);
+    } catch (err) {
+      setError(err.message);
+      setRate(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // params จาก Group5Screen
   const { groupName: gNameFromNav, transferKey, from, to, amount: amountParam } = route?.params || {};
@@ -61,10 +87,12 @@ const Group4Screen = ({ navigation, route }) => {
 
     if (selectedCurrency === 'THB') {
       // แปลงจาก THB → USD
-      result = amountNumber / 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+     // result = amountNumber / ; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+     result = amountNumber / rate; // ใช้อัตราแลกเปลี่ยนจาก API
     } else if (selectedCurrency === 'USD') {
       // แปลงจาก USD → THB
-      result = amountNumber * 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+      //result = amountNumber * 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
+      result = amountNumber * rate; // ใช้อัตราแลกเปลี่ยนจาก API
     }
 
     setConvertedAmount(result); // ตั้งค่าให้แสดงผลลัพธ์
