@@ -23,11 +23,14 @@ import Group3Screen from './Group3Screen';
 import Group4Screen from './Group4Screen';   // แนบหลักฐาน
 import Group5Screen from './Group5Screen';
 import SettingScreen from './SettingScreen';
+
 import Setting2Screen from './Setting2Screen';
 import AccountScreen from './AccountScreen';
 import ActivityScreen from './ActivityScreen';
 
-// ✅ เพิ่มหน้าสรุปรายการโอน
+import ForgotPasswordScreen from './ForgotPasswordScreen';
+
+// ✅ หน้าสรุปรายการโอน
 import Group6Screen from './Group6Screen';
 
 const Stack = createStackNavigator();
@@ -35,7 +38,10 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="HomeScreen" screenOptions={{ headerTitleAlign: 'center' }}>
+      <Stack.Navigator
+        initialRouteName="HomeScreen"
+        screenOptions={{ headerTitleAlign: 'center' }}
+      >
         <Stack.Screen name="HomeScreen" component={HomeScreen} />
         <Stack.Screen name="Home2Screen" component={Home2Screen} />
         <Stack.Screen name="Home3Screen" component={Home3Screen} />
@@ -54,16 +60,19 @@ export default function App() {
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
         <Stack.Screen name="Group5Screen" component={Group5Screen} />
+
         <Stack.Screen name="Setting2Screen" component={Setting2Screen} />
         <Stack.Screen name="AccountScreen" component={AccountScreen} />
         <Stack.Screen name="ActivityScreen" component={ActivityScreen} />
         {/* ✅ หน้าสรุปรายการโอน */}
+
         <Stack.Screen
           name="Group6Screen"
           component={Group6Screen}
           options={{ title: 'สรุปรายการโอน' }}
         />
-        <Stack.Screen name="SettingScreen" component={SettingScreen} />
+  <Stack.Screen name="SettingScreen" component={SettingScreen} />
+  <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'ลืมรหัสผ่าน' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
