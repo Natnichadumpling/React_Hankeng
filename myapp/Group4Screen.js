@@ -1,52 +1,51 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ScrollView, ImageBackground, Alert, Modal, TextInput
+  ScrollView, ImageBackground, Alert, Modal, TextInput, ActivityIndicator
 } from 'react-native';
+
+const API_URL =
+  'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgczzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD';
 
 const Group4Screen = ({ navigation, route }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [showMenuOptions, setShowMenuOptions] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+
   const [selectedImages, setSelectedImages] = useState([]);
-  const [selectedCurrency, setSelectedCurrency] = useState(''); // State สำหรับสกุลเงินที่เลือก
-  const [amount, setAmount] = useState(''); // จำนวนเงินที่จะแปลง
-  const [convertedAmount, setConvertedAmount] = useState(null); // ผลลัพธ์การแปลงสกุลเงิน
-  const [rate, setRate] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [selectedCurrency, setSelectedCurrency] = useState(''); // 'THB' | 'USD'
+  const [amount, setAmount] = useState('');
+  const [convertedAmount, setConvertedAmount] = useState(null);
 
-  //เชื่อมต่อ API ฟรีสำหรับอัตราแลกเปลี่ยน
-  const API_KEY = "fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl";
-  const API_URL = `https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD`;
+  const [rateTHB, setRateTHB] = useState(null);  // จำนวนบาทต่อ 1 USD
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const [rateError, setRateError] = useState(null);
 
-  const fetchRate = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-
-      const data = await res.json();
-      // data.data.THB คือจำนวนเงินบาทต่อ 1 USD
-      setRate(data.data.THB);
-    } catch (err) {
-      setError(err.message);
-      setRate(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // params จาก Group5Screen
   const { groupName: gNameFromNav, transferKey, from, to, amount: amountParam } = route?.params || {};
   const groupName = gNameFromNav || route?.params?.groupName || 'กลุ่มของเรา';
 
   const isSendDisabled = selectedImages.length === 0;
 
+  const fetchRateIfNeeded = async () => {
+    if (rateTHB !== null || isLoadingRate) return;
+    try {
+      setIsLoadingRate(true);
+      setRateError(null);
+      const res = await fetch(API_URL);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      const thb = json && json.data && json.data.THB;
+      if (typeof thb !== 'number') throw new Error('Invalid response: THB missing');
+      setRateTHB(thb);
+    } catch (e) {
+      setRateError(e?.message || 'โหลดอัตราแลกเปลี่ยนไม่สำเร็จ');
+    } finally {
+      setIsLoadingRate(false);
+    }
+  };
+
   const handleSendMessage = () => {
     if (selectedImages.length > 0) {
-      // TODO: อัปโหลด/ส่งไป backend จริงตรงนี้
       console.log('Sending images:', { transferKey, from, to, amount, files: selectedImages });
       Alert.alert('ส่งรูปแล้ว', 'ระบบจะบันทึกหลักฐานตามรายการชำระนี้');
       setSelectedImages([]);
@@ -56,46 +55,42 @@ const Group4Screen = ({ navigation, route }) => {
   const goBack = () => navigation.goBack();
 
   const handleImageSelect = (imageType) => {
-    // TODO: เปลี่ยนเป็น URI จาก image picker จริง
     setShowImagePicker(false);
     setSelectedImages(prev => [...prev, imageType]);
     Alert.alert('เลือกรูปภาพ', `เลือก${imageType}แล้ว`);
   };
 
-  const handleMenuOption = (option) => {
-    if (option === 'แปลงสกุลเงิน') {
-      setShowMenuOptions(true); // แสดง modal เลือกสกุลเงิน
-    } else {
-      Alert.alert('เลือกตัวเลือก', `เลือก${option}แล้ว`);
-    }
+  const openCurrencyTool = async () => {
+    setShowToolsModal(false);
+    setShowCurrencyModal(true);
+    await fetchRateIfNeeded();
   };
 
   const handleCurrencySelect = (currency) => {
-    setSelectedCurrency(currency); // เก็บสกุลเงินที่เลือก
-    Alert.alert('เลือกสกุลเงิน', `คุณเลือกสกุลเงิน: ${currency}`);
-    setShowMenuOptions(false); // ปิด modal หลังจากเลือก
+    setSelectedCurrency(currency); // 'THB' หรือ 'USD'
+    setConvertedAmount(null);
   };
 
   const handleConvertCurrency = () => {
-    let result = null;
-    const amountNumber = parseFloat(amount);
-
-    if (isNaN(amountNumber) || amountNumber <= 0) {
+    const n = parseFloat(amount);
+    if (isNaN(n) || n <= 0) {
       Alert.alert('ข้อผิดพลาด', 'กรุณากรอกจำนวนเงินที่ถูกต้อง');
       return;
     }
-
-    if (selectedCurrency === 'THB') {
-      // แปลงจาก THB → USD
-     // result = amountNumber / ; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
-     result = amountNumber / rate; // ใช้อัตราแลกเปลี่ยนจาก API
-    } else if (selectedCurrency === 'USD') {
-      // แปลงจาก USD → THB
-      //result = amountNumber * 35; // 1 USD = 35 THB (อัตราแลกเปลี่ยนตัวอย่าง)
-      result = amountNumber * rate; // ใช้อัตราแลกเปลี่ยนจาก API
+    if (!rateTHB) {
+      Alert.alert('ข้อผิดพลาด', 'ยังไม่สามารถโหลดอัตราแลกเปลี่ยนได้');
+      return;
     }
 
-    setConvertedAmount(result); // ตั้งค่าให้แสดงผลลัพธ์
+    let result = null;
+    if (selectedCurrency === 'THB') {
+      // THB -> USD
+      result = n / rateTHB;
+    } else if (selectedCurrency === 'USD') {
+      // USD -> THB
+      result = n * rateTHB;
+    }
+    setConvertedAmount(result);
   };
 
   const removeImage = (index) => {
@@ -103,9 +98,15 @@ const Group4Screen = ({ navigation, route }) => {
     setSelectedImages(newImages);
   };
 
+  const rateBanner = useMemo(() => {
+    if (isLoadingRate) return 'กำลังโหลดอัตราแลกเปลี่ยน...';
+    if (rateError) return `โหลดอัตราแลกเปลี่ยนไม่สำเร็จ: ${rateError}`;
+    if (rateTHB) return `อัตราล่าสุด: 1 USD ≈ ${rateTHB.toFixed(4)} THB`;
+    return 'ยังไม่มีอัตราแลกเปลี่ยน';
+  }, [isLoadingRate, rateError, rateTHB]);
+
   return (
     <ImageBackground
-      // ปรับ path ให้ตรงกับโปรเจกต์จริงของคุณ
       source={require('./assets/images/p1.png')}
       style={styles.container}
     >
@@ -121,7 +122,7 @@ const Group4Screen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* แสดงข้อมูลรายการที่แนบหลักฐาน (ถ้ามี) */}
+        {/* Transfer info */}
         {(from || to) && (
           <View style={styles.transferInfo}>
             <Text style={styles.transferInfoText}>
@@ -160,7 +161,7 @@ const Group4Screen = ({ navigation, route }) => {
             <Text style={styles.iconText}>🖼️</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => setShowMenuOptions(true)}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setShowToolsModal(true)}>
             <Text style={styles.iconText}>☰</Text>
           </TouchableOpacity>
 
@@ -192,67 +193,85 @@ const Group4Screen = ({ navigation, route }) => {
           </View>
         </Modal>
 
-        {/* Menu Options Modal */}
-        <Modal visible={showMenuOptions} transparent animationType="slide">
+        {/* Tools Modal */}
+        <Modal visible={showToolsModal} transparent animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>เครื่องมือ</Text>
 
-              <TouchableOpacity style={styles.modalOption} onPress={() => handleMenuOption('แปลภาษา')}>
+              <TouchableOpacity style={styles.modalOption} onPress={() => { setShowToolsModal(false); Alert.alert('แปลภาษา', 'ยังไม่เชื่อมต่อ'); }}>
                 <Text style={styles.modalOptionText}>🌐 แปลภาษา</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modalOption} onPress={() => handleMenuOption('แปลงสกุลเงิน')}>
+              <TouchableOpacity style={styles.modalOption} onPress={openCurrencyTool}>
                 <Text style={styles.modalOptionText}>💱 แปลงสกุลเงิน</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowMenuOptions(false)}>
+              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowToolsModal(false)}>
                 <Text style={styles.modalCancelText}>ยกเลิก</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        {/* Currency Selection Modal */}
-        <Modal visible={showMenuOptions && selectedCurrency === ''} transparent animationType="slide">
+        {/* Currency Tool Modal */}
+        <Modal visible={showCurrencyModal} transparent animationType="slide" onRequestClose={() => setShowCurrencyModal(false)}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
+              <Text style={styles.modalTitle}>แปลงสกุลเงิน</Text>
 
-              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
-                <Text style={styles.modalOptionText}>THB (บาทไทย)</Text>
+              <View style={{ marginBottom: 10, alignItems: 'center' }}>
+                {isLoadingRate ? <ActivityIndicator /> : <Text style={{ color: rateError ? '#d32f2f' : '#333' }}>{rateBanner}</Text>}
+              </View>
+
+              <Text style={{ marginBottom: 6, color: '#333' }}>ฉันกรอกจำนวนเป็น:</Text>
+              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                <TouchableOpacity
+                  style={[styles.chip, selectedCurrency === 'THB' && styles.chipActive]}
+                  onPress={() => handleCurrencySelect('THB')}
+                >
+                  <Text style={[styles.chipText, selectedCurrency === 'THB' && styles.chipTextActive]}>THB</Text>
+                </TouchableOpacity>
+                <View style={{ width: 10 }} />
+                <TouchableOpacity
+                  style={[styles.chip, selectedCurrency === 'USD' && styles.chipActive]}
+                  onPress={() => handleCurrencySelect('USD')}
+                >
+                  <Text style={[styles.chipText, selectedCurrency === 'USD' && styles.chipTextActive]}>USD</Text>
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                style={styles.currencyInput}
+                placeholder="กรอกจำนวนเงิน"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={t => { setAmount(t); setConvertedAmount(null); }}
+                editable={!isLoadingRate && !rateError}
+              />
+
+              <TouchableOpacity
+                style={[styles.convertButton, (!selectedCurrency || isLoadingRate) && { opacity: 0.5 }]}
+                onPress={handleConvertCurrency}
+                disabled={!selectedCurrency || isLoadingRate}
+              >
+                <Text style={styles.convertText}>แปลง</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
-                <Text style={styles.modalOptionText}>USD (ดอลลาร์สหรัฐ)</Text>
-              </TouchableOpacity>
+              {convertedAmount !== null && selectedCurrency ? (
+                <Text style={styles.convertResult}>
+                  ผลลัพธ์: {selectedCurrency === 'THB'
+                    ? `${convertedAmount.toFixed(2)} USD`
+                    : `${convertedAmount.toFixed(2)} THB`}
+                </Text>
+              ) : null}
 
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowMenuOptions(false)}>
-                <Text style={styles.modalCancelText}>ยกเลิก</Text>
+              <TouchableOpacity style={[styles.modalCancelButton, { marginTop: 16 }]} onPress={() => setShowCurrencyModal(false)}>
+                <Text style={styles.modalCancelText}>ปิด</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
-
-        {/* Currency Input & Result */}
-        {selectedCurrency && (
-          <View style={styles.currencyContainer}>
-            <Text style={styles.currencyTitle}>แปลงสกุลเงิน</Text>
-            <TextInput
-              style={styles.currencyInput}
-              placeholder="กรอกจำนวนเงิน"
-              keyboardType="numeric"
-              value={amount}
-              onChangeText={setAmount}
-            />
-            <TouchableOpacity style={styles.convertButton} onPress={handleConvertCurrency}>
-              <Text style={styles.convertText}>แปลง</Text>
-            </TouchableOpacity>
-            {convertedAmount !== null && (
-              <Text style={styles.convertResult}>ผลลัพธ์: {convertedAmount} {selectedCurrency === 'THB' ? 'USD' : 'THB'}</Text>
-            )}
-          </View>
-        )}
       </SafeAreaView>
     </ImageBackground>
   );
@@ -305,12 +324,15 @@ const styles = StyleSheet.create({
   modalCancelButton: { paddingVertical: 15, marginTop: 10, backgroundColor: '#f8f8f8', borderRadius: 10, alignItems: 'center' },
   modalCancelText: { fontSize: 16, color: '#666', fontWeight: 'bold' },
 
-  currencyContainer: { padding: 20, backgroundColor: 'rgba(255,255,255,0.9)', marginTop: 20, borderRadius: 10 },
-  currencyTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   currencyInput: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginVertical: 10, borderRadius: 5 },
   convertButton: { backgroundColor: '#4a90e2', padding: 10, borderRadius: 20, alignItems: 'center' },
   convertText: { color: '#fff', fontSize: 16 },
   convertResult: { fontSize: 16, color: '#333', marginTop: 10 },
+
+  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ccc' },
+  chipActive: { backgroundColor: '#4a90e2', borderColor: '#4a90e2' },
+  chipText: { color: '#333', fontSize: 14 },
+  chipTextActive: { color: '#fff', fontWeight: '700' },
 });
 
 export default Group4Screen;

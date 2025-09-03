@@ -12,6 +12,7 @@ import SingupScreen from './SingupScreen';
 import Singup2Screen from './Singup2Screen';
 import Singup3Screen from './Singup3Screen';
 import ChangeScreen from './ChangeScreen';
+// import SettingScreen from './ProScreen';
 import PageScreen from './PageScreen';
 import Page1Screen from './Page1Screen';
 import Page2Screen from './Page2Screen';
@@ -20,6 +21,7 @@ import Group2Screen from './Group2Screen';
 import Group3Screen from './Group3Screen';
 import Group4Screen from './Group4Screen'; // เพิ่มการ import Group4Screen
 import Group5Screen from './Group5Screen';
+import SettingScreen from './SettingScreen';
 // import Group6Screen from './Group6Screen';
 
 const Stack = createStackNavigator();
@@ -37,6 +39,7 @@ export default function App() {
         <Stack.Screen name="Singup2Screen" component={Singup2Screen} />
         <Stack.Screen name="Singup3Screen" component={Singup3Screen} />
         <Stack.Screen name="ChangeScreen" component={ChangeScreen} />
+        {/* <Stack.Screen name="ProScreen" component={ProScreen} /> */}
         <Stack.Screen name="PageScreen" component={PageScreen} />
         <Stack.Screen name="Page1Screen" component={Page1Screen} />
         <Stack.Screen name="Page2Screen" component={Page2Screen} />
@@ -45,7 +48,7 @@ export default function App() {
         <Stack.Screen name="Group3Screen" component={Group3Screen} />
         <Stack.Screen name="Group4Screen" component={Group4Screen} />
         <Stack.Screen name="Group5Screen" component={Group5Screen} />
-        {/* <Stack.Screen name="Group6Screen" component={Group6Screen} /> */}
+        <Stack.Screen name="SettingScreen" component={SettingScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
