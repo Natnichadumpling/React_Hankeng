@@ -1,13 +1,33 @@
 import React, { useState } from 'react'; // Import useState for search functionality
+import { useRoute } from '@react-navigation/native';
+import { useEffect } from 'react';
+import { supabase } from './supabaseClient';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ImageBackground, TextInput } from 'react-native';
 
 const Group3Screen = ({ navigation }) => {
-  const [searchText, setSearchText] = useState(''); // State for the search input
 
-  // Function to handle join group button press
+  const [searchText, setSearchText] = useState('');
+  const [userName, setUserName] = useState('');
+  const route = useRoute();
+  const email = route?.params?.email;
+
   const handleJoinGroup = () => {
-    navigation.navigate('Group5Screen'); // Navigate to GroupScreen
+    navigation.navigate('Group5Screen');
   };
+
+  useEffect(() => {
+    const fetchUserName = async () => {
+      if (!email) return;
+      const { data, error } = await supabase
+        .from('users')
+        .select('name')
+        .eq('email', email)
+        .single();
+      if (data && data.name) setUserName(data.name);
+      else setUserName(email);
+    };
+    fetchUserName();
+  }, [email]);
 
   return (
     <ImageBackground
@@ -34,7 +54,7 @@ const Group3Screen = ({ navigation }) => {
             </View>
           </View>
 
-          <Text style={styles.headerTitle}>Sopitnapa ยินดีต้อนรับสู่ HarnKeng</Text>
+          <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
           <Text style={styles.subTitle}>ตอนนี้คุณยังไม่เข้ากลุ่ม</Text>
         </View>
 
