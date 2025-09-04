@@ -165,6 +165,10 @@ const styles = StyleSheet.create({
     height: 20,
     marginLeft: 8,
   },
+  diamondIcon: {
+    width: 20,
+    height: 20,
+  },
 });
 
 export default Group3Screen;

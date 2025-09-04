@@ -48,7 +48,7 @@ const ActivityScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f6fa',
+    backgroundColor: '#f5f6fa', 
   },
 });
 

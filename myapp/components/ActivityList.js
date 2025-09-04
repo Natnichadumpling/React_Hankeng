@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     color: '#222',
     flex: 1,
     flexWrap: 'wrap',
-  },
+  }, 
 });
 
 export default ActivityList;

@@ -273,7 +273,7 @@ export default function Group6Screen({ route, navigation }) {
   );
 }
 
-/* ===================== Styles ===================== */
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   title: { fontSize: 22, fontWeight: '800', color: '#111827' },

@@ -55,6 +55,6 @@ const styles = StyleSheet.create({
     height: 20,
     marginLeft: 8,
   },
-});
+});  
 
 export default SearchBar;
