@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';  // นำเข้าจาก @react-native-picker/picker
+import { Picker } from '@react-native-picker/picker';
 
 const Singup2Screen = () => {
   const navigation = useNavigation();
@@ -38,7 +38,12 @@ const Singup2Screen = () => {
           placeholder="ชื่อผู้ใช้"
           value={name}
           onChangeText={setName}
+          placeholderTextColor="rgba(18, 17, 17, 0.7)"
+          keyboardType="default"  // รองรับการพิมพ์ภาษาไทย
+          textAlign="left" // ตั้งค่าการพิมพ์ให้เป็นไปตามภาษาไทย
+          fontFamily="Sarabun"  // ฟอนต์ที่รองรับภาษาไทย
         />
+
         <View style={styles.phoneContainer}>
           {/* Country Code Dropdown */}
           <Picker
@@ -131,6 +136,7 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     backgroundColor: '#f0f0f0',
     marginBottom: 15,
+    fontFamily: 'Sarabun',  // ฟอนต์ที่รองรับภาษาไทย
   },
   phoneContainer: {
     flexDirection: 'row',

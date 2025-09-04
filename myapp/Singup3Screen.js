@@ -1,4 +1,3 @@
-// Singup3Screen.js
 import React, { useState } from 'react';
 import {
   View,
@@ -128,14 +127,6 @@ const Singup3Screen = () => {
               <TouchableOpacity style={[styles.btn, styles.btnPrimary]} onPress={handleSignup}>
                 <Text style={styles.btnText}>สมัครสมาชิก</Text>
               </TouchableOpacity>
-
-              {/* สกุลเงิน */}
-              <View style={styles.centerBlock}>
-                <Text style={styles.normalText}>ฉันใช้ THB (฿) เป็นสกุลเงินของฉัน</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('ChangeScreen')}>
-                  <Text style={styles.link}>เปลี่ยน &gt;&gt;</Text>
-                </TouchableOpacity>
-              </View>
 
               {/* Terms */}
               <View style={styles.centerBlock}>
