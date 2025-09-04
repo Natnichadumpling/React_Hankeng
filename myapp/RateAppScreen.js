@@ -63,7 +63,7 @@ const RateAppScreen = () => {
           <MaterialIcons name="arrow-back-ios" size={24} color="#00bfff" />
         </TouchableOpacity>
         <View style={styles.titleContainer}>
-          <Text style={styles.appBarTitle}>🎀 ให้คะแนน HarnKeng 💖</Text>
+          <Text style={styles.appBarTitle}>ให้คะแนน</Text> {/* ลบอิโมจิที่เป็นคำว่า "ให้คะแนน" */}
         </View>
       </View>
 
