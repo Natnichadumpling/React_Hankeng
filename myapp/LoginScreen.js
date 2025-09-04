@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground, ActivityIndicator } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, Image,
+  StyleSheet, ScrollView, ImageBackground, ActivityIndicator
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import { hashPassword } from './utils/hashPassword';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const LoginScreen = () => {
@@ -13,7 +15,6 @@ const LoginScreen = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Email validation function
   const validateEmail = (email) => {
     const re = /^(([^<>()\[\]\\.,;:\s@\"]+(\.[^<>()\[\]\\.,;:\s@\"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
     return re.test(String(email).toLowerCase());
@@ -53,13 +54,6 @@ const LoginScreen = () => {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      {/* AppBar */}
-      <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Icon name="home" size={28} color="black" />
-          <Text style={styles.closeText}>Home</Text>
-        </TouchableOpacity>
-      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.body}>
           <View style={styles.logoContainer}>
@@ -75,7 +69,7 @@ const LoginScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
           />
-          <View style={[styles.passwordRow, { marginBottom: 12 }]}> 
+          <View style={[styles.passwordRow, { marginBottom: 12 }]}>
             <TextInput
               style={[styles.input, { flex: 1, marginBottom: 0 }]}
               placeholder="รหัสผ่าน"
@@ -118,29 +112,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 0,
     minHeight: '100%',
-  },
-  appBar: {
-    backgroundColor: 'transparent',
-    elevation: 0,
-    paddingTop: 32,
-    paddingLeft: 16,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    zIndex: 10,
-  },
-  closeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  closeText: {
-    color: 'black',
-    fontSize: 16,
   },
   body: {
     flex: 1,
@@ -194,6 +165,9 @@ const styles = StyleSheet.create({
     minWidth: 180,
     maxWidth: 320,
     marginBottom: 10,
+  },
+  eyeButton: {
+    paddingHorizontal: 8,
   },
   validationText: {
     fontSize: 12,

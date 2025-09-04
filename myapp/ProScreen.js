@@ -62,8 +62,14 @@ const ProScreen = ({ navigation }) => {
           <View style={styles.footer}>
             <Text style={styles.footerText}>เลือกวิธีชำระเงินที่คุณต้องการ</Text>
             <Text style={styles.footerSubText}>
-              เลือกแผนที่เหมาะสมและคุ้มค่าที่สุด สามารถยกเลิกได้ตลอดเวลา{'\n'}
-              {`นโยบายการคืนเงิน`} และ {`นโยบายความเป็นส่วนตัว`}
+              เรียกเก็บเงินซ้ำตามระยะเวลาที่กำหนด ยกเลิกได้ตลอดเวลา{'\n'}
+              <TouchableOpacity onPress={() => navigation.navigate('Home2Screen')}>
+                <Text style={styles.linkText}>ข้อกำหนดการให้บริการ</Text>
+              </TouchableOpacity>
+              {' และ '}
+              <TouchableOpacity onPress={() => navigation.navigate('Home3Screen')}>
+                <Text style={styles.linkText}>นโยบายความเป็นส่วนตัว</Text>
+              </TouchableOpacity>
             </Text>
           </View>
         </ScrollView>
@@ -211,6 +217,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 18,
+  },
+  linkText: {
+    fontSize: 12,
+    color: '#22c55e', // Green color for the links
+    fontWeight: 'bold',
   },
 });
 
