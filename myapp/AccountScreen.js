@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
+import TabBar from './components/TabBar'; // Import TabBar
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ const AccountScreen = () => {
   const [slideAnim] = useState(new Animated.Value(50));
   const [scaleAnim] = useState(new Animated.Value(0.9));
 
+  // Fetch user data from supabase
   useEffect(() => {
     // Start entrance animations
     Animated.parallel([
@@ -739,7 +741,7 @@ const styles = StyleSheet.create({
   modalConfirmText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: 'bold', 
   },
 });
 
