@@ -7,15 +7,75 @@ import {
   ImageBackground,
   Image,
   ScrollView,
+  Modal,
+  TextInput,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';  // Import ImagePicker
 import { useNavigation } from '@react-navigation/native';
 
 const SettingScreen = () => {
   const navigation = useNavigation();
 
-  // state สำหรับ select แบบง่าย
+  // state for select simple currency
   const [currency, setCurrency] = useState('THB');
   const [language, setLanguage] = useState('ภาษาไทย');
+
+  // state for currency modal
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+
+  // state for editable name
+  const [slipName, setSlipName] = useState('Sopitnapa');
+
+  // state for profile image
+  const [profileImage, setProfileImage] = useState(null);
+
+  const handleCurrencySelect = (selectedCurrency) => {
+    setCurrency(selectedCurrency);
+    setShowCurrencyModal(false); // close the modal after selection
+  };
+
+  // Function to open the image picker (camera or gallery)
+  const pickImage = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert('Permission to access gallery is required!');
+      return;
+    }
+
+    // Allow the user to pick an image or take a new photo
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1], // Square aspect ratio
+      quality: 1,
+    });
+
+    // If the user selected a photo, update the profile image
+    if (!result.canceled) {
+      setProfileImage(result.uri);
+    }
+  };
+
+  // Function to open the camera
+  const takePhoto = async () => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (permissionResult.granted === false) {
+      alert('Permission to access camera is required!');
+      return;
+    }
+
+    // Allow the user to take a photo
+    let result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1], // Square aspect ratio
+      quality: 1,
+    });
+
+    // If the user took a photo, update the profile image
+    if (!result.canceled) {
+      setProfileImage(result.uri);
+    }
+  };
 
   return (
     <ImageBackground
@@ -36,45 +96,36 @@ const SettingScreen = () => {
 
         {/* Profile */}
         <View style={styles.profileSection}>
-          <Image
-            source={require('./assets/images/logo.png')}
-            style={styles.avatar}
-          />
-          <TouchableOpacity>
-            <Text style={styles.changePhotoText}>เปลี่ยนภาพโปรไฟล์</Text>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatar} />
+          ) : (
+            <Image
+              source={require('./assets/images/logo.png')}
+              style={styles.avatar}
+            />
+          )}
+          <TouchableOpacity onPress={pickImage}>
+            <Text style={styles.changePhotoText}>เลือกภาพจากไฟล์</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={takePhoto}>
+            <Text style={styles.changePhotoText}>ถ่ายภาพใหม่</Text>
           </TouchableOpacity>
         </View>
 
         {/* Info fields */}
         <View style={styles.formCard}>
-          <Field
-            label="ชื่อบนสลิป"
-            value="Sopitnapa"
-          />
-          <Field
-            label="ที่อยู่อีเมล"
-            value="film0936123963@gmail.com"
-          />
-          <Field
-            label="หมายเลขโทรศัพท์"
-            value="0987654321"
-          />
-          <Field
-            label="รหัสผ่าน"
-            value="********"
-          />
+          <Field label="ชื่อบนสลิป" value={slipName} editable={true} onEdit={setSlipName} />
+          <Field label="ที่อยู่อีเมล" value="film0936123963@gmail.com" editable={false} />
+          <Field label="หมายเลขโทรศัพท์" value="0987654321" editable={false} />
+          <Field label="รหัสผ่าน" value="********" editable={false} />
 
           {/* Selects */}
           <Select
             label="สกุลเงินเริ่มต้น"
             value={currency}
-            onPress={() => {}}
+            onPress={() => setShowCurrencyModal(true)} // Open currency selection modal
           />
-          <Select
-            label="ภาษา (สำหรับเมนูและการแจ้งเตือน)"
-            value={language}
-            onPress={() => {}}
-          />
+
         </View>
 
         {/* Save button */}
@@ -82,21 +133,52 @@ const SettingScreen = () => {
           <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Currency selection modal */}
+      <Modal visible={showCurrencyModal} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
+              <Text style={styles.modalOptionText}>THB</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
+              <Text style={styles.modalOptionText}>USD</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowCurrencyModal(false)}
+            >
+              <Text style={styles.modalCancelText}>ยกเลิก</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 };
 
 /* ====== Small components ====== */
-const Field = ({ label, value }) => {
+const Field = ({ label, value, editable, onEdit }) => {
   return (
     <View style={styles.fieldRow}>
       <View style={{ flex: 1 }}>
         <Text style={styles.fieldLabel}>{label}</Text>
-        <Text style={styles.fieldValue}>{value}</Text>
+        {editable ? (
+          <TextInput
+            style={styles.fieldValue}
+            value={value}
+            onChangeText={onEdit}
+          />
+        ) : (
+          <Text style={styles.fieldValue}>{value}</Text>
+        )}
       </View>
-      <TouchableOpacity>
-        <Text style={styles.editText}>แก้ไข</Text>
-      </TouchableOpacity>
+      {editable && (
+        <TouchableOpacity>
+          <Text style={styles.editText}>แก้ไข</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -237,6 +319,48 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#fff',
     fontWeight: '700',
+  },
+
+  /* Modal styles */
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalCancelButton: {
+    paddingVertical: 15,
+    marginTop: 10,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: 'bold',
   },
 });
 
