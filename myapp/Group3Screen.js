@@ -3,7 +3,6 @@ import { useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput } from 'react-native';
 import TabBar from './components/TabBar'; // Import the TabBar component
-import SearchBar from './components/SearchBar'; // Import SearchBar
 
 const bottomTabs = [
   { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
@@ -37,67 +36,101 @@ const Group3Screen = ({ navigation }) => {
   }, [email]);
 
   return (
-    <ImageBackground
-      source={require('./assets/images/p1.png')}
-      style={styles.container}
-    >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          {/* Image above the greeting text */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBar}>
-              <Text style={styles.searchIcon}>🔍</Text>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="ค้นหา"
-                placeholderTextColor="#999"
-                value={searchText}
-                onChangeText={setSearchText}
-              />
-              {/* 💎 กดแล้วไป ProScreen */}
-              <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
-                <Text style={styles.diamondIcon}>💎</Text>
+    <View style={styles.outerContainer}>
+      <ImageBackground
+        source={require('./assets/images/p1.png')}
+        style={styles.container}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.content}>
+            <View style={styles.header}>
+              {/* Search Bar */}
+              <View style={styles.searchContainer}>
+                <View style={styles.searchBar}>
+                  <Text style={styles.searchIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="ค้นหา"
+                    placeholderTextColor="#999"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                  />
+                  <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+                    <Text style={styles.diamondIcon}>💎</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
+              <Text style={styles.subTitle}>ตอนนี้คุณยังไม่เข้ากลุ่ม</Text>
+            </View>
+
+            <View style={styles.groupSection}>
+              <Text style={styles.infoText}>
+                กลุ่มนี้จะใช้สำหรับการแจ้งการทำงานด้านต่างๆ
+                เพื่อใช้ในการรายงานและสอบถามข้อมูล
+              </Text>
+
+              <TouchableOpacity
+                style={styles.joinGroupButton}
+                onPress={handleJoinGroup}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.joinGroupText}>เริ่มกลุ่ม</Text>
               </TouchableOpacity>
             </View>
           </View>
-
-          <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
-          <Text style={styles.subTitle}>ตอนนี้คุณยังไม่เข้ากลุ่ม</Text>
-        </View>
-
-        {/* Search Bar */}
-        <SearchBar searchText={searchText} setSearchText={setSearchText} onDiamondPress={() => {}} />
-
-        <View style={styles.groupSection}>
-          <Text style={styles.infoText}>
-            กลุ่มนี้จะใช้สำหรับการแจ้งการทำงานด้านต่างๆ
-            เพื่อใช้ในการรายงานและสอบถามข้อมูล
-          </Text>
-
-          <TouchableOpacity
-            style={styles.joinGroupButton}
-            onPress={handleJoinGroup}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.joinGroupText}>เริ่มกลุ่ม</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Add the TabBar here */}
-        <TabBar bottomTabs={bottomTabs} /> {/* ส่ง bottomTabs ให้กับ TabBar */}
-      </SafeAreaView>
-    </ImageBackground>
+        </SafeAreaView>
+      </ImageBackground>
+      
+      {/* TabBar อยู่นอก ImageBackground และ SafeAreaView */}
+      <TabBar bottomTabs={bottomTabs} navigation={navigation} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    flex: 1,
+  },
   container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  content: {
     flex: 1,
     padding: 20,
   },
   header: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  searchContainer: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e8eaf0',
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+  },
+  searchIcon: {
+    marginRight: 10,
+    fontSize: 16,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  diamondIcon: {
+    fontSize: 16,
+    color: '#4a90e2',
   },
   headerTitle: {
     fontSize: 22,
@@ -134,40 +167,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  searchContainer: {
-    marginBottom: 20,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  searchIcon: {
-    fontSize: 18,
-    color: '#555',
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#333',
-  },
-  diamondIcon: {
-    width: 20,
-    height: 20,
-    marginLeft: 8,
-  },
-  diamondIcon: {
-    width: 20,
-    height: 20,
   },
 });
 

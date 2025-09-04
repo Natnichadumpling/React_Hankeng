@@ -1,49 +1,36 @@
+// components/SearchBar.js
 import React from 'react';
-import { View, TextInput, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, StyleSheet, Text } from 'react-native';
 
 const SearchBar = ({ searchText, setSearchText, onDiamondPress }) => {
   return (
-    <View style={styles.searchContainer}>
-      <View style={styles.searchBar}>
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="ค้นหา"
-          placeholderTextColor="#999"
-          value={searchText}
-          onChangeText={setSearchText}
-        />
-        <TouchableOpacity onPress={onDiamondPress}>
-          <Text style={styles.diamondIcon}>💎</Text>
-        </TouchableOpacity>
-      </View>
+    <View style={styles.searchBarContainer}>
+      <TextInput
+        style={styles.searchInput}
+        placeholder="ค้นหากลุ่ม..."
+        placeholderTextColor="#999"
+        value={searchText}
+        onChangeText={setSearchText} // Update the search text
+      />
+      <Text style={styles.diamondIcon} onPress={onDiamondPress}>
+        💎
+      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  searchContainer: {
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  searchBar: {
+  searchBarContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 8,
-    width: 350, // Set a fixed width in pixels to make it longer
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    borderRadius: 25,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
-  },
-  searchIcon: {
-    fontSize: 18,
-    color: '#555',
-    marginRight: 10,
   },
   searchInput: {
     flex: 1,
@@ -51,10 +38,10 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   diamondIcon: {
-    width: 20,
-    height: 20,
-    marginLeft: 8,
+    fontSize: 20,
+    marginLeft: 10,
+    color: '#555',
   },
-});  
+});
 
 export default SearchBar;

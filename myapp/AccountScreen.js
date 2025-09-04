@@ -102,25 +102,8 @@ const AccountScreen = () => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNavigation}>
-        {bottomTabs.map((tab, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.bottomTab, tab.active && styles.bottomTabActive]}
-            onPress={() => {
-              if (tab.navigateTo) {
-                navigation.navigate(tab.navigateTo);
-              }
-            }}
-          >
-            <Image source={tab.icon} style={styles.bottomTabIcon} />
-            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>
-              {tab.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
+      <TabBar bottomTabs={bottomTabs} />
+      
       {/* Logout Modal */}
       <Modal
         visible={showLogoutModal}
@@ -153,7 +136,7 @@ const AccountScreen = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 20, paddingBottom: 100 },
+  content: { padding: 20, paddingBottom: 100 }, // Make sure there's enough space at the bottom
   profileSection: {
     alignItems: 'center',
     marginBottom: 30,
@@ -201,6 +184,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#e0e0e0',
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
+    height: 70,  // ทำให้แถบ TabBar สูงเท่ากัน
   },
   bottomTab: { flex: 1, alignItems: 'center', paddingVertical: 5 },
   bottomTabActive: { backgroundColor: '#e8f4f8', borderRadius: 10 },

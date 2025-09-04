@@ -1,5 +1,6 @@
+// components/TabBar.js
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, Image, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const TabBar = ({ bottomTabs }) => {
@@ -9,17 +10,17 @@ const TabBar = ({ bottomTabs }) => {
     <View style={styles.bottomTabBar}>
       {bottomTabs.map((tab, index) => (
         <TouchableOpacity
-          key={tab.name || index}  // ใช้ tab.name หรือ index เพื่อให้ key ไม่ซ้ำกัน
-          style={[styles.iconButton, tab.active && styles.bottomTabActive]} 
+          key={tab.name || index}
+          style={[styles.iconButton, tab.active && styles.bottomTabActive]}
           onPress={() => {
             if (tab.navigateTo) {
-              navigation.navigate(tab.navigateTo); // Navigate to the corresponding screen
+              navigation.navigate(tab.navigateTo);  // Navigate to the corresponding screen
             }
           }}
         >
           <Image source={tab.icon} style={styles.bottomTabIcon} />
           <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>
-            {tab.name} {/* ห่อข้อความด้วย <Text> */}
+            {tab.name}
           </Text>
         </TouchableOpacity>
       ))}
@@ -43,10 +44,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     elevation: 10,
+    height: 70,  // กำหนดความสูงของ TabBar ให้เท่ากัน
   },
   iconButton: {
     alignItems: 'center',
-    flex: 1, // Ensures each button takes equal space
+    flex: 1,  // Ensures each button takes equal space
     justifyContent: 'center',
     padding: 5,
   },
@@ -65,10 +67,9 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   bottomTabTextActive: {
-    color: '#2c5aa0',
+    color: '#2c5aa0',  // ฟ้าเมื่อคลิก
     fontWeight: '600',
   },
 });
 
 export default TabBar;
-  

@@ -1,14 +1,14 @@
+// components/ActivityList.js
 import React from 'react';
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 
 const ActivityList = ({ activities }) => {
   return (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>กิจกรรมล่าสุด</Text>
+    <View style={styles.container}>
       {activities.map((activity) => (
-        <View key={activity.id} style={styles.activityRow}>
-          <Image source={activity.icon} style={styles.activityIcon} />
-          <Text style={styles.activityText}>{activity.text}</Text> {/* ห่อข้อความด้วย <Text> */}
+        <View key={activity.id} style={styles.activityItem}>
+          <Text style={styles.activityTitle}>{activity.title}</Text>
+          <Text style={styles.activityTime}>{activity.time}</Text>
         </View>
       ))}
     </View>
@@ -16,33 +16,28 @@ const ActivityList = ({ activities }) => {
 };
 
 const styles = StyleSheet.create({
-  section: {
-    marginHorizontal: 24,
-    marginTop: 8,
+  container: {
+    padding: 10,
   },
-  sectionTitle: {
-    fontSize: 18,
+  activityItem: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginBottom: 10,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  activityTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 16,
   },
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 18,
+  activityTime: {
+    fontSize: 14,
+    color: '#888',
+    marginTop: 5,
   },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    resizeMode: 'contain',
-    marginRight: 12,
-  },
-  activityText: {
-    fontSize: 15,
-    color: '#222',
-    flex: 1,
-    flexWrap: 'wrap',
-  }, 
 });
 
 export default ActivityList;
