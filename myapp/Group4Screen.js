@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react'; 
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   ScrollView, ImageBackground, Alert, Modal, TextInput, ActivityIndicator
@@ -68,7 +68,19 @@ const Group4Screen = ({ navigation, route }) => {
 
   const handleCurrencySelect = (currency) => {
     setSelectedCurrency(currency); // 'THB' หรือ 'USD'
-    setConvertedAmount(null);
+    setConvertedAmount(null); // Reset the conversion result
+
+    // When selecting THB, set amount to the transfer info amount in THB
+    if (currency === 'THB' && from && to && amountParam) {
+      setAmount(Number(amountParam || 0).toFixed(2)); // Set the amount in THB format
+    }
+
+    // When selecting USD, convert the amount from THB to USD if THB rate is available
+    if (currency === 'USD' && rateTHB) {
+      const thbAmount = Number(amountParam || 0); // Assuming amountParam is in THB
+      const usdAmount = thbAmount / rateTHB; // Convert THB to USD
+      setAmount(usdAmount.toFixed(2)); // Set the amount in USD format
+    }
   };
 
   const handleConvertCurrency = () => {
@@ -117,7 +129,7 @@ const Group4Screen = ({ navigation, route }) => {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
-          <TouchableOpacity style={styles.menuButton} onPress={() => Alert.alert('เชิญเพื่อน', 'ยังไม่เชื่อมต่อ backend')}>
+          <TouchableOpacity style={styles.menuButton} onPress={() => ('Group2Screen')}>
             <Text style={styles.menuText}>เชิญเพื่อน</Text>
           </TouchableOpacity>
         </View>
@@ -199,10 +211,6 @@ const Group4Screen = ({ navigation, route }) => {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>เครื่องมือ</Text>
 
-              <TouchableOpacity style={styles.modalOption} onPress={() => { setShowToolsModal(false); Alert.alert('แปลภาษา', 'ยังไม่เชื่อมต่อ'); }}>
-                <Text style={styles.modalOptionText}>🌐 แปลภาษา</Text>
-              </TouchableOpacity>
-
               <TouchableOpacity style={styles.modalOption} onPress={openCurrencyTool}>
                 <Text style={styles.modalOptionText}>💱 แปลงสกุลเงิน</Text>
               </TouchableOpacity>
@@ -224,7 +232,7 @@ const Group4Screen = ({ navigation, route }) => {
                 {isLoadingRate ? <ActivityIndicator /> : <Text style={{ color: rateError ? '#d32f2f' : '#333' }}>{rateBanner}</Text>}
               </View>
 
-              <Text style={{ marginBottom: 6, color: '#333' }}>ฉันกรอกจำนวนเป็น:</Text>
+              <Text style={{ marginBottom: 6, color: '#333' }}>จำนวนเงินที่ต้องจ่าย(สกุลเงิน):</Text>
               <View style={{ flexDirection: 'row', marginBottom: 10 }}>
                 <TouchableOpacity
                   style={[styles.chip, selectedCurrency === 'THB' && styles.chipActive]}
@@ -243,20 +251,11 @@ const Group4Screen = ({ navigation, route }) => {
 
               <TextInput
                 style={styles.currencyInput}
-                placeholder="กรอกจำนวนเงิน"
                 keyboardType="numeric"
                 value={amount}
                 onChangeText={t => { setAmount(t); setConvertedAmount(null); }}
                 editable={!isLoadingRate && !rateError}
               />
-
-              <TouchableOpacity
-                style={[styles.convertButton, (!selectedCurrency || isLoadingRate) && { opacity: 0.5 }]}
-                onPress={handleConvertCurrency}
-                disabled={!selectedCurrency || isLoadingRate}
-              >
-                <Text style={styles.convertText}>แปลง</Text>
-              </TouchableOpacity>
 
               {convertedAmount !== null && selectedCurrency ? (
                 <Text style={styles.convertResult}>
@@ -325,8 +324,6 @@ const styles = StyleSheet.create({
   modalCancelText: { fontSize: 16, color: '#666', fontWeight: 'bold' },
 
   currencyInput: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginVertical: 10, borderRadius: 5 },
-  convertButton: { backgroundColor: '#4a90e2', padding: 10, borderRadius: 20, alignItems: 'center' },
-  convertText: { color: '#fff', fontSize: 16 },
   convertResult: { fontSize: 16, color: '#333', marginTop: 10 },
 
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ccc' },

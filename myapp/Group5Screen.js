@@ -610,8 +610,8 @@ const styles = StyleSheet.create({
   smallBtn:{ alignSelf:'flex-start', paddingHorizontal:10, paddingVertical:6, borderRadius:8 },
   smallBtnText:{ color:'#fff', fontWeight:'700', fontSize:12 },
 
-  breakdownBox:{ marginTop:6, backgroundColor:'#effdf7', borderLeftWidth:3, borderLeftColor:'#10b981', padding:8, borderRadius:6 },
-  breakdownTitle:{ color:'#065f46', fontSize:12, fontWeight:'600', marginBottom:4 },
+  breakdownBox:{ marginTop:6, backgroundColor:'#effdf7', borderLeftWidth:3, borderLeftColor:'#1ba275ff', padding:8, borderRadius:6 },
+  breakdownTitle:{ color:'#08644aff', fontSize:12, fontWeight:'600', marginBottom:4 },
   dot:{ color:'#374151', fontSize:12, marginBottom:2 },
 
   /* person summary */
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
 
   /* badges */
   badge:{ paddingHorizontal:10, paddingVertical:4, borderRadius:999, color:'#fff', fontWeight:'800' },
-  badgeGreen:{ backgroundColor:'#10b981' },
+  badgeGreen:{ backgroundColor:'#2a9423ff' },
   badgeRed:{ backgroundColor:'#ef4444' },
   badgeGrey:{ backgroundColor:'#6b7280' },
 
@@ -639,8 +639,8 @@ const styles = StyleSheet.create({
   input:{ borderWidth:1, borderColor:'#e5e7eb', borderRadius:10, padding:10, fontSize:16, marginTop:8 },
   modalRow:{ flexDirection:'row', marginTop:12 },
   modalBtn:{ flex:1, padding:12, borderRadius:10, alignItems:'center' },
-  btnGrey:{ backgroundColor:'#6b7280', marginRight:8 },
-  btnBlue:{ backgroundColor:'#2563eb' },
+  btnGrey:{ backgroundColor:'#e8ecf4ff', marginRight:8 },
+  btnBlue:{ backgroundColor:'#61c3ffff' },
 
   /* receipts */
   receiptBox:{ marginTop:8, backgroundColor:'#f8f9ff', padding:10, borderRadius:8, borderWidth:1, borderColor:'#e5e7eb' },
@@ -651,6 +651,6 @@ const styles = StyleSheet.create({
   receiptThumb:{ width:60, height:60, borderRadius:8 },
 
   btn:{ paddingHorizontal:12, paddingVertical:8, borderRadius:8 },
-  btnPurple:{ backgroundColor:'#7c3aed' },
+  btnPurple:{ backgroundColor:'#148cdce3' },
   btnText:{ color:'#fff', fontWeight:'700' },
 });
