@@ -102,9 +102,6 @@ const AccountScreen = () => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-<<<<<<< HEAD
-      <TabBar bottomTabs={bottomTabs} /> {/* ส่ง bottomTabs ให้กับ TabBar */}
-=======
       <View style={styles.bottomNavigation}>
         {bottomTabs.map((tab, index) => (
           <TouchableOpacity
@@ -150,7 +147,6 @@ const AccountScreen = () => {
           </View>
         </View>
       </Modal>
->>>>>>> e9eebbfd293c55eba64136db2e997d6a12c64965
     </ImageBackground>
   );
 };

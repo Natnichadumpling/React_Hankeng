@@ -1,6 +1,7 @@
-<<<<<<< HEAD
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { useRoute } from '@react-navigation/native';
+import { supabase } from './supabaseClient';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput } from 'react-native';
 import TabBar from './components/TabBar'; // Import the TabBar component
 import SearchBar from './components/SearchBar'; // Import SearchBar
 
@@ -10,28 +11,15 @@ const bottomTabs = [
   { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
   { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen' },
 ];
-=======
-import React, { useState } from 'react'; // Import useState for search functionality
-import { useRoute } from '@react-navigation/native';
-import { useEffect } from 'react';
-import { supabase } from './supabaseClient';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ImageBackground, TextInput } from 'react-native';
->>>>>>> e9eebbfd293c55eba64136db2e997d6a12c64965
 
 const Group3Screen = ({ navigation }) => {
-
-<<<<<<< HEAD
-  const handleJoinGroup = () => {
-    navigation.navigate('Group5Screen'); // Navigate to Group5Screen
-=======
   const [searchText, setSearchText] = useState('');
   const [userName, setUserName] = useState('');
   const route = useRoute();
   const email = route?.params?.email;
 
   const handleJoinGroup = () => {
-    navigation.navigate('Group5Screen');
->>>>>>> e9eebbfd293c55eba64136db2e997d6a12c64965
+    navigation.navigate('Group5Screen'); // Navigate to Group5Screen
   };
 
   useEffect(() => {
@@ -55,9 +43,6 @@ const Group3Screen = ({ navigation }) => {
     >
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-<<<<<<< HEAD
-          <Text style={styles.headerTitle}>Sopitnapa ยินดีต้อนรับสู่ HarnKeng</Text>
-=======
           {/* Image above the greeting text */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
@@ -77,7 +62,6 @@ const Group3Screen = ({ navigation }) => {
           </View>
 
           <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
->>>>>>> e9eebbfd293c55eba64136db2e997d6a12c64965
           <Text style={styles.subTitle}>ตอนนี้คุณยังไม่เข้ากลุ่ม</Text>
         </View>
 
@@ -150,6 +134,36 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  searchContainer: {
+    marginBottom: 20,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  searchIcon: {
+    fontSize: 18,
+    color: '#555',
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  diamondIcon: {
+    width: 20,
+    height: 20,
+    marginLeft: 8,
   },
 });
 
