@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
@@ -40,9 +41,19 @@ const AccountScreen = () => {
     { title: 'การตั้งค่า', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
     { title: 'สแกน', icon: '📷' },
     { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
-    { title: 'ให้คะแนน HarnKeng', navigateTo: 'RateAppScreen' },
     { title: 'ติดต่อเรา' }
   ];
+
+  const handleLogout = () => {
+    Alert.alert(
+      'ยืนยันการออกจากระบบ',
+      'คุณต้องการออกจากระบบหรือไม่?',
+      [
+        { text: 'ยกเลิก', style: 'cancel' },
+        { text: 'ออกจากระบบ', style: 'destructive', onPress: () => navigation.navigate('LoginScreen') }
+      ]
+    );
+  };
 
   return (
     <ImageBackground
@@ -52,7 +63,7 @@ const AccountScreen = () => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Profile Section */}
         <View style={styles.profileSection}>
-          <View style={{alignItems: 'center'}}>
+          <View style={styles.profileImageContainer}>
             <Image
               source={require('./assets/images/logo.png')} // ใส่รูปโปรไฟล์จริง
               style={styles.profileImage}
@@ -84,7 +95,7 @@ const AccountScreen = () => {
         {/* Logout Button */}
         <TouchableOpacity 
           style={styles.logoutButton} 
-          onPress={() => navigation.navigate('LoginScreen')} // นำทางไปที่หน้า LoginScreen
+          onPress={handleLogout}
         >
           <Text style={styles.logoutText}>ออกจากระบบ</Text>
         </TouchableOpacity>
@@ -117,7 +128,12 @@ const styles = StyleSheet.create({
   profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
+    justifyContent: 'center',  // ทำให้ตำแหน่งเป็นกลาง
+  },
+  profileImageContainer: {
+    alignItems: 'center',  // ทำให้รูปโปรไฟล์อยู่กลาง
+    justifyContent: 'center',
   },
   profileImage: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
   profileName: { fontSize: 16, fontWeight: '600' },

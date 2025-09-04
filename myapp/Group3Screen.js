@@ -14,6 +14,8 @@ const bottomTabs = [
 const Group3Screen = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [userName, setUserName] = useState('');
+  const [groups, setGroups] = useState([]);
+  const [groupMembers, setGroupMembers] = useState([]);
   const route = useRoute();
   const email = route?.params?.email;
 
@@ -34,6 +36,26 @@ const Group3Screen = ({ navigation }) => {
     };
     fetchUserName();
   }, [email]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('*');
+      if (data) setGroups(data);
+    };
+    fetchGroups();
+  }, []);
+
+  useEffect(() => {
+    const fetchGroupMembers = async () => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('*');
+      if (data) setGroupMembers(data);
+    };
+    fetchGroupMembers();
+  }, []);
 
   return (
     <View style={styles.outerContainer}>
