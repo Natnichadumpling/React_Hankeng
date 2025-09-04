@@ -11,6 +11,7 @@ const Page2Screen = ({ route }) => {
   const navigation = useNavigation();
   const [searchText, setSearchText] = useState('');
   const [userName, setUserName] = useState('');
+  const [groups, setGroups] = useState([]);
 
   useEffect(() => {
     const email = route?.params?.email || '';
@@ -26,11 +27,32 @@ const Page2Screen = ({ route }) => {
     fetchUserName();
   }, [route]);
 
-  const activities = [
-    { id: 1, title: 'คุณเพิ่ม "Nathicha" เข้าร่วมกลุ่มข้อมูล', avatar: '👤', time: '2 ชั่วโมงที่แล้ว' },
-    { id: 2, title: 'คุณลบกลุ่ม "ญี่ปุ่น"', avatar: '👤', time: '5 ชั่วโมงที่แล้ว' },
-    { id: 3, title: 'คุณสร้างกลุ่ม "ญี่ปุ่น"', avatar: '👤', time: '1 วันที่แล้ว' }
-  ];
+  useEffect(() => {
+    const fetchGroups = async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('*');
+      if (data) setGroups(data);
+    };
+    fetchGroups();
+  }, []);
+
+  const [activities, setActivities] = useState([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    const fetchActivities = async () => {
+      setIsLoadingActivities(true);
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('type', 'create_group')
+        .order('created_at', { ascending: false });
+      if (data) setActivities(data);
+      setIsLoadingActivities(false);
+    };
+    fetchActivities();
+  }, []);
 
   const bottomTabs = [
     { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
@@ -40,8 +62,17 @@ const Page2Screen = ({ route }) => {
   ];
 
   const filteredActivities = activities.filter(activity =>
-    activity.title.toLowerCase().includes(searchText.toLowerCase())
+    (activity.description || '').toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const filteredGroups = groups.filter(group =>
+    (group.name ? group.name.toLowerCase() : '').includes(searchText.toLowerCase())
+  );
+
+  // ดึง 2 กลุ่มล่าสุดที่สร้าง (เรียงจากใหม่ไปเก่า)
+  const latestGroups = [...groups]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 2);
 
   return (
     <View style={styles.outerContainer}>
@@ -83,6 +114,7 @@ const Page2Screen = ({ route }) => {
             </TouchableOpacity>
           </View>
 
+
           {/* Main Card */}
           <View style={styles.mainCard}>
             <View style={styles.cardHeader}>
@@ -91,39 +123,46 @@ const Page2Screen = ({ route }) => {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.cardContent}>
-              <View style={styles.cityImageContainer}>
-                <View style={styles.cityImagePlaceholder}>
-                  <Image source={require('./assets/images/jp.png')} style={styles.cityImage} />
+            {/* 2 กลุ่มล่าสุดที่สร้าง แสดงเป็น 2 บล็อกแยกกัน */}
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 }}>กลุ่ม</Text>
+            {latestGroups.length === 0 ? (
+              <Text style={{ color: '#999', fontSize: 14 }}>ไม่พบกลุ่ม</Text>
+            ) : (
+              latestGroups.map((group, idx) => (
+                <View key={group.id || idx} style={{ backgroundColor: '#fff', borderRadius: 16, padding: 16, marginBottom: 16, flexDirection: 'row', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, elevation: 2 }}>
+                  {group.image_url ? (
+                    <Image source={{ uri: group.image_url }} style={{ width: 60, height: 60, borderRadius: 12, marginRight: 16, backgroundColor: '#eee' }} />
+                  ) : (
+                    <View style={{ width: 60, height: 60, borderRadius: 12, marginRight: 16, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ color: '#aaa', fontSize: 24 }}>🖼️</Text>
+                    </View>
+                  )}
+                  <Text style={{ fontSize: 18, color: '#222', fontWeight: 'bold' }}>{group.name}</Text>
                 </View>
-              </View>
-
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>สมาชิก</Text>
-                <View style={styles.socialIcons}>
-                  <TouchableOpacity style={styles.socialIcon}><Text>👤</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.socialIcon}><Text>👤</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.socialIcon}><Text>👤</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.socialIcon}><Text>👤</Text></TouchableOpacity>
-                </View>
-              </View>
-            </View>
+              ))
+            )}
           </View>
 
           {/* Activity Section */}
           <View style={styles.activitySection}>
             <Text style={styles.activityTitle}>กิจกรรมล่าสุด</Text>
-            {filteredActivities.map((activity) => (
-              <View key={activity.id} style={styles.activityItem}>
-                <View style={styles.activityAvatar}>
-                  <Image source={require('./assets/images/logo1.png')} style={styles.activityAvatarImage} />
+            {isLoadingActivities ? (
+              <View style={styles.activityItem}><Text style={styles.activityText}>กำลังโหลด...</Text></View>
+            ) : filteredActivities.length > 0 ? (
+              filteredActivities.map((activity) => (
+                <View key={activity.id} style={styles.activityItem}>
+                  <View style={styles.activityAvatar}>
+                    <Image source={require('./assets/images/logo2.png')} style={styles.activityAvatarImage} />
+                  </View>
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityText}>{activity.description}</Text>
+                    <Text style={styles.activityTime}>{activity.created_at ? new Date(activity.created_at).toLocaleString('th-TH') : ''}</Text>
+                  </View>
                 </View>
-                <View style={styles.activityContent}>
-                  <Text style={styles.activityText}>{activity.title}</Text>
-                  <Text style={styles.activityTime}>{activity.time}</Text>
-                </View>
-              </View>
-            ))}
+              ))
+            ) : (
+              <View style={styles.activityItem}><Text style={styles.activityText}>ไม่พบกิจกรรมการสร้างกลุ่ม</Text></View>
+            )}
           </View>
 
           {/* เพิ่ม margin bottom เพื่อให้ content ไม่ทับ TabBar */}
