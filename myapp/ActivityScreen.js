@@ -10,14 +10,9 @@ import {
   Image 
 } from 'react-native';
 import TabBar from './components/TabBar'; // นำเข้า TabBar
+import supabase from './supabaseClient';
 
-const activities = [
-  { id: 1, text: 'คุณเพิ่ม "Nathicha" เข้าร่วมกลุ่มบ๊วยออร์ก', icon: require('./assets/images/logo1.png'), time: '2 ชั่วโมงที่แล้ว' },
-  { id: 2, text: 'คุณสร้างกลุ่ม "บ๊วยออร์ก"', icon: require('./assets/images/logo1.png'), time: '5 ชั่วโมงที่แล้ว' },
-  { id: 3, text: 'สมศรี ติ๋ง แสดงความเห็นกับ "บ๊วยออร์ก" 🙏🏻', icon: require('./assets/images/logo1.png'), time: '1 วันที่แล้ว' },
-  { id: 4, text: 'คุณเชิญ "จิรายุ" เข้ากลุ่ม "บ๊วยออร์ก"', icon: require('./assets/images/logo1.png'), time: '2 วันที่แล้ว' },
-  { id: 5, text: 'มีการอัพเดทในกลุ่ม "บ๊วยออร์ก"', icon: require('./assets/images/logo1.png'), time: '3 วันที่แล้ว' }
-];
+// activities จะถูกดึงจากฐานข้อมูล
 
 const bottomTabs = [
   { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
@@ -28,10 +23,33 @@ const bottomTabs = [
 
 const ActivityScreen = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ดึงกิจกรรมจากฐานข้อมูล Supabase
+  React.useEffect(() => {
+    const fetchActivities = async () => {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.log('Error fetching activities:', error.message);
+        setActivities([]);
+      } else {
+        setActivities(data || []);
+      }
+      setIsLoading(false);
+    };
+    fetchActivities();
+  }, []);
 
   // ฟังก์ชันกรองกิจกรรมตาม searchText
+  // กรองเฉพาะกิจกรรมการสร้างกลุ่ม
   const filteredActivities = activities.filter(activity =>
-    activity.text.toLowerCase().includes(searchText.toLowerCase())
+    activity.type === 'create_group' &&
+    (activity.description || '').toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
@@ -75,18 +93,20 @@ const ActivityScreen = ({ navigation }) => {
           <View style={styles.activitiesContainer}>
             <Text style={styles.sectionTitle}>กิจกรรมล่าสุด</Text>
             
-            {filteredActivities.length > 0 ? (
+            {isLoading ? (
+              <View style={styles.noActivities}><Text style={styles.noActivitiesText}>กำลังโหลด...</Text></View>
+            ) : filteredActivities.length > 0 ? (
               filteredActivities.map((activity) => (
                 <View key={activity.id} style={styles.activityItem}>
                   <View style={styles.activityIcon}>
                     <Image 
-                      source={activity.icon} 
+                      source={activity.type === 'create_group' ? require('./assets/images/logo2.png') : require('./assets/images/logo1.png')} 
                       style={styles.activityIconImage} 
                     />
                   </View>
                   <View style={styles.activityContent}>
-                    <Text style={styles.activityText}>{activity.text}</Text>
-                    <Text style={styles.activityTime}>{activity.time}</Text>
+                    <Text style={styles.activityText}>{activity.description}</Text>
+                    <Text style={styles.activityTime}>{activity.created_at ? new Date(activity.created_at).toLocaleString('th-TH') : ''}</Text>
                   </View>
                 </View>
               ))

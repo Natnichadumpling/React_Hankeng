@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Alert } from 'react-native';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
@@ -43,6 +44,17 @@ const AccountScreen = () => {
     { title: 'ติดต่อเรา', navigateTo: 'Home4Screen' } // เปลี่ยนเป็น Home4Screen
   ];
 
+  const handleLogout = () => {
+    Alert.alert(
+      'ยืนยันการออกจากระบบ',
+      'คุณต้องการออกจากระบบหรือไม่?',
+      [
+        { text: 'ยกเลิก', style: 'cancel' },
+        { text: 'ออกจากระบบ', style: 'destructive', onPress: () => navigation.navigate('LoginScreen') }
+      ]
+    );
+  };
+
   return (
     <ImageBackground
       source={require('./assets/images/p1.png')} // พื้นหลัง
@@ -83,7 +95,7 @@ const AccountScreen = () => {
         {/* Logout Button */}
         <TouchableOpacity 
           style={styles.logoutButton} 
-          onPress={() => navigation.navigate('LoginScreen')} // นำทางไปที่หน้า LoginScreen
+          onPress={handleLogout}
         >
           <Text style={styles.logoutText}>ออกจากระบบ</Text>
         </TouchableOpacity>

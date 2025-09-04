@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+// ...existing code...
+import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from './supabaseClient';
 import {
   View,
   Text,
@@ -17,37 +20,110 @@ const GroupScreen = () => {
   const navigation = useNavigation();
   const [groupName, setGroupName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [groupImage, setGroupImage] = useState(null);
 
   const categories = [
-    { name: 'อาหาร', icon: require('./assets/images/food.png') },
-    { name: 'เครื่องดื่ม', icon: require('./assets/images/drink.png') },
-    { name: 'ท่องเที่ยว', icon: require('./assets/images/travel.png') },
-    { name: 'ออกกำลังกาย', icon: require('./assets/images/exercise.png') },
+    { name: 'อาหาร', icon: require('./assets/images/food.png'), image: 'food.png' },
+    { name: 'เครื่องดื่ม', icon: require('./assets/images/drink.png'), image: 'drink.png' },
+    { name: 'ท่องเที่ยว', icon: require('./assets/images/travel.png'), image: 'travel.png' },
+    { name: 'ออกกำลังกาย', icon: require('./assets/images/exercise.png'), image: 'exercise.png' },
   ];
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
   };
 
-  // ปุ่ม "เสร็จ" -> ไปหน้า Group2Screen
-  const handleDone = () => {
-    if (groupName && selectedCategory) {
-      navigation.navigate('Group2Screen', {
-        groupName,
-        category: selectedCategory.name,
+  // ฟังก์ชันเลือกไฟล์ภาพ (Expo)
+  const handleFilePicker = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+        multiple: false,
       });
+      console.log('DocumentPicker result:', res);
+      if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
+        setGroupImage(res.assets[0].uri);
+        console.log('groupImage set to:', res.assets[0].uri);
+      } else {
+        setGroupImage(null);
+        console.log('groupImage set to null');
+      }
+    } catch (err) {
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถเลือกไฟล์ภาพได้');
+    }
+  };
+
+  // ฟังก์ชันเพิ่มกลุ่มลงฐานข้อมูล
+  const addGroupToDatabase = async () => {
+    if (!groupName || !selectedCategory) return false;
+    // หากมีระบบ auth สามารถดึง email จาก session ได้
+    let created_by = null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      created_by = session?.user?.email || null;
+    } catch (e) {}
+    const { data, error } = await supabase
+      .from('groups')
+      .insert([{ 
+        name: groupName, 
+        created_by, 
+        category: selectedCategory.name,
+        image: selectedCategory.image,
+        image_url: groupImage || null
+      }]);
+    if (!error && data && data[0]) {
+      // ดึง user id จาก session ถ้ามี
+      let userId = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id || null;
+      } catch (e) {}
+      // บันทึกกิจกรรมการสร้างกลุ่ม
+      await supabase
+        .from('activities')
+        .insert([{
+          user_id: userId,
+          type: 'create_group',
+          description: `คุณสร้างกลุ่ม "${groupName}"`,
+          group_id: data[0].id
+        }]);
+    }
+    if (error) {
+      console.log('Supabase insert error:', error);
+    }
+    return !error;
+  };
+
+  // ปุ่ม "เสร็จ" -> ไปหน้า Group2Screen และบันทึกลงฐานข้อมูล
+  const handleDone = async () => {
+    if (groupName && selectedCategory) {
+      const success = await addGroupToDatabase();
+      if (success) {
+        navigation.navigate('Group2Screen', {
+          groupName,
+          category: selectedCategory.name,
+        });
+      } else {
+        Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถเพิ่มกลุ่มได้');
+      }
     } else {
       Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม');
     }
   };
 
-  // ปุ่ม "ถัดไป" -> ไปหน้า Group2Screen
-  const handleNext = () => {
+  // ปุ่ม "ถัดไป" -> ไปหน้า Group2Screen และบันทึกลงฐานข้อมูล
+  const handleNext = async () => {
     if (groupName && selectedCategory) {
-      navigation.navigate('Group2Screen', {
-        groupName,
-        category: selectedCategory.name,
-      });
+      const success = await addGroupToDatabase();
+      if (success) {
+        navigation.navigate('Group2Screen', {
+          groupName,
+          category: selectedCategory.name,
+        });
+      } else {
+        Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถเพิ่มกลุ่มได้');
+      }
     } else {
       Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม');
     }
@@ -77,14 +153,19 @@ const GroupScreen = () => {
           </View>
 
           {/* Camera Section */}
-          <View style={styles.cameraSection}>
-            <TouchableOpacity
-              style={styles.cameraButton}
-              onPress={() => Alert.alert('กล้อง', 'เปิดกล้องเพื่อถ่ายรูปกลุ่ม')}
-            >
-              <Text style={styles.cameraIcon}>📷</Text>
-            </TouchableOpacity>
-            <Text style={styles.cameraText}>ถ่ายรูป</Text>
+          <View style={[styles.cameraSection, { alignItems: 'center' }]}> 
+            <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ccc', borderRadius: 12, padding: 10, backgroundColor: '#fafafa', minWidth: 160 }}>
+              <TouchableOpacity
+                style={styles.cameraButton}
+                onPress={handleFilePicker}
+              >
+                <Text style={styles.cameraIcon}>📁</Text>
+              </TouchableOpacity>
+              {groupImage && (
+                <Image source={{ uri: groupImage }} style={{ width: 60, height: 60, borderRadius: 10, marginLeft: 15, backgroundColor: '#eee' }} />
+              )}
+            </View>
+            <Text style={styles.cameraText}>เพิ่มไฟล์ภาพ</Text>
           </View>
 
           {/* Group Name */}
