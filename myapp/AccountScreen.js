@@ -40,7 +40,7 @@ const AccountScreen = () => {
     { title: 'การตั้งค่า', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
     { title: 'สแกน', icon: '📷' },
     { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
-    { title: 'ติดต่อเรา' }
+    { title: 'ติดต่อเรา', navigateTo: 'Home4Screen' } // เปลี่ยนเป็น Home4Screen
   ];
 
   return (
@@ -71,7 +71,7 @@ const AccountScreen = () => {
               style={styles.menuItem}
               onPress={() => {
                 if (item.navigateTo) {
-                  navigation.navigate(item.navigateTo); // นำทางไปที่หน้า SettingScreen หรือ ProScreen
+                  navigation.navigate(item.navigateTo); // นำทางไปที่หน้า SettingScreen หรือ ProScreen หรือ Home4Screen
                 }
               }}
             >
