@@ -15,8 +15,8 @@ const AccountScreen = () => {
   const menuItems = [
     { title: 'การตั้งค่า', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
     { title: 'สแกน', icon: '📷' },
-    { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },  // เพิ่ม navigateTo สำหรับ HarnKeng
-    { title: 'ให้คะแนน HarnKeng' },
+    { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
+    { title: 'ให้คะแนน HarnKeng', navigateTo: 'RateAppScreen' },
     { title: 'ติดต่อเรา' }
   ];
 

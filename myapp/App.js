@@ -29,6 +29,7 @@ import AccountScreen from './AccountScreen';
 import ActivityScreen from './ActivityScreen';
 
 import ForgotPasswordScreen from './ForgotPasswordScreen';
+import RateAppScreen from './RateAppScreen';
 
 // ✅ หน้าสรุปรายการโอน
 import Group6Screen from './Group6Screen';
@@ -73,6 +74,7 @@ export default function App() {
         />
   <Stack.Screen name="SettingScreen" component={SettingScreen} />
   <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'ลืมรหัสผ่าน' }} />
+  <Stack.Screen name="RateAppScreen" component={RateAppScreen} options={{ title: 'ให้คะแนน HarnKeng' }} />
       </Stack.Navigator>
     </NavigationContainer>
   );
