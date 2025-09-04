@@ -1,9 +1,31 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { supabase } from './supabaseClient';
 
 const AccountScreen = () => {
   const navigation = useNavigation();
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      const email = user?.email;
+      if (!email) return;
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, email')
+        .eq('email', email)
+        .single();
+      if (data) {
+        setUserName(data.name || '');
+        setUserEmail(data.email || '');
+      }
+    };
+    fetchUser();
+  }, []);
 
   const bottomTabs = [
     { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
@@ -33,8 +55,8 @@ const AccountScreen = () => {
             style={styles.profileImage}
           />
           <View>
-            <Text style={styles.profileName}>Sopitnapa</Text>
-            <Text style={styles.profileEmail}>film0936123963@gmail.com</Text>
+            <Text style={styles.profileName}>{userName}</Text>
+            <Text style={styles.profileEmail}>{userEmail}</Text>
           </View>
         </View>
 
