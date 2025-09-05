@@ -10,7 +10,7 @@ import {
   Image 
 } from 'react-native';
 import TabBar from './components/TabBar'; // นำเข้า TabBar
-import supabase from './supabaseClient';
+import { supabase } from './supabaseClient';
 
 // activities จะถูกดึงจากฐานข้อมูล
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import supabase from './supabaseClient';
+import { supabase } from './supabaseClient';
 import * as DocumentPicker from 'expo-document-picker';
 import { Image } from 'react-native';
 import {

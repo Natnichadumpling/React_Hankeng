@@ -1,18 +1,7 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ImageBackground,
-  Image,
-  ScrollView,
-  Modal,
-  TextInput,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { supabase } from './supabaseClient';
+import React, { useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ImageBackground, Image, ScrollView, Modal, TextInput, StyleSheet } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { supabase } from './supabaseClient'; // Assuming supabaseClient is where you initialize Supabase
 
 const SettingScreen = () => {
   const navigation = useNavigation();
@@ -21,200 +10,225 @@ const SettingScreen = () => {
   // state for select simple currency
   const [currency, setCurrency] = useState('THB');
   const [language, setLanguage] = useState('ภาษาไทย');
-
-  // state for currency modal
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
-
-  // state for user info
   const [slipName, setSlipName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('********');
-
-  // state for profile image
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
+  const [hasSession, setHasSession] = useState(true);
+  const isActiveRef = React.useRef(true);
 
-  // ดึงข้อมูลผู้ใช้จาก Supabase ทุกครั้งที่เข้า/กลับมาหน้านี้
+  // ฟังก์ชันดึงข้อมูลผู้ใช้จาก Supabase
+  const fetchUser = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const userEmail = session?.user?.email;
+      if (!userEmail) {
+        if (isActiveRef.current) setHasSession(false);
+        setSlipName('Guest User');
+        setEmail('guest@example.com');
+        setPhone('');
+        setPassword('');
+        return;
+      }
+      const { data, error } = await supabase
+        .from('users')
+        .select('name, email, phone, password')
+        .eq('email', userEmail)
+        .single();
+      if (error || !data) {
+        if (isActiveRef.current) setHasSession(false);
+        setSlipName('Guest User');
+        setEmail(userEmail);
+        setPhone('');
+        setPassword('');
+        return;
+      }
+      if (isActiveRef.current && data) {
+        setSlipName(data.name || '');
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
+        setPassword(data.password || '');
+        setHasSession(true);
+      }
+    } catch (e) {
+      if (isActiveRef.current) setHasSession(false);
+      setSlipName('Guest User');
+      setEmail('guest@example.com');
+      setPhone('');
+      setPassword('');
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
-      let isActive = true;
-      const fetchUser = async () => {
-        try {
-          const userEmail = route?.params?.email || 'film0936123963@gmail.com';
-          const { data, error } = await supabase
-            .from('users')
-            .select('name, email, phone, password')
-            .eq('email', userEmail)
-            .single();
-          if (error) {
-            if (error.code === 'PGRST116') {
-              console.warn('No user found for the provided email.');
-            } else {
-              console.warn('Supabase fetch user error:', error);
-            }
-            return;
-          }
-          if (isActive && data) {
-            setSlipName(data.name || '');
-            setEmail(data.email || '');
-            setPhone(data.phone || '');
-            setPassword(data.password ? '*'.repeat(data.password.length) : '********');
-          }
-        } catch (e) {
-          console.warn('fetchUser exception:', e);
-        }
-      };
+      isActiveRef.current = true;
       fetchUser();
       return () => {
-        isActive = false;
+        isActiveRef.current = false;
       };
     }, [route])
   );
 
-  const handleCurrencySelect = (selectedCurrency) => {
-    setCurrency(selectedCurrency);
-    setShowCurrencyModal(false);
-  };
-
-  // Function to open the image picker (camera or gallery)
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (permissionResult.granted === false) {
-      alert('Permission to access gallery is required!');
-      return;
-    }
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setProfileImage(result.assets?.[0]?.uri ?? result.uri);
-    }
-  };
-
-  // Function to open the camera
-  const takePhoto = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (permissionResult.granted === false) {
-      alert('Permission to access camera is required!');
-      return;
-    }
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setProfileImage(result.assets?.[0]?.uri ?? result.uri);
-    }
-  };
-
   return (
-    <ImageBackground
-      source={require('./assets/images/p1.png')}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.headerWrap}>
-          <View style={styles.header}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-              <Text style={styles.backIcon}>{'<'}</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>การตั้งค่าบัญชี</Text>
-            <View style={{ width: 24 }} />
+    <View style={{ flex: 1 }}>
+      <ImageBackground
+        source={require('./assets/images/p1.png')}
+        style={styles.container}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Header */}
+          <View style={styles.headerWrap}>
+            <View style={styles.header}>
+              <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <Text style={styles.backIcon}>{'<'}</Text>
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>การตั้งค่าบัญชี</Text>
+              <View style={{ width: 24 }} />
+            </View>
           </View>
-        </View>
 
-        {/* Profile */}
-        <View style={styles.profileSection}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatar} />
+          {/* ถ้าไม่มี session ให้แจ้งเตือนและแสดงปุ่ม login */}
+          {!hasSession ? (
+            <View style={{ margin: 24, alignItems: 'center' }}>
+              <Text style={{ color: 'red', fontSize: 16, marginBottom: 12 }}>
+                กรุณาเข้าสู่ระบบก่อนใช้งาน
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: '#22c55e', padding: 12, borderRadius: 8 }}
+                onPress={() => navigation.navigate('LoginScreen')}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>เข้าสู่ระบบ</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
-            <Image
-              source={require('./assets/images/logo.png')}
-              style={styles.avatar}
-            />
+            <View>
+              <View style={styles.profileSection}>
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={styles.avatar} />
+                ) : (
+                  <Image
+                    source={require('./assets/images/logo.png')}
+                    style={styles.avatar}
+                  />
+                )}
+                <TouchableOpacity onPress={pickImage}>
+                  <Text style={styles.changePhotoText}>เลือกภาพจากไฟล์</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={takePhoto}>
+                  <Text style={styles.changePhotoText}>ถ่ายภาพใหม่</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Info fields */}
+              <View style={styles.formCard}>
+                {/* ชื่อ (แก้ไขได้) */}
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>ชื่อ</Text>
+                    <TextInput
+                      style={styles.fieldValue}
+                      value={slipName}
+                      onChangeText={setSlipName}
+                    />
+                  </View>
+                </View>
+                {/* อีเมล */}
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>ที่อยู่อีเมล</Text>
+                    <Text style={styles.fieldValue}>{email}</Text>
+                  </View>
+                </View>
+                {/* เบอร์โทร */}
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>หมายเลขโทรศัพท์</Text>
+                    <Text style={styles.fieldValue}>{phone}</Text>
+                  </View>
+                </View>
+                {/* รหัสผ่าน (toggle visibility) */}
+                <View style={styles.fieldRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.fieldLabel}>รหัสผ่าน</Text>
+                    <TextInput
+                      style={styles.fieldValue}
+                      value={password}
+                      secureTextEntry={!showPassword}
+                      editable={false}
+                    />
+                  </View>
+                  <TouchableOpacity onPress={() => setShowPassword((v) => !v)}>
+                    <Text style={styles.editText}>{showPassword ? 'ซ่อน' : 'แสดง'}</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* Selects */}
+                <View style={styles.fieldRow}>
+                  <Select
+                    label="สกุลเงินเริ่มต้น"
+                    value={currency}
+                    onPress={() => setShowCurrencyModal(true)}
+                  />
+                </View>
+              </View>
+
+              {/* Save button */}
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
+              </TouchableOpacity>
+            </View>
           )}
-          <TouchableOpacity onPress={pickImage}>
-            <Text style={styles.changePhotoText}>เลือกภาพจากไฟล์</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={takePhoto}>
-            <Text style={styles.changePhotoText}>ถ่ายภาพใหม่</Text>
-          </TouchableOpacity>
-        </View>
+        </ScrollView>
 
-        {/* Info fields */}
-        <View style={styles.formCard}>
-          <Field label="ชื่อ" value={slipName} editable={true} onEdit={setSlipName} />
-          <Field label="ที่อยู่อีเมล" value={email} editable={false} />
-          <Field label="หมายเลขโทรศัพท์" value={phone} editable={false} />
-          <Field label="รหัสผ่าน" value={password} editable={false} />
-
-          {/* Selects */}
-          <Select
-            label="สกุลเงินเริ่มต้น"
-            value={currency}
-            onPress={() => setShowCurrencyModal(true)}
-          />
-        </View>
-
-        {/* Save button */}
-        <TouchableOpacity style={styles.saveBtn} onPress={() => {}}>
-          <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Currency selection modal */}
-      <Modal visible={showCurrencyModal} transparent animationType="slide">
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
-            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
-              <Text style={styles.modalOptionText}>THB</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
-              <Text style={styles.modalOptionText}>USD</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.modalCancelButton}
-              onPress={() => setShowCurrencyModal(false)}
-            >
-              <Text style={styles.modalCancelText}>ยกเลิก</Text>
-            </TouchableOpacity>
+        {/* Currency selection modal */}
+        <Modal visible={showCurrencyModal} transparent animationType="slide">
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
+                <Text style={styles.modalOptionText}>THB</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
+                <Text style={styles.modalOptionText}>USD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowCurrencyModal(false)}
+              >
+                <Text style={styles.modalCancelText}>ยกเลิก</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </ImageBackground>
+        </Modal>
+      </ImageBackground>
+    </View>
   );
 };
 
 /* ====== Small components ====== */
-const Field = ({ label, value, editable, onEdit }) => {
-  return (
-    <View style={styles.fieldRow}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {editable ? (
-          <TextInput
-            style={styles.fieldValue}
-            value={value}
-            onChangeText={onEdit}
-          />
-        ) : (
-          <Text style={styles.fieldValue}>{value}</Text>
-        )}
-      </View>
-      {editable && (
-        <TouchableOpacity>
-          <Text style={styles.editText}>แก้ไข</Text>
-        </TouchableOpacity>
+const Field = ({ label, value, editable, onEdit }) => (
+  <View style={styles.fieldRow}>
+    <View style={{ flex: 1 }}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      {editable ? (
+        <TextInput
+          style={styles.fieldValue}
+          value={value}
+          onChangeText={onEdit}
+        />
+      ) : (
+        <Text style={styles.fieldValue}>{value}</Text>
       )}
     </View>
-  );
-};
+    {editable && (
+      <TouchableOpacity>
+        <Text style={styles.editText}>แก้ไข</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
 
 const Select = ({ label, value, onPress }) => {
   return (

@@ -2,23 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Share, Clipboard, SafeAreaView, Image, ImageBackground, ScrollView } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 
-const { supabase } = require('./supabaseClient');
+import { supabase } from './supabaseClient';
 const Group2Screen = ({ navigation }) => {
   const route = useRoute();
   const { groupName } = route.params;
   const [groupId, setGroupId] = useState(null);
+  const [groupImageUrl, setGroupImageUrl] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchGroupId = async () => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id')
+        .select('id, image_url')
         .eq('name', groupName)
         .order('created_at', { ascending: false })
         .limit(1);
       if (data && data.length > 0) {
         setGroupId(data[0].id);
+        setGroupImageUrl(data[0].image_url || null);
       }
       setLoading(false);
     };
@@ -69,7 +71,11 @@ const Group2Screen = ({ navigation }) => {
           <View style={styles.content}>
             {/* Logo */}
             <View style={styles.logoContainer}>
-              <Image source={require('./assets/images/logo.png')} style={styles.logo} />
+              {groupImageUrl ? (
+                <Image source={{ uri: groupImageUrl }} style={styles.logo} />
+              ) : (
+                <Image source={require('./assets/images/logo.png')} style={styles.logo} />
+              )}
             </View>
             <Text style={styles.infoText}>นี่คือลิงก์เชิญเพื่อนเข้ากลุ่มของคุณ:</Text>
             {loading ? (

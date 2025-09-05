@@ -39,10 +39,10 @@ const AccountScreen = () => {
   ];
 
   const menuItems = [
-    { title: 'การตั้งค่า', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
-    { title: 'สแกน', icon: '📷' },
+    { title: 'การตั้งค่า', icon: '⚙️', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
     { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
-    { title: 'ติดต่อเรา', navigateTo: 'Home4Screen' }
+    { title: 'ให้คะแนน', icon: '⭐', navigateTo: 'RateAppScreen' },
+    { title: 'ติดต่อเรา', icon: '📞', navigateTo: 'Home4Screen' }
   ];
 
   const handleLogout = () => {
@@ -62,22 +62,26 @@ const AccountScreen = () => {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Profile Section */}
-        <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileImageWrap}>
             <Image
               source={require('./assets/images/logo.png')}
               style={styles.profileImage}
             />
-            <Text style={styles.profileName}>{userName}</Text>
           </View>
-          <View>
+          <View style={styles.profileInfoWrap}>
+            <Text style={styles.profileName}>{userName ? userName : 'ชื่อผู้ใช้'}</Text>
             <Text style={styles.profileEmail}>{userEmail}</Text>
+            {/* เพิ่มการแสดงชื่อจริง (name) จากฐานข้อมูล ถ้ามี */}
+            {userName && (
+              <Text style={styles.profileRealName}>ชื่อ: {userName}</Text>
+            )}
           </View>
         </View>
 
-        {/* Menu List */}
-        <View style={styles.menuList}>
+        {/* Menu Card */}
+        <View style={styles.menuCard}>
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
@@ -87,8 +91,12 @@ const AccountScreen = () => {
                   navigation.navigate(item.navigateTo);
                 }
               }}
+              activeOpacity={0.7}
             >
               <Text style={styles.menuText}>{item.icon ? `${item.icon} ` : ''}{item.title}</Text>
+              {item.subtitle && (
+                <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
@@ -97,6 +105,7 @@ const AccountScreen = () => {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
+          activeOpacity={0.8}
         >
           <Text style={styles.logoutText}>ออกจากระบบ</Text>
         </TouchableOpacity>
@@ -112,36 +121,63 @@ const AccountScreen = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, paddingBottom: 100 },
-  profileSection: {
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 18,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  profileImageContainer: {
+  profileImageWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 18,
   },
-  profileImage: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
-  profileName: { fontSize: 16, fontWeight: '600' },
-  profileEmail: { fontSize: 13, color: '#666' },
+  profileImage: { width: 70, height: 70, borderRadius: 35 },
+  profileInfoWrap: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  profileName: { fontSize: 20, fontWeight: '700', color: '#2c5aa0', marginBottom: 4 },
+  profileRealName: { fontSize: 15, color: '#444', marginTop: 2 },
+  profileEmail: { fontSize: 14, color: '#666' },
 
-  menuList: { marginBottom: 40 },
-  menuItem: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee'
+  menuCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 10,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  menuText: { fontSize: 15, color: '#333' },
+  menuItem: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: { fontSize: 16, color: '#222', fontWeight: '500' },
+  menuSubtitle: { fontSize: 12, color: '#888', marginTop: 2 },
 
   logoutButton: {
     alignSelf: 'center',
-    backgroundColor: '#e0e0e0',
-    paddingVertical: 10,
-    paddingHorizontal: 30,
-    borderRadius: 5,
+    backgroundColor: '#2c5aa0',
+    paddingVertical: 12,
+    paddingHorizontal: 40,
+    borderRadius: 24,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  logoutText: { fontSize: 14, color: '#333' },
+  logoutText: { fontSize: 16, color: '#fff', fontWeight: 'bold' },
 
   bottomSpacing: { height: 80 },
 });

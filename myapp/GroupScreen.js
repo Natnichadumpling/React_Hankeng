@@ -68,7 +68,6 @@ const GroupScreen = () => {
       .insert([{ 
         name: groupName, 
         created_by, 
-        category: selectedCategory.name,
         image: selectedCategory.image,
         image_url: groupImage || null
       }]);
