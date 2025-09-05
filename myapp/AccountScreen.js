@@ -39,7 +39,7 @@ const AccountScreen = () => {
   ];
 
   const menuItems = [
-    { title: 'การตั้งค่า', icon: '⚙️', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
+    { title: 'การตั้งค่า', icon: '⚙️' , navigateTo: 'SettingScreen' },
     { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
     { title: 'ให้คะแนน', icon: '⭐', navigateTo: 'RateAppScreen' },
     { title: 'ติดต่อเรา', icon: '📞', navigateTo: 'Home4Screen' }
@@ -71,7 +71,7 @@ const AccountScreen = () => {
             />
           </View>
           <View style={styles.profileInfoWrap}>
-            <Text style={styles.profileName}>{userName ? userName : 'ชื่อผู้ใช้'}</Text>
+            <Text style={styles.profileName}>{userName}</Text>
             <Text style={styles.profileEmail}>{userEmail}</Text>
             {/* เพิ่มการแสดงชื่อจริง (name) จากฐานข้อมูล ถ้ามี */}
             {userName && (
@@ -87,8 +87,11 @@ const AccountScreen = () => {
               key={index}
               style={styles.menuItem}
               onPress={() => {
+                console.log(`Navigating to: ${item.navigateTo}`); // Debugging log
                 if (item.navigateTo) {
                   navigation.navigate(item.navigateTo);
+                } else {
+                  console.log('No navigateTo property found for this menu item.');
                 }
               }}
               activeOpacity={0.7}

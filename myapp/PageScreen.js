@@ -6,19 +6,37 @@ import Icon from 'react-native-vector-icons/FontAwesome5';
 
 const PageScreen = ({ route }) => {
   const navigation = useNavigation();
-  const email = route?.params?.email;
-  const [userName, setUserName] = useState('Sopitnana');
+  const email = route?.params?.userData?.email;
+  const [userName, setUserName] = useState(''); // Default to empty string
 
   useEffect(() => {
     const fetchUserName = async () => {
-      if (!email) return;
-      const { data, error } = await supabase
-        .from('users')
-        .select('name')
-        .eq('email', email)
-        .single();
-      if (data && data.name) setUserName(data.name);
+      if (!email) {
+        console.error('Email is undefined'); // Debugging log
+        setUserName('Guest'); // Fallback to Guest if email is undefined
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('name')
+          .eq('email', email)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user name:', error);
+          setUserName('Guest'); // Fallback to Guest if error occurs
+        } else if (data && data.name) {
+          console.log('Fetched user name:', data.name); // Debugging log
+          setUserName(data.name);
+        }
+      } catch (fetchError) {
+        console.error('Unexpected error fetching user name:', fetchError);
+        setUserName('Guest'); // Fallback to Guest if unexpected error occurs
+      }
     };
+
     fetchUserName();
   }, [email]);
 

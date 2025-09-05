@@ -132,6 +132,16 @@ const Page2Screen = ({ route }) => {
               <Text style={styles.welcomeText}>สวัสดี !</Text>
               <Text style={styles.nameText}>{userName || '...'}</Text>
             </View>
+            {/* Settings Icon */}
+            <TouchableOpacity 
+              style={styles.settingsBtn}
+              onPress={() => navigation.navigate('Setting2Screen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingsIconContainer}>
+                <Text style={styles.settingsIcon}>⚙️</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* สร้างกลุ่มใหม่ */}
@@ -274,6 +284,26 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#2c5aa0',
+  },
+  // Settings Button Styles
+  settingsBtn: {
+    padding: 8,
+  },
+  settingsIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  settingsIcon: {
+    fontSize: 24,
   },
   mainCard: {
     backgroundColor: '#e8f4f8',

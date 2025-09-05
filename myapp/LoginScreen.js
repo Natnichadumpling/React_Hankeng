@@ -44,7 +44,15 @@ const LoginScreen = () => {
     if (error || !data || data.length === 0) {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
-      navigation.navigate('PageScreen', { email });
+      const userData = data[0];
+      navigation.navigate('PageScreen', {
+        userData: {
+          name: userData.name,
+          email: userData.email,
+          phone: userData.phone,
+          password: userData.password,
+        },
+      });
     }
   };
 
