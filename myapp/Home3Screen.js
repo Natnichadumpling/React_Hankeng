@@ -106,7 +106,6 @@ const Home3Screen = () => {
           📧 อีเมล: support@harnkeng.app
         </Text>
 
-
         <View style={styles.contactSection}>
           <Text style={styles.contactText}>📱 ผ่านเมนู </Text>
           <TouchableOpacity onPress={() => navigation.navigate('Home4Screen')}>
@@ -134,10 +133,13 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   closeText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '500',
   },
   appBarTitle: {
     fontSize: 20,
@@ -180,7 +182,6 @@ const styles = StyleSheet.create({
     marginTop: 24,
     textAlign: 'center',
   },
-
   bodyText2: {
     fontSize: 16,
     lineHeight: 24,

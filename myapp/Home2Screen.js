@@ -12,8 +12,9 @@ const Home2Screen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Text style={styles.closeText}>ปิด</Text>
+        {/* ปุ่มย้อนกลับที่ทำงานได้แน่นอน */}
+        <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.closeButton}>
+          <Text style={styles.closeText}>← ย้อนกลับ</Text>
         </TouchableOpacity>
         <Text style={styles.appBarTitle}>ข้อกำหนดการให้บริการ</Text>
       </View>
@@ -48,7 +49,7 @@ const Home2Screen = () => {
         <View style={styles.section}>
           <Text style={[styles.heading, { fontSize }]}>ความเป็นส่วนตัว</Text>
           <Text style={[styles.text, { fontSize }]}>
-            แอปจะไม่เก็บข้อมูลบัตรเครดิตหรือบัญชีธนาคารของผู้ใช้ข้อมูลส่วนตัว เช่น ชื่อ อีเมล และรูปภาพ จะถูกเก็บรักษาตาม [นโยบายความเป็นส่วนตัว] เพื่อวัตถุประสงค์ในการพัฒนาบริการHarnKeng จะไม่เปิดเผยข้อมูลแก่บุคคลภายนอก เว้นแต่มีเหตุจำเป็นตามกฎหมาย
+            แอปจะไม่เก็บข้อมูลบัตรเครดิตหรือบัญชีธนาคารของผู้ใช้ข้อมูลส่วนตัว เช่น ชื่อ อีเมล และรูปภาพ จะถูกเก็บรักษาตาม [นโยบายความเป็นส่วนตัว] เพื่อวัตถุประสงค์ในการพัฒนาบริการ HarnKeng จะไม่เปิดเผยข้อมูลแก่บุคคลภายนอก เว้นแต่มีเหตุจำเป็นตามกฎหมาย
           </Text>
         </View>
 
@@ -69,7 +70,7 @@ const Home2Screen = () => {
         <View style={styles.section}>
           <Text style={[styles.heading, { fontSize }]}>การให้บริการและข้อจำกัดความรับผิด</Text>
           <Text style={[styles.text, { fontSize }]}>
-            HarnKeng ให้บริการตาม “สภาพที่เป็นอยู่” (As-is) โดยไม่รับประกันความสมบูรณ์หรือความพร้อมของบริการทางเราขอสงวนสิทธิ์ในการระงับหรือยกเลิกบัญชีของผู้ที่ละเมิดข้อกำหนดได้โดยไม่ต้องแจ้งล่วงหน้า
+            HarnKeng ให้บริการตาม "สภาพที่เป็นอยู่" (As-is) โดยไม่รับประกันความสมบูรณ์หรือความพร้อมของบริการทางเราขอสงวนสิทธิ์ในการระงับหรือยกเลิกบัญชีของผู้ที่ละเมิดข้อกำหนดได้โดยไม่ต้องแจ้งล่วงหน้า
           </Text>
         </View>
 
@@ -94,13 +95,13 @@ const Home2Screen = () => {
           </Text>
         </View>
 
-      <View style={styles.contactSection}>
-                <Text style={styles.contactText}>หากมีคำถามหรือข้อเสนอแนะ กรุณาติดต่อเราที่ช่องทาง</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Home4Screen')}>
-                  <Text style={styles.contactLink}>[ติดต่อเรา]</Text>
-                </TouchableOpacity>
-                <Text style={styles.contactText}> ภายในแอป</Text>
-              </View>
+        <View style={styles.contactSection}>
+          <Text style={styles.contactText}>หากมีคำถามหรือข้อเสนอแนะ กรุณาติดต่อเราที่ช่องทาง</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Home4Screen')}>
+            <Text style={styles.contactLink}>[ติดต่อเรา]</Text>
+          </TouchableOpacity>
+          <Text style={styles.contactText}> ภายในแอป</Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -119,10 +120,13 @@ const styles = StyleSheet.create({
   closeButton: {
     position: 'absolute',
     left: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   closeText: {
     color: 'white',
-    fontSize: 18,
+    fontSize: 16,
+    fontWeight: '500',
   },
   appBarTitle: {
     fontSize: 20,
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
   text: {
     color: 'black',
   },
-    contactSection: {
+  contactSection: {
     flexDirection: 'row',
     flexWrap: 'wrap', 
     justifyContent: 'center',
@@ -163,7 +167,6 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     marginHorizontal: 4, 
   },
-
 });
 
 export default Home2Screen;

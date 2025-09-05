@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
+import TabBar from './components/TabBar'; // Import TabBar
 
 const AccountScreen = () => {
   const navigation = useNavigation();
@@ -41,7 +42,7 @@ const AccountScreen = () => {
     { title: 'การตั้งค่า', subtitle: 'Sopitnapa\nfilm0936123963@gmail.com', navigateTo: 'SettingScreen' },
     { title: 'สแกน', icon: '📷' },
     { title: 'HarnKeng', icon: '💎', navigateTo: 'ProScreen' },
-    { title: 'ติดต่อเรา', navigateTo: 'Home4Screen' } // เปลี่ยนเป็น Home4Screen
+    { title: 'ติดต่อเรา', navigateTo: 'Home4Screen' }
   ];
 
   const handleLogout = () => {
@@ -57,7 +58,7 @@ const AccountScreen = () => {
 
   return (
     <ImageBackground
-      source={require('./assets/images/p1.png')} // พื้นหลัง
+      source={require('./assets/images/p1.png')}
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.content}>
@@ -65,7 +66,7 @@ const AccountScreen = () => {
         <View style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
             <Image
-              source={require('./assets/images/logo.png')} // ใส่รูปโปรไฟล์จริง
+              source={require('./assets/images/logo.png')}
               style={styles.profileImage}
             />
             <Text style={styles.profileName}>{userName}</Text>
@@ -83,7 +84,7 @@ const AccountScreen = () => {
               style={styles.menuItem}
               onPress={() => {
                 if (item.navigateTo) {
-                  navigation.navigate(item.navigateTo); // นำทางไปที่หน้า SettingScreen หรือ ProScreen หรือ Home4Screen
+                  navigation.navigate(item.navigateTo);
                 }
               }}
             >
@@ -93,8 +94,8 @@ const AccountScreen = () => {
         </View>
 
         {/* Logout Button */}
-        <TouchableOpacity 
-          style={styles.logoutButton} 
+        <TouchableOpacity
+          style={styles.logoutButton}
           onPress={handleLogout}
         >
           <Text style={styles.logoutText}>ออกจากระบบ</Text>
@@ -102,22 +103,8 @@ const AccountScreen = () => {
       </ScrollView>
 
       {/* Bottom Navigation */}
-      <View style={styles.bottomNavigation}>
-        {bottomTabs.map((tab, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.bottomTab, tab.active && styles.bottomTabActive]}
-            onPress={() => {
-              if (tab.navigateTo) {
-                navigation.navigate(tab.navigateTo); // นำทางไปที่หน้า Page2Screen หรือ ActivityScreen
-              }
-            }}
-          >
-            <Image source={tab.icon} style={styles.bottomTabIcon} />
-            <Text style={[styles.bottomTabText, tab.active && styles.bottomTabTextActive]}>{tab.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <View style={styles.bottomSpacing} />
+      <TabBar bottomTabs={bottomTabs} navigation={navigation} />
     </ImageBackground>
   );
 };
@@ -129,10 +116,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    justifyContent: 'center',  // ทำให้ตำแหน่งเป็นกลาง
+    justifyContent: 'center',
   },
   profileImageContainer: {
-    alignItems: 'center',  // ทำให้รูปโปรไฟล์อยู่กลาง
+    alignItems: 'center',
     justifyContent: 'center',
   },
   profileImage: { width: 60, height: 60, borderRadius: 30, marginRight: 15 },
@@ -156,21 +143,7 @@ const styles = StyleSheet.create({
   },
   logoutText: { fontSize: 14, color: '#333' },
 
-  bottomNavigation: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-    position: 'absolute',
-    bottom: 0, left: 0, right: 0,
-  },
-  bottomTab: { flex: 1, alignItems: 'center', paddingVertical: 5 },
-  bottomTabActive: { backgroundColor: '#e8f4f8', borderRadius: 10 },
-  bottomTabIcon: { width: 30, height: 30, resizeMode: 'contain' },
-  bottomTabText: { fontSize: 12, color: '#666' },
-  bottomTabTextActive: { color: '#2c5aa0', fontWeight: '600' },
+  bottomSpacing: { height: 80 },
 });
 
 export default AccountScreen;
