@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput, Image } from 'react-native';
 import TabBar from './components/TabBar'; // Import the TabBar component
 
 const bottomTabs = [
@@ -41,8 +41,13 @@ const Group3Screen = ({ navigation }) => {
     const fetchGroups = async () => {
       const { data, error } = await supabase
         .from('groups')
-        .select('*');
-      if (data) setGroups(data);
+        .select('id, name, image_url');
+      if (data) {
+        setGroups(data);
+        console.log('Fetched groups:', data); // Debugging log
+      } else {
+        console.error('Error fetching groups:', error); // Debugging log
+      }
     };
     fetchGroups();
   }, []);
@@ -88,23 +93,30 @@ const Group3Screen = ({ navigation }) => {
             </View>
 
             <View style={styles.groupSection}>
-              <Text style={styles.infoText}>
-                กลุ่มนี้จะใช้สำหรับการแจ้งการทำงานด้านต่างๆ
-                เพื่อใช้ในการรายงานและสอบถามข้อมูล
-              </Text>
-
-              <TouchableOpacity
-                style={styles.joinGroupButton}
-                onPress={handleJoinGroup}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.joinGroupText}>เริ่มกลุ่ม</Text>
-              </TouchableOpacity>
+              {groups.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  style={styles.groupCard}
+                  onPress={() => navigation.navigate('Group5Screen', { groupName: group.name })}
+                >
+                  {group.image_url ? (
+                    <Image
+                      source={{ uri: group.image_url }}
+                      style={styles.groupImage}
+                    />
+                  ) : (
+                    <View style={styles.groupImagePlaceholder}>
+                      <Text style={styles.placeholderText}>🖼️</Text>
+                    </View>
+                  )}
+                  <Text style={styles.groupName}>{group.name}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </SafeAreaView>
       </ImageBackground>
-      
+
       {/* TabBar อยู่นอก ImageBackground และ SafeAreaView */}
       <TabBar bottomTabs={bottomTabs} navigation={navigation} />
     </View>
@@ -168,27 +180,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  infoText: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  joinGroupButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
+  groupCard: {
+    backgroundColor: '#fff',
     borderRadius: 8,
-    width: '50%',
+    padding: 15,
+    marginBottom: 15,
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 2,
   },
-  joinGroupText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  groupImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  groupImagePlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#e0e0e0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  placeholderText: {
+    fontSize: 24,
+    color: '#999',
+  },
+  groupName: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#333',
   },
 });
 
