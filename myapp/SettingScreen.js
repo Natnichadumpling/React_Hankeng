@@ -40,7 +40,7 @@ const SettingScreen = () => {
       let isActive = true;
       const fetchUser = async () => {
         try {
-          const userEmail = route?.params?.email || 'film0936123963@gmail.com'; // กำหนดค่าอีเมลล์ที่ต้องการ
+          const userEmail = route?.params?.email || 'film0936123963@gmail.com';
           const { data, error } = await supabase
             .from('users')
             .select('name, email, phone, password')
@@ -148,13 +148,17 @@ const SettingScreen = () => {
 
         {/* Info fields */}
         <View style={styles.formCard}>
-          <Field label="ชื่อบนสลิป" value={slipName} editable={true} onEdit={setSlipName} />
+          <Field label="ชื่อ" value={slipName} editable={true} onEdit={setSlipName} />
           <Field label="ที่อยู่อีเมล" value={email} editable={false} />
           <Field label="หมายเลขโทรศัพท์" value={phone} editable={false} />
           <Field label="รหัสผ่าน" value={password} editable={false} />
 
-          {/* Showing currency without modal */}
-          <Field label="สกุลเงินเริ่มต้น" value={currency} editable={false} />
+          {/* Selects */}
+          <Select
+            label="สกุลเงินเริ่มต้น"
+            value={currency}
+            onPress={() => setShowCurrencyModal(true)}
+          />
         </View>
 
         {/* Save button */}
@@ -162,11 +166,32 @@ const SettingScreen = () => {
           <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Currency selection modal */}
+      <Modal visible={showCurrencyModal} transparent animationType="slide">
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>เลือกสกุลเงิน</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('THB')}>
+              <Text style={styles.modalOptionText}>THB</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.modalOption} onPress={() => handleCurrencySelect('USD')}>
+              <Text style={styles.modalOptionText}>USD</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowCurrencyModal(false)}
+            >
+              <Text style={styles.modalCancelText}>ยกเลิก</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ImageBackground>
   );
 };
 
-// Small components to show editable fields
+/* ====== Small components ====== */
 const Field = ({ label, value, editable, onEdit }) => {
   return (
     <View style={styles.fieldRow}>
@@ -191,7 +216,19 @@ const Field = ({ label, value, editable, onEdit }) => {
   );
 };
 
-// Styles
+const Select = ({ label, value, onPress }) => {
+  return (
+    <View style={styles.selectWrap}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TouchableOpacity style={styles.selectBox} onPress={onPress}>
+        <Text style={styles.selectText}>{value}</Text>
+        <Text style={styles.selectChevron}>▾</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+/* ====== Styles ====== */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -200,7 +237,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   headerWrap: {
-    backgroundColor: 'rgba(203, 229, 232, 0.9)', 
+    backgroundColor: 'rgba(203, 229, 232, 0.9)',
     paddingTop: 16,
     paddingBottom: 20,
   },
@@ -267,6 +304,31 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginLeft: 8,
   },
+  selectWrap: {
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  selectBox: {
+    marginTop: 6,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    height: 44,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectText: {
+    fontSize: 15,
+    color: '#111827',
+  },
+  selectChevron: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginLeft: 8,
+  },
   saveBtn: {
     backgroundColor: '#22c55e',
     marginHorizontal: 16,
@@ -279,6 +341,41 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#333',
+  },
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  modalCancelButton: {
+    paddingVertical: 15,
+    marginTop: 10,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    alignItems: 'center',
   },
 });
 

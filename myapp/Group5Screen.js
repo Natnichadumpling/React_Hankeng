@@ -5,6 +5,7 @@ import {
   TextInput, Alert, Modal, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { useRoute } from '@react-navigation/native';
 
 /* ===== Utilities ===== */
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -83,10 +84,11 @@ const PersonCard = ({ name, paidTotal, oweTotal, paidItems, owedItems, expanded,
 };
 
 /* ===== Main Screen ===== */
-export default function Group5Screen({ route, navigation }) {
-  const groupData = route?.params?.groupData || DEFAULT_GROUP;
+export default function Group5Screen({ navigation }) {
+  const route = useRoute();
+  const groupName = route?.params?.groupName || DEFAULT_GROUP.groupName;
 
-  const [people, setPeople] = useState(groupData.members);
+  const [people, setPeople] = useState(route?.params?.members || DEFAULT_GROUP.members);
   // item = {id, name, price, paidByMap, sharedBy, receiptByPayer: { [payer]: uri|null }}
   const [items, setItems] = useState([]);
 
@@ -278,13 +280,13 @@ export default function Group5Screen({ route, navigation }) {
 
   /* ===== ไปหน้าสรุปรายการ (Group6) ===== */
   const goSummary = () => {
-    navigation.navigate('Group6Screen', { groupName: groupData.groupName || 'กลุ่มของเรา', people, items });
+    navigation.navigate('Group6Screen', { groupName: groupName, people, items });
   };
 
   /* ===== UI ===== */
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
-      <Text style={styles.header}>{groupData.groupName}</Text>
+      <Text style={styles.header}>{groupName}</Text>
       <Text style={styles.subHeader}>จัดรายการ + สรุปยอดต่อคน</Text>
 
       <View style={{ alignItems: 'center', marginBottom: 12 }}>
