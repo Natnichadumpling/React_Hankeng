@@ -45,12 +45,11 @@ const LoginScreen = () => {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
       const userData = data[0];
-      navigation.navigate('PageScreen', {
+      console.log('Navigating to AccountScreen with userData:', userData); // Debugging log
+      navigation.navigate('AccountScreen', {
         userData: {
           name: userData.name,
           email: userData.email,
-          phone: userData.phone,
-          password: userData.password,
         },
       });
     }

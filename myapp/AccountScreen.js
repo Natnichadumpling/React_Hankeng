@@ -1,35 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import TabBar from './components/TabBar'; // Import TabBar
 
 const AccountScreen = () => {
   const navigation = useNavigation();
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
+  const route = useRoute();
+  const { userData } = route.params || {};
+  const [userName, setUserName] = useState(userData?.name || '');
+  const [userEmail, setUserEmail] = useState(userData?.email || '');
 
   useEffect(() => {
-    const fetchUserName = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const email = session?.user?.email;
-      if (!email) return;
-      const { data, error } = await supabase
-        .from('users')
-        .select('name, email')
-        .eq('email', email)
-        .single();
-      if (data) {
-        setUserName(data.name || email);
-        setUserEmail(data.email || email);
-      } else {
-        setUserName(email);
-        setUserEmail(email);
-      }
-    };
-    fetchUserName();
-  }, []);
+    console.log('Route params:', route.params); // Debugging log
+
+    if (!userData) {
+      console.log('No userData found in route.params. Fetching from Supabase.');
+      const fetchUserName = async () => {
+        try {
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) {
+            console.error('Error fetching session:', sessionError);
+            Alert.alert('Error', 'Session fetch failed. Please log in again.');
+            navigation.navigate('LoginScreen');
+            return;
+          }
+
+          if (!session) {
+            console.error('No session found');
+            Alert.alert('Error', 'No active session. Please log in.');
+            navigation.navigate('LoginScreen');
+            return;
+          }
+
+          const email = session?.user?.email;
+          if (!email) {
+            console.error('No email found in session');
+            Alert.alert('Error', 'No email found in session. Please log in.');
+            navigation.navigate('LoginScreen');
+            return;
+          }
+
+          const { data, error } = await supabase
+            .from('users')
+            .select('name, email')
+            .eq('email', email)
+            .single();
+
+          if (error) {
+            console.error('Error fetching user data from Supabase:', error);
+          } else if (data) {
+            console.log('Fetched user data from Supabase:', data); // Debugging log
+            setUserName(data.name || email);
+            setUserEmail(data.email);
+          }
+        } catch (fetchError) {
+          console.error('Unexpected error fetching user data:', fetchError);
+          Alert.alert('Error', 'An unexpected error occurred. Please log in again.');
+          navigation.navigate('LoginScreen');
+        }
+      };
+      fetchUserName();
+    }
+  }, [route.params]);
 
   const bottomTabs = [
     { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
@@ -74,9 +108,9 @@ const AccountScreen = () => {
             <Text style={styles.profileName}>{userName}</Text>
             <Text style={styles.profileEmail}>{userEmail}</Text>
             {/* เพิ่มการแสดงชื่อจริง (name) จากฐานข้อมูล ถ้ามี */}
-            {userName && (
+            {/* {userName && (
               <Text style={styles.profileRealName}>ชื่อ: {userName}</Text>
-            )}
+            )} */}
           </View>
         </View>
 
