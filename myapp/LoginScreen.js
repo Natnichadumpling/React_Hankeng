@@ -45,8 +45,8 @@ const LoginScreen = () => {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
       const userData = data[0];
-      console.log('Navigating to AccountScreen with userData:', userData); // Debugging log
-      navigation.navigate('AccountScreen', {
+      console.log('Navigating to PageScreen with userData:', userData); // Debugging log
+      navigation.navigate('PageScreen', {
         userData: {
           name: userData.name,
           email: userData.email,
