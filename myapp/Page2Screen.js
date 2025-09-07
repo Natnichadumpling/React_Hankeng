@@ -126,11 +126,12 @@ const Page2Screen = ({ route }) => {
   };
 
   const bottomTabs = [
-    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
-    { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
-    { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
-    { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen' },
-  ];
+  { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
+  { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
+  { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
+  // เปลี่ยน navigateTo สำหรับ "บัญชี" ให้เป็น AccountScreen
+  { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen', params: { email: route?.params?.email } },
+];
 
   return (
     <View style={styles.outerContainer}>
@@ -166,7 +167,9 @@ const Page2Screen = ({ route }) => {
 
           {/* Main Card กลุ่ม */}
           <View style={styles.mainCard}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 }}>กลุ่มล่าสุดที่สร้าง</Text>
+            <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 }}>
+              กลุ่มล่าสุดที่สร้าง
+            </Text>
             {latestGroups.length === 0 ? (
               <Text style={{ color: '#999', fontSize: 14 }}>ไม่พบกลุ่ม</Text>
             ) : (
@@ -177,10 +180,7 @@ const Page2Screen = ({ route }) => {
                   onPress={() => handleGroupPress(group)}
                 >
                   {group.image_url ? (
-                    <Image
-                      source={{ uri: group.image_url }}
-                      style={styles.groupImage}
-                    />
+                    <Image source={{ uri: group.image_url }} style={styles.groupImage} />
                   ) : (
                     <View style={styles.groupImagePlaceholder}>
                       <Text style={styles.placeholderText}>🖼️</Text>

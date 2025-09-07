@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Image,
   StyleSheet, ScrollView, ImageBackground, ActivityIndicator
@@ -45,7 +45,6 @@ const LoginScreen = () => {
       alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
     } else {
       const userData = data[0];
-      console.log('Navigating to PageScreen with userData:', userData); // Debugging log
       navigation.navigate('PageScreen', {
         userData: {
           name: userData.name,

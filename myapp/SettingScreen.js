@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
+import * as ImagePicker from 'react-native-image-picker'; // Import ImagePicker
 
 const { width } = Dimensions.get('window');
 
@@ -29,6 +30,7 @@ const SettingScreen = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+  const [profileImage, setProfileImage] = useState(null); // State for profile image
 
   useEffect(() => {
     // Fade in animation
@@ -139,6 +141,60 @@ const SettingScreen = () => {
     }
   };
 
+  const handleImageUpload = async () => {
+    const options = {
+      mediaType: 'photo',
+      quality: 1,
+    };
+
+    ImagePicker.launchImageLibrary(options, async (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.error('ImagePicker Error: ', response.error);
+      } else {
+        const uri = response.assets[0].uri;
+        const fileName = uri.split('/').pop();
+        const formData = new FormData();
+        formData.append('file', {
+          uri,
+          name: fileName,
+          type: response.assets[0].type,
+        });
+
+        try {
+          const { data, error } = await supabase.storage
+            .from('profile-images')
+            .upload(`public/${fileName}`, formData);
+
+          if (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image');
+          } else {
+            const imageUrl = `${supabase.storage.from('profile-images').getPublicUrl(`public/${fileName}`).publicURL}`;
+            setProfileImage(imageUrl);
+
+            // Update user profile with the new image URL
+            const { data: updateData, error: updateError } = await supabase
+              .from('users')
+              .update({ profile_image: imageUrl })
+              .eq('email', email);
+
+            if (updateError) {
+              console.error('Error updating profile image:', updateError);
+              alert('Failed to update profile image');
+            } else {
+              alert('Profile image updated successfully');
+            }
+          }
+        } catch (uploadError) {
+          console.error('Unexpected error during image upload:', uploadError);
+          alert('Unexpected error during image upload');
+        }
+      }
+    });
+  };
+
   return (
     <View style={styles.container}>
       <ScrollView 
@@ -176,7 +232,11 @@ const SettingScreen = () => {
                 </View>
               </View>
               <Text style={styles.profileName}>{slipName || 'ไม่ระบุชื่อ'}</Text>
-              <TouchableOpacity style={styles.changePhotoBtn} activeOpacity={0.8}>
+              <TouchableOpacity
+                style={styles.changePhotoBtn}
+                activeOpacity={0.8}
+                onPress={handleImageUpload}
+              >
                 <Text style={styles.changePhotoIcon}>📸</Text>
                 <Text style={styles.changePhotoText}>เปลี่ยนภาพโปรไฟล์</Text>
               </TouchableOpacity>
