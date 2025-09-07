@@ -38,6 +38,7 @@ const ActivityScreen = ({ navigation }) => {
         console.log('Error fetching activities:', error.message);
         setActivities([]);
       } else {
+        console.log('Fetched activities:', data); // เพิ่ม log นี้
         setActivities(data || []);
       }
       setIsLoading(false);
@@ -106,6 +107,14 @@ const ActivityScreen = ({ navigation }) => {
                   </View>
                   <View style={styles.activityContent}>
                     <Text style={styles.activityText}>{activity.description}</Text>
+                    {/* แสดงชื่อกลุ่มจาก activities */}
+                    <Text style={styles.groupNameText}>
+                      ชื่อกลุ่ม: {activity.group_name || '-'}
+                    </Text>
+                    {/* แสดงประเภทกิจกรรมของกลุ่มจาก activities */}
+                    <Text style={styles.activityTypeText}>
+                      ประเภทกลุ่ม: {activity.group_activity_type || '-'}
+                    </Text>
                     <Text style={styles.activityTime}>{activity.created_at ? new Date(activity.created_at).toLocaleString('th-TH') : ''}</Text>
                   </View>
                 </View>
@@ -233,6 +242,16 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 20,
     marginBottom: 4,
+  },
+  groupNameText: {
+    fontSize: 13,
+    color: '#4a90e2',
+    marginBottom: 2,
+  },
+  activityTypeText: {
+    fontSize: 13,
+    color: '#2c5aa0',
+    marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,

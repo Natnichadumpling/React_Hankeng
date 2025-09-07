@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-// ...existing code...
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from './supabaseClient';
 import {
@@ -56,7 +55,10 @@ const GroupScreen = () => {
 
   // ฟังก์ชันเพิ่มกลุ่มลงฐานข้อมูล
   const addGroupToDatabase = async () => {
-    if (!groupName || !selectedCategory) return false;
+    if (!groupName || !selectedCategory) {
+      console.log('groupName or selectedCategory is missing:', groupName, selectedCategory);
+      return false;
+    }
     // หากมีระบบ auth สามารถดึง email จาก session ได้
     let created_by = null;
     try {
@@ -69,27 +71,52 @@ const GroupScreen = () => {
         name: groupName, 
         created_by, 
         image: selectedCategory.image,
-        image_url: groupImage || null
-      }]);
+        image_url: groupImage || null,
+        activity_type: selectedCategory.name
+      }])
+      .select(); // ใช้ .select() แทน
+    console.log('AFTER GROUP INSERT', data, error); // <--- เพิ่ม log นี้
+
     if (!error && data && data[0]) {
-      // ดึง user id จาก session ถ้ามี
       let userId = null;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         userId = session?.user?.id || null;
-      } catch (e) {}
-      // บันทึกกิจกรรมการสร้างกลุ่ม
-      await supabase
-        .from('activities')
-        .insert([{
-          user_id: userId,
-          type: 'create_group',
-          description: `คุณสร้างกลุ่ม "${groupName}"`,
-          group_id: data[0].id
-        }]);
-    }
-    if (error) {
-      console.log('Supabase insert error:', error);
+      } catch (e) {
+        console.log('ERROR getSession:', e);
+      }
+      console.log('DEBUG groupName:', groupName);
+      console.log('DEBUG selectedCategory:', selectedCategory);
+      console.log('DEBUG userId:', userId);
+      console.log('DEBUG group_id:', data[0].id);
+
+      if (!data[0].id) {
+        console.log('Cannot insert activities: group_id is missing', data[0].id);
+        return !error;
+      }
+
+      const activityPayload = {
+        type: 'create_group',
+        description: `คุณสร้างกลุ่ม "${groupName}"`,
+        group_id: data[0].id,
+        group_name: groupName,
+        group_activity_type: selectedCategory.name
+      };
+      if (userId) activityPayload.user_id = userId;
+
+      console.log('Insert to activities:', activityPayload);
+
+      try {
+        const { data: actData, error: actError } = await supabase
+          .from('activities')
+          .insert([activityPayload])
+          .select(); // เพิ่ม .select() เพื่อให้แน่ใจว่า insert สำเร็จ
+        console.log('Insert activities result:', actData, actError); 
+      } catch (e) {
+        console.log('ERROR insert activities:', e);
+      }
+    } else {
+      console.log('Supabase insert error (groups):', error);
     }
     return !error;
   };
@@ -334,3 +361,6 @@ const styles = StyleSheet.create({
 });
 
 export default GroupScreen;
+
+
+

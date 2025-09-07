@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "react-native-dotenv": "^3.4.11"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "latest"
   }
 }
