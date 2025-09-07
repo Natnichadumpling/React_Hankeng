@@ -30,7 +30,6 @@ const ActivityScreen = ({ navigation }) => {
   React.useEffect(() => {
     const fetchActivities = async () => {
       setIsLoading(true);
-      // ดึง group_name, group_activity_type จาก activities โดยตรง
       const { data, error } = await supabase
         .from('activities')
         .select('*')
@@ -39,6 +38,7 @@ const ActivityScreen = ({ navigation }) => {
         console.log('Error fetching activities:', error.message);
         setActivities([]);
       } else {
+        console.log('Fetched activities:', data); // เพิ่ม log นี้
         setActivities(data || []);
       }
       setIsLoading(false);

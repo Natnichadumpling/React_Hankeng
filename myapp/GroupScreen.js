@@ -110,7 +110,7 @@ const GroupScreen = () => {
         const { data: actData, error: actError } = await supabase
           .from('activities')
           .insert([activityPayload])
-          .select();
+          .select(); // เพิ่ม .select() เพื่อให้แน่ใจว่า insert สำเร็จ
         console.log('Insert activities result:', actData, actError); 
       } catch (e) {
         console.log('ERROR insert activities:', e);

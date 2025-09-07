@@ -1,30 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   StyleSheet,
   ImageBackground,
   Image,
 } from 'react-native';
 import { supabase } from './supabaseClient';
 import { useNavigation } from '@react-navigation/native';
-import TabBar from './components/TabBar'; // Import TabBar
+import TabBar from './components/TabBar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Page2Screen = ({ route }) => {
   const navigation = useNavigation();
-  const [searchText, setSearchText] = useState('');
   const [userName, setUserName] = useState('');
   const [groups, setGroups] = useState([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupImage, setNewGroupImage] = useState(null);
   const [activities, setActivities] = useState([]);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+  const [email, setEmail] = useState('');
 
+  // ดึง email จาก AsyncStorage ทุกครั้งที่ focus
+  useFocusEffect(
+    React.useCallback(() => {
+      const getEmail = async () => {
+        let storedEmail = route?.params?.email;
+        if (!storedEmail) {
+          storedEmail = await AsyncStorage.getItem('user_email');
+        } else {
+          await AsyncStorage.setItem('user_email', storedEmail);
+        }
+        if (storedEmail) setEmail(storedEmail);
+      };
+      getEmail();
+    }, [route?.params?.email])
+  );
+
+  // ดึงชื่อผู้ใช้ทุกครั้งที่ email เปลี่ยน
   useEffect(() => {
-    const email = route?.params?.email || '';
     const fetchUserName = async () => {
       if (!email) return;
       const { data, error } = await supabase
@@ -35,11 +52,11 @@ const Page2Screen = ({ route }) => {
       if (data && data.name) setUserName(data.name);
     };
     fetchUserName();
-  }, [route]);
+  }, [email]);
 
   useEffect(() => {
     const fetchGroups = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('groups')
         .select('*');
       if (data) setGroups(data);
@@ -47,73 +64,69 @@ const Page2Screen = ({ route }) => {
     fetchGroups();
   }, []);
 
-    useEffect(() => {
-      const fetchActivities = async () => {
-        setIsLoadingActivities(true);
-        const { data, error } = await supabase
-          .from('activities')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        if (data) setActivities(data);
-        setIsLoadingActivities(false);
-      };
-      fetchActivities();
-    }, []);
+  useEffect(() => {
+    const fetchActivities = async () => {
+      setIsLoadingActivities(true);
+      const { data } = await supabase
+        .from('activities')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      if (data) setActivities(data);
+      setIsLoadingActivities(false);
+    };
+    fetchActivities();
+  }, []);
 
   const latestGroups = [...groups]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 2);
 
   const handleGroupPress = (group) => {
-    console.log('Navigating to Group5Screen with group:', group); // Debugging log
     navigation.navigate('Group5Screen', {
-      groupName: group.name, // ส่งชื่อกลุ่มไปยัง Group5Screen
+      groupName: group.name,
     });
   };
 
-    // สร้างกลุ่มใหม่
-    const handleCreateGroup = async () => {
-      if (!newGroupName) return;
-      let imageUrl = null;
-      let email = route?.params?.email || null;
-      // อัปโหลดรูปไปยัง Supabase Storage (mockup, ต้องปรับตาม storage จริง)
-      if (newGroupImage) {
-        // imageUrl = await uploadImageToSupabase(newGroupImage);
-      }
-      // ตัวอย่าง category และ image (สามารถปรับให้รับจาก input หรือเลือกได้)
-      const category = 'ทั่วไป';
-      const image = '';
-      // เพิ่มกลุ่มใหม่
-      const { data, error } = await supabase
-        .from('groups')
-        .insert([{ name: newGroupName, created_by: email, category, image, image_url: imageUrl }])
-        .select();
-      if (!error && data && data[0]) {
-        setNewGroupName('');
-        setNewGroupImage(null);
-        // เพิ่มกิจกรรม โดยอ้างอิง user_id และ group_id
-        // ดึง user_id จาก email
-        let userId = null;
-        const { data: userData } = await supabase.from('users').select('id').eq('email', email).single();
-        if (userData && userData.id) userId = userData.id;
-        await supabase.from('activities').insert({
-          user_id: userId,
-          type: 'create_group',
-          description: `สร้างกลุ่ม ${newGroupName}`,
-          group_id: data[0].id,
-          created_at: new Date().toISOString()
-        });
-        // รีเฟรชข้อมูล
-        const { data: groupData } = await supabase.from('groups').select('*');
-        if (groupData) setGroups(groupData);
-        const { data: activityData } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(5);
-        if (activityData) setActivities(activityData);
-      }
-    };
+  // สร้างกลุ่มใหม่
+  const handleCreateGroup = async () => {
+    if (!newGroupName || !email) return;
+    let imageUrl = null;
+    // ใช้ email จาก state
+    // อัปโหลดรูปไปยัง Supabase Storage (mockup, ต้องปรับตาม storage จริง)
+    if (newGroupImage) {
+      // imageUrl = await uploadImageToSupabase(newGroupImage);
+    }
+    const category = 'ทั่วไป';
+    const image = '';
+    const { data, error } = await supabase
+      .from('groups')
+      .insert([{ name: newGroupName, created_by: email, category, image, image_url: imageUrl }])
+      .select();
+    if (!error && data && data[0]) {
+      setNewGroupName('');
+      setNewGroupImage(null);
+      // เพิ่มกิจกรรม โดยอ้างอิง user_id และ group_id
+      let userId = null;
+      const { data: userData } = await supabase.from('users').select('id').eq('email', email).single();
+      if (userData && userData.id) userId = userData.id;
+      await supabase.from('activities').insert({
+        user_id: userId,
+        type: 'create_group',
+        description: `สร้างกลุ่ม ${newGroupName}`,
+        group_id: data[0].id,
+        created_at: new Date().toISOString()
+      });
+      // รีเฟรชข้อมูล
+      const { data: groupData } = await supabase.from('groups').select('*');
+      if (groupData) setGroups(groupData);
+      const { data: activityData } = await supabase.from('activities').select('*').order('created_at', { ascending: false }).limit(5);
+      if (activityData) setActivities(activityData);
+    }
+  };
 
   const bottomTabs = [
-    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'AccountScreen' },
+    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
     { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
     { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
     { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen' },
@@ -146,7 +159,7 @@ const Page2Screen = ({ route }) => {
 
           {/* สร้างกลุ่มใหม่ */}
           <View style={styles.createGroupCard}>
-            <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('GroupScreen')}>
+            <TouchableOpacity style={styles.createBtn} onPress={() => navigation.navigate('GroupScreen', { email })}>
               <Text style={styles.createBtnText}>สร้างกลุ่ม</Text>
             </TouchableOpacity>
           </View>
@@ -204,7 +217,7 @@ const Page2Screen = ({ route }) => {
           <View style={{ marginBottom: 80 }} />
         </ScrollView>
       </ImageBackground>
-      <TabBar bottomTabs={bottomTabs} navigation={navigation} />
+      <TabBar bottomTabs={bottomTabs} navigation={navigation} email={email} />
     </View>
   );
 };
@@ -220,53 +233,53 @@ const styles = StyleSheet.create({
   scrollContent: {
     flex: 1,
   },
-    createGroupCard: {
-      backgroundColor: '#fff',
-      marginHorizontal: 20,
-      borderRadius: 20,
-      padding: 15,
-      marginBottom: 20,
-      marginTop: 10,
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    createGroupTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#2c5aa0',
-      marginBottom: 8,
-    },
-    input: {
-      borderWidth: 1,
-      borderColor: '#ccc',
-      borderRadius: 8,
-      padding: 10,
-      marginBottom: 10,
-      backgroundColor: '#f9f9f9',
-    },
-    uploadBtn: {
-      backgroundColor: '#e8f4f8',
-      borderRadius: 8,
-      padding: 10,
-      marginBottom: 10,
-      alignItems: 'center',
-    },
-    uploadBtnText: {
-      color: '#2c5aa0',
-      fontWeight: 'bold',
-    },
-    createBtn: {
-      backgroundColor: '#2c5aa0',
-      borderRadius: 8,
-      padding: 10,
-      alignItems: 'center',
-    },
-    createBtnText: {
-      color: '#fff',
-      fontWeight: 'bold',
-    },
+  createGroupCard: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 20,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  createGroupTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c5aa0',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#f9f9f9',
+  },
+  uploadBtn: {
+    backgroundColor: '#e8f4f8',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  uploadBtnText: {
+    color: '#2c5aa0',
+    fontWeight: 'bold',
+  },
+  createBtn: {
+    backgroundColor: '#2c5aa0',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+  },
+  createBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,53 +362,53 @@ const styles = StyleSheet.create({
     color: '#222',
     fontWeight: 'bold',
   },
-    activitySection: {
-      backgroundColor: '#fff',
-      marginHorizontal: 20,
-      borderRadius: 20,
-      padding: 15,
-      marginBottom: 20,
-      shadowColor: '#000',
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
-    },
-    activityTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#2c5aa0',
-      marginBottom: 8,
-    },
-    activityItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    activityAvatar: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: '#e8f4f8',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: 12,
-    },
-    activityAvatarImage: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-    },
-    activityContent: {
-      flex: 1,
-    },
-    activityText: {
-      fontSize: 14,
-      color: '#333',
-    },
-    activityTime: {
-      fontSize: 12,
-      color: '#999',
-    },
+  activitySection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 15,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c5aa0',
+    marginBottom: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  activityAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e8f4f8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityAvatarImage: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  activityContent: {
+    flex: 1,
+  },
+  activityText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  activityTime: {
+    fontSize: 12,
+    color: '#999',
+  },
 });
 
 export default Page2Screen;
