@@ -25,6 +25,8 @@ const ActivityScreen = ({ navigation }) => {
   const [searchText, setSearchText] = useState('');
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [groupTypes, setGroupTypes] = useState([]); // State for group types
+  const [selectedGroupType, setSelectedGroupType] = useState(''); // State for selected group type
 
   // ดึงกิจกรรมจากฐานข้อมูล Supabase
   React.useEffect(() => {
@@ -46,11 +48,27 @@ const ActivityScreen = ({ navigation }) => {
     fetchActivities();
   }, []);
 
+  React.useEffect(() => {
+    const fetchGroupTypes = async () => {
+      const { data, error } = await supabase
+        .from('groups')
+        .select('group_activity_type')
+        .distinct();
+      if (error) {
+        console.log('Error fetching group types:', error.message);
+      } else {
+        setGroupTypes(data.map((item) => item.group_activity_type));
+      }
+    };
+    fetchGroupTypes();
+  }, []); // Fetch group types on component mount
+
   // ฟังก์ชันกรองกิจกรรมตาม searchText
   // กรองเฉพาะกิจกรรมการสร้างกลุ่ม
   const filteredActivities = activities.filter(activity =>
     activity.type === 'create_group' &&
-    (activity.description || '').toLowerCase().includes(searchText.toLowerCase())
+    (activity.group_activity_type || '').toLowerCase().normalize('NFC').includes(searchText.toLowerCase().normalize('NFC')) &&
+    (selectedGroupType === '' || activity.group_activity_type === selectedGroupType)
   );
 
   return (
@@ -88,6 +106,32 @@ const ActivityScreen = ({ navigation }) => {
                 <Text style={styles.diamondIcon}>💎</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Group Type Filter */}
+          <View style={styles.filterContainer}>
+            <Text style={styles.filterLabel}>ประเภทกลุ่ม:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {groupTypes.map((type, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.filterButton,
+                    selectedGroupType === type && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setSelectedGroupType(type === selectedGroupType ? '' : type)}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      selectedGroupType === type && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Activities List */}
@@ -195,6 +239,35 @@ const styles = StyleSheet.create({
   diamondIcon: {
     fontSize: 16,
     color: '#4a90e2',
+  },
+  filterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    paddingHorizontal: 20,
+  },
+  filterLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 10,
+  },
+  filterButton: {
+    backgroundColor: '#e8eaf0',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    marginRight: 10,
+  },
+  filterButtonActive: {
+    backgroundColor: '#2c5aa0',
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  filterButtonTextActive: {
+    color: '#fff',
   },
   activitiesContainer: {
     backgroundColor: '#e8f4f8',

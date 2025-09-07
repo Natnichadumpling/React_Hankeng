@@ -62,6 +62,10 @@ const Group3Screen = ({ navigation }) => {
     fetchGroupMembers();
   }, []);
 
+  const filteredGroups = groups.filter(group =>
+    group.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
   return (
     <View style={styles.outerContainer}>
       <ImageBackground
@@ -93,7 +97,7 @@ const Group3Screen = ({ navigation }) => {
             </View>
 
             <View style={styles.groupSection}>
-              {groups.map((group) => (
+              {filteredGroups.map((group) => (
                 <TouchableOpacity
                   key={group.id}
                   style={styles.groupCard}
