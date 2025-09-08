@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import { hashPassword } from './utils/hashPassword';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -21,38 +22,46 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
-      alert('กรุณากรอกอีเมลและรหัสผ่าน');
-      return;
+  if (!email || !password) {
+    alert('กรุณากรอกอีเมลและรหัสผ่าน');
+    return;
+  }
+  if (!validateEmail(email)) {
+    alert('รูปแบบอีเมลไม่ถูกต้อง');
+    return;
+  }
+  if (password.length < 8) {
+    alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+    return;
+  }
+  setLoading(true);
+  const hashedInput = await hashPassword(password);
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email)
+    .eq('password', hashedInput);
+  setLoading(false);
+  if (error || !data || data.length === 0) {
+    alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
+  } else {
+    const userData = data[0];
+    try {
+      await AsyncStorage.setItem('userEmail', userData.email);
+      await AsyncStorage.setItem('userName', userData.name);
+      console.log('User email and name saved to AsyncStorage:', userData.email, userData.name);
+    } catch (storageError) {
+      console.error('Failed to save user data to AsyncStorage:', storageError);
     }
-    if (!validateEmail(email)) {
-      alert('รูปแบบอีเมลไม่ถูกต้อง');
-      return;
-    }
-    if (password.length < 8) {
-      alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
-      return;
-    }
-    setLoading(true);
-    const hashedInput = await hashPassword(password);
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', email)
-      .eq('password', hashedInput);
-    setLoading(false);
-    if (error || !data || data.length === 0) {
-      alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
-    } else {
-      const userData = data[0];
-      navigation.navigate('PageScreen', {
-        userData: {
-          name: userData.name,
-          email: userData.email,
-        },
-      });
-    }
-  };
+    navigation.navigate('Page2Screen', {
+      userData: {
+        name: userData.name,
+        email: userData.email,
+      },
+    });
+  }
+};
+
 
   return (
     <ImageBackground

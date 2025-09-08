@@ -4,41 +4,58 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'rea
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import TabBar from './components/TabBar'; // Import TabBar
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AccountScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { email } = route.params || {}; // รับค่า email จาก params
+  const { email, userName } = route.params || {}; // รับค่า email และ userName จาก params
 
-  const [userName, setUserName] = useState('');
+  const [userNameState, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (!email) return;
+      let userEmail = email;
+
+      if (!userEmail) {
+        try {
+          userEmail = await AsyncStorage.getItem('userEmail');
+        } catch (storageError) {
+          console.error('Failed to retrieve user email from AsyncStorage:', storageError);
+        }
+      }
+
+      if (!userEmail) {
+        setUserName('ไม่ทราบชื่อ');
+        setUserEmail('ไม่ทราบอีเมล');
+        return;
+      }
 
       try {
         const { data, error } = await supabase
           .from('users')
           .select('name, email')
-          .eq('email', email)
+          .eq('email', userEmail)
           .single();
 
         if (error) {
           console.error('Error fetching user data:', error);
-          Alert.alert('Error', 'ไม่สามารถดึงข้อมูลผู้ใช้ได้');
-        } else if (data) {
-          setUserName(data.name);
-          setUserEmail(data.email);
+          setUserName('ไม่ทราบชื่อ');
+          setUserEmail('ไม่ทราบอีเมล');
+        } else {
+          setUserName(data.name || 'ไม่ทราบชื่อ');
+          setUserEmail(data.email || 'ไม่ทราบอีเมล');
         }
       } catch (fetchError) {
         console.error('Unexpected error fetching user data:', fetchError);
-        Alert.alert('Error', 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+        setUserName('ไม่ทราบชื่อ');
+        setUserEmail('ไม่ทราบอีเมล');
       }
     };
 
     fetchUserData();
-  }, [email]); // เมื่อ email เปลี่ยน
+  }, [email]); // เมื่อ email หรือ userName เปลี่ยน
 
   const bottomTabs = [
     { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
@@ -99,7 +116,7 @@ const AccountScreen = () => {
             />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{userName}</Text>
+            <Text style={styles.profileName}>{userNameState}</Text>
             <Text style={styles.profileEmail}>{userEmail}</Text>
           </View>
           <Text style={styles.arrow}>›</Text>

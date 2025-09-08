@@ -29,18 +29,39 @@ const Page2Screen = ({ route }) => {
     React.useCallback(() => {
       const getEmail = async () => {
         let storedEmail = route?.params?.email;
+        let storedUserName = route?.params?.userName;
+
         if (!storedEmail) {
-          storedEmail = await AsyncStorage.getItem('user_email');
+          // เปลี่ยนจาก 'user_email' เป็น 'userEmail' ให้ตรงกับ LoginScreen
+          storedEmail = await AsyncStorage.getItem('userEmail');
+          console.log('Retrieved email from AsyncStorage in Page2Screen:', storedEmail);
         } else {
-          await AsyncStorage.setItem('user_email', storedEmail);
+          // บันทึก email ลงใน AsyncStorage ด้วย key ที่ถูกต้อง
+          await AsyncStorage.setItem('userEmail', storedEmail);
+          console.log('Saved email to AsyncStorage in Page2Screen:', storedEmail);
         }
+
+        if (!storedUserName && storedEmail) {
+          const { data, error } = await supabase
+            .from('users')
+            .select('name')
+            .eq('email', storedEmail)
+            .single();
+
+          if (data && data.name) {
+            storedUserName = data.name;
+            console.log('Retrieved username from database:', storedUserName);
+          }
+        }
+
         if (storedEmail) setEmail(storedEmail);
+        if (storedUserName) setUserName(storedUserName);
       };
+
       getEmail();
-    }, [route?.params?.email])
+    }, [route?.params?.email, route?.params?.userName])
   );
 
-  // ดึงชื่อผู้ใช้ทุกครั้งที่ email เปลี่ยน
   useEffect(() => {
     const fetchUserName = async () => {
       if (!email) return;
@@ -126,12 +147,17 @@ const Page2Screen = ({ route }) => {
   };
 
   const bottomTabs = [
-  { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
-  { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
-  { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
-  // เปลี่ยน navigateTo สำหรับ "บัญชี" ให้เป็น AccountScreen
-  { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen', params: { email: route?.params?.email } },
-];
+    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: true, navigateTo: 'Page2Screen' },
+    { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
+    { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
+    { 
+      name: 'บัญชี', 
+      icon: require('./assets/images/logo4.png'), 
+      active: false, 
+      navigateTo: 'AccountScreen',
+      params: { email, userName }
+    },
+  ];
 
   return (
     <View style={styles.outerContainer}>
