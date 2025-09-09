@@ -92,7 +92,7 @@ const Group4Screen = ({ navigation, route }) => {
       }
     };
   const { groupName: gNameFromNav, transferKey, from, to, amount: amountParam } = route?.params || {};
-  const groupName = gNameFromNav || route?.params?.groupName || 'กลุ่มของเรา';
+  const groupName = gNameFromNav || 'กลุ่มของเรา';
   const groupId = route?.params?.groupId;
   const userId = route?.params?.userId;
 
@@ -297,7 +297,10 @@ const Group4Screen = ({ navigation, route }) => {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
-          <TouchableOpacity style={styles.menuButton} onPress={() => ('Group2Screen')}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => navigation.navigate('Group2Screen', { groupName })} // Pass groupName to Group2Screen
+          >
             <Text style={styles.menuText}>เชิญเพื่อน</Text>
           </TouchableOpacity>
         </View>
@@ -403,8 +406,7 @@ const Group4Screen = ({ navigation, route }) => {
               </TouchableOpacity>
             </View>
           </View>
-
-  </Modal>
+        </Modal>
 
         {/* Tools Modal */}
         <Modal visible={showToolsModal} transparent animationType="slide">
