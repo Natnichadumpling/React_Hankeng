@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput, Image, ScrollView } from 'react-native';
 import TabBar from './components/TabBar'; // Import the TabBar component
 
 const bottomTabs = [
@@ -73,51 +73,52 @@ const Group3Screen = ({ navigation }) => {
         style={styles.container}
       >
         <SafeAreaView style={styles.safeArea}>
-          <View style={styles.content}>
-            <View style={styles.header}>
-              {/* Search Bar */}
-              <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                  <Text style={styles.searchIcon}>🔍</Text>
-                  <TextInput
-                    style={styles.searchInput}
-                    placeholder="ค้นหา"
-                    placeholderTextColor="#999"
-                    value={searchText}
-                    onChangeText={setSearchText}
-                  />
-                  <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
-                    <Text style={styles.diamondIcon}>💎</Text>
-                  </TouchableOpacity>
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View style={styles.content}>
+              <View style={styles.header}>
+                <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
+                <View style={{ marginBottom: 20 }} /> {/* Add spacing between welcome message and search bar */}
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                  <View style={styles.searchBar}>
+                    <Text style={styles.searchIcon}>🔍</Text>
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="ค้นหา"
+                      placeholderTextColor="#999"
+                      value={searchText}
+                      onChangeText={setSearchText}
+                    />
+                    <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+                      <Text style={styles.diamondIcon}>💎</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
 
-              <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
-              <Text style={styles.subTitle}>ตอนนี้คุณยังไม่เข้ากลุ่ม</Text>
+              <View style={styles.groupSection}>
+                {filteredGroups.map((group) => (
+                  <TouchableOpacity
+                    key={group.id}
+                    style={styles.groupCard}
+                    onPress={() => navigation.navigate('Group5Screen', { groupName: group.name })}
+                  >
+                    {group.image_url ? (
+                      <Image
+                        source={{ uri: group.image_url }}
+                        style={styles.groupImage}
+                      />
+                    ) : (
+                      <View style={styles.groupImagePlaceholder}>
+                        <Text style={styles.placeholderText}>🖼️</Text>
+                      </View>
+                    )}
+                    <Text style={styles.groupName}>{group.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-
-            <View style={styles.groupSection}>
-              {filteredGroups.map((group) => (
-                <TouchableOpacity
-                  key={group.id}
-                  style={styles.groupCard}
-                  onPress={() => navigation.navigate('Group5Screen', { groupName: group.name })}
-                >
-                  {group.image_url ? (
-                    <Image
-                      source={{ uri: group.image_url }}
-                      style={styles.groupImage}
-                    />
-                  ) : (
-                    <View style={styles.groupImagePlaceholder}>
-                      <Text style={styles.placeholderText}>🖼️</Text>
-                    </View>
-                  )}
-                  <Text style={styles.groupName}>{group.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          </ScrollView>
         </SafeAreaView>
       </ImageBackground>
 
