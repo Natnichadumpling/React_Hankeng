@@ -143,66 +143,74 @@ const Group4Screen = ({ navigation, route }) => {
     }
   };
 
+  // ตรวจสอบให้แน่ใจว่ารูปภาพที่อัปโหลดจะแสดงผลในทันทีหลังจากอัปโหลดสำเร็จ
   const handleSendMessage = async () => {
     if ((selectedImages.length > 0 || messageText.trim()) && groupId && userId) {
-      // ส่งข้อความ
-      if (messageText.trim()) {
-        const { error } = await supabase
-          .from('group_messages')
-          .insert([{
-            group_id: groupId,
-            user_id: userId,
-            type: 'text',
-            content: messageText.trim(),
-          }]);
-        if (error) {
-          Alert.alert('เกิดข้อผิดพลาด', error.message);
-          return;
+        // ส่งข้อความ
+        if (messageText.trim()) {
+            const { error } = await supabase
+                .from('group_messages')
+                .insert([
+                    {
+                        group_id: groupId,
+                        sender_email: userId,
+                        type: 'text',
+                        content: messageText.trim(),
+                    },
+                ]);
+            if (error) {
+                Alert.alert('เกิดข้อผิดพลาด', error.message);
+                return;
+            }
+            setChatMessages((prevMessages) => [
+                {
+                    type: 'text',
+                    uri: messageText.trim(),
+                    userId,
+                    userName: 'คุณ',
+                    createdAt: new Date().toISOString(),
+                },
+                ...prevMessages,
+            ]);
+            setMessageText('');
         }
-        setMessageText('');
-      }
-      // ส่งรูปภาพ (อัปโหลดไป storage ก่อน)
-      if (selectedImages.length > 0) {
-        for (const uri of selectedImages) {
-          const publicUrl = await uploadImageToSupabase(uri);
-          console.log('publicUrl สำหรับบันทึก:', publicUrl);
-          if (!publicUrl) {
-            Alert.alert('ไม่ได้รับ public URL จากการอัปโหลดรูป');
-            continue;
-          }
-          const { data, error } = await supabase
-            .from('group_messages')
-            .insert([{
-              group_id: groupId,
-              user_id: userId,
-              type: 'image',
-              content: publicUrl,
-            }]);
-          if (error) {
-            console.log('บันทึก URL ผิดพลาด:', error.message);
-            Alert.alert('เกิดข้อผิดพลาด', error.message);
-            return;
-          } else {
-            console.log('บันทึกลงฐานข้อมูลสำเร็จ:', data);
-            Alert.alert('บันทึก URL สำเร็จ', publicUrl);
-          }
+
+        // ส่งรูปภาพ (อัปโหลดไป storage ก่อน)
+        if (selectedImages.length > 0) {
+            for (const uri of selectedImages) {
+                const publicUrl = await uploadImageToSupabase(uri);
+                if (!publicUrl) {
+                    Alert.alert('ไม่ได้รับ public URL จากการอัปโหลดรูป');
+                    continue;
+                }
+                const { data, error } = await supabase
+                    .from('group_messages')
+                    .insert([
+                        {
+                            group_id: groupId,
+                            sender_email: userId,
+                            type: 'image',
+                            content: publicUrl,
+                            image_url: publicUrl,
+                        },
+                    ]);
+                if (error) {
+                    Alert.alert('เกิดข้อผิดพลาด', error.message);
+                    return;
+                }
+                setChatMessages((prevMessages) => [
+                    {
+                        type: 'image',
+                        uri: publicUrl,
+                        userId,
+                        userName: 'คุณ',
+                        createdAt: new Date().toISOString(),
+                    },
+                    ...prevMessages,
+                ]);
+            }
+            setSelectedImages([]);
         }
-        setSelectedImages([]);
-      }
-      // โหลดข้อความใหม่หลังส่ง
-      const { data, error: fetchError } = await supabase
-        .from('group_messages')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: true });
-      if (!fetchError && data) {
-        setChatMessages(data.map(msg => ({
-          type: msg.type,
-          uri: msg.content,
-          userId: msg.user_id,
-          createdAt: msg.created_at,
-        })));
-      }
     }
   };
 
@@ -328,12 +336,22 @@ const Group4Screen = ({ navigation, route }) => {
             <>
               {/* แสดงข้อความแชท */}
               {chatMessages.map((msg, idx) => (
-                <View key={idx} style={styles.chatBubble}>
+                <View
+                  key={idx}
+                  style={[
+                    styles.chatBubble,
+                    msg.userId === userId ? styles.chatBubbleRight : styles.chatBubbleLeft,
+                  ]}
+                >
                   {msg.type === 'image' ? (
-                    <Image source={{ uri: msg.uri }} style={styles.chatImage} />
+                    <>
+                      <Image source={{ uri: msg.uri }} style={styles.chatImage} />
+                      <Text style={styles.chatUploader}>Uploaded by: {msg.userName}</Text>
+                    </>
                   ) : (
                     <Text style={styles.chatText}>{msg.uri}</Text>
                   )}
+                  <Text style={styles.timestamp}>{new Date(msg.createdAt).toLocaleTimeString()}</Text>
                 </View>
               ))}
             </>
@@ -552,6 +570,15 @@ const styles = StyleSheet.create({
   cameraText: { fontSize: 14, color: '#333', marginTop: 10, textAlign: 'center' },
   chatBubble: { backgroundColor: '#e8f4fd', borderRadius: 12, padding: 8, marginBottom: 10, alignSelf: 'flex-start', maxWidth: '80%' },
   chatImage: { width: 120, height: 120, borderRadius: 10 },
+  chatBubbleRight: { alignSelf: 'flex-end', backgroundColor: '#d1e7dd' },
+  chatBubbleLeft: { alignSelf: 'flex-start', backgroundColor: '#e8f4fd' },
+  chatUploader: {
+    fontSize: 12,
+    color: '#555',
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  timestamp: { fontSize: 10, color: '#999', marginTop: 4, textAlign: 'right' },
 });
 
 export default Group4Screen;
