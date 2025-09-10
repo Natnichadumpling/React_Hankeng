@@ -9,374 +9,469 @@ import {
   Dimensions,
   Platform,
   TextInput,
-  Animated
+  Animated,
+  Alert
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
-import * as ImagePicker from 'react-native-image-picker'; // Import ImagePicker
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get('window');
 
 const SettingScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const fadeAnim = new Animated.Value(0);
+  const fadeAnim = new Animated.Value(1);
 
-  const [currency, setCurrency] = useState('THB');
-  const [language, setLanguage] = useState('ภาษาไทย');
-  const [slipName, setSlipName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  // State สำหรับข้อมูล
+  const [userData, setUserData] = useState({
+    name: 'ไม่ระบุชื่อ',
+    email: 'ไม่ระบุอีเมล',
+    phone: 'ไม่ระบุเบอร์โทร',
+    password: ''
+  });
+  
+  const [tempName, setTempName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [profileImage, setProfileImage] = useState(null); // State for profile image
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   useEffect(() => {
-    // Fade in animation
+    console.log('Component mounted, starting initialization...');
+    initializeData();
+    
+    // Animation ที่นุ่มนวลขึ้น
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 800,
+      duration: 500,
       useNativeDriver: true,
     }).start();
+  }, []);
 
-    console.log('Route params:', route.params);
-    if (route.params?.userData) {
-      const { name, email, phone, password } = route.params.userData;
-      console.log('Received user data:', { name, email, phone, password });
-      setSlipName(name || '');
-      setEmail(email || '');
-      setPhone(phone || '');
-      setPassword(password || '');
-    } else {
-      const fetchUserData = async () => {
-        try {
-          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-          if (sessionError) {
-            console.error('Error fetching session:', sessionError);
-            return;
-          }
-
-          const userEmail = session?.user?.email;
-          console.log('User email from session:', userEmail);
-
-          if (userEmail) {
-            const { data, error } = await supabase
-              .from('users')
-              .select('name, email, phone, password')
-              .eq('email', userEmail)
-              .single();
-
-            if (error) {
-              console.error('Error fetching user data:', error);
-            } else if (data) {
-              console.log('Fetched user data:', data);
-              setSlipName(data.name || '');
-              setEmail(data.email || '');
-              setPhone(data.phone || '');
-              setPassword(data.password || '');
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching session or user data:', error);
-        }
-      };
-
-      fetchUserData();
-    }
-  }, [route.params]);
-
-  const personalInfo = [
-    { label: 'ชื่อนามสกุล', value: slipName, isEditable: true, icon: '👤' },
-    { label: 'ที่อยู่อีเมล', value: email, isEditable: false, icon: '📧' },
-    { label: 'หมายเลขโทรศัพท์', value: phone, isEditable: false, icon: '📱' },
-    { label: 'รหัสผ่าน', value: password, isEditable: false, icon: '🔒' },
-  ];
-
-  const appSettings = [
-    { label: 'สกุลเงินเริ่มต้น', value: currency, isEditable: false, icon: '💰' },
-    { label: 'ภาษา', value: language, isEditable: false, icon: '🌐' },
-  ];
-
-  const handleSave = async () => {
+  const initializeData = async () => {
     try {
-      console.log('Saving changes...', { slipName, email, phone });
+      console.log('=== Starting data initialization ===');
       
-      // Get current session to get user email
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error('Error fetching session:', sessionError);
-        alert('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่');
-        return;
+      // หาอีเมลผู้ใช้จากแหล่งต่างๆ
+      let userEmail = null;
+      
+      // 1. จาก route params
+      if (route.params?.email) {
+        userEmail = route.params.email;
+        console.log('Email from route params:', userEmail);
       }
-
-      const userEmail = session?.user?.email;
+      
+      // 2. จาก session
       if (!userEmail) {
-        console.error('No user email found');
-        alert('ไม่พบข้อมูลผู้ใช้ กรุณาเข้าสู่ระบบใหม่');
-        return;
+        console.log('Checking session...');
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          userEmail = session.user.email;
+          console.log('Email from session:', userEmail);
+        }
+      }
+      
+      // 3. จาก AsyncStorage
+      if (!userEmail) {
+        console.log('Checking AsyncStorage...');
+        const storedEmail = await AsyncStorage.getItem('userEmail');
+        if (storedEmail) {
+          userEmail = storedEmail;
+          console.log('Email from AsyncStorage:', userEmail);
+        }
       }
 
-      // Update user data in database
+      setCurrentUserEmail(userEmail);
+      
+      if (userEmail) {
+        await loadUserData(userEmail);
+      } else {
+        console.log('No user email found, using default values');
+        setUserData({
+          name: 'ไม่ระบุชื่อ',
+          email: 'ไม่ระบุอีเมล',
+          phone: 'ไม่ระบุเบอร์โทร',
+          password: ''
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error in initializeData:', error);
+      Alert.alert('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadUserData = async (email) => {
+    try {
+      console.log('=== Loading user data for:', email, '===');
+      
       const { data, error } = await supabase
         .from('users')
-        .update({ 
-          name: slipName,
-          phone: phone 
-        })
-        .eq('email', userEmail)
+        .select('name, email, phone, password')
+        .eq('email', email)
+        .single();
+
+      if (error) {
+        console.error('Supabase error:', error);
+        // ถ้าไม่เจอข้อมูลในฐานข้อมูล ให้ใช้ email ที่มี
+        setUserData({
+          name: 'ไม่ระบุชื่อ',
+          email: email,
+          phone: 'ไม่ระบุเบอร์โทร',
+          password: ''
+        });
+        return;
+      }
+
+      if (data) {
+        console.log('User data loaded successfully:', data);
+        setUserData({
+          name: data.name || 'ไม่ระบุชื่อ',
+          email: data.email || email,
+          phone: data.phone || 'ไม่ระบุเบอร์โทร',
+          password: data.password || ''
+        });
+        setTempName(data.name || '');
+      }
+      
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      Alert.alert('ข้อผิดพลาด', 'ไม่สามารถโหลดข้อมูลผู้ใช้ได้');
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!tempName.trim()) {
+      Alert.alert('แจ้งเตือน', 'กรุณากรอกชื่อ-นามสกุล');
+      return;
+    }
+
+    if (!currentUserEmail) {
+      Alert.alert('ข้อผิดพลาด', 'ไม่พบข้อมูลผู้ใช้');
+      return;
+    }
+
+    try {
+      console.log('Saving name:', tempName, 'for email:', currentUserEmail);
+      
+      const { data, error } = await supabase
+        .from('users')
+        .update({ name: tempName.trim() })
+        .eq('email', currentUserEmail)
         .select();
 
       if (error) {
-        console.error('Error updating user data:', error);
-        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
-      } else {
-        console.log('User data updated successfully:', data);
-        alert('บันทึกข้อมูลเรียบร้อยแล้ว');
-        setIsEditingName(false); // Exit edit mode after successful save
+        console.error('Error updating name:', error);
+        Alert.alert('ข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้');
+        return;
       }
+
+      console.log('Name updated successfully:', data);
+      
+      // อัปเดต state
+      setUserData(prev => ({
+        ...prev,
+        name: tempName.trim()
+      }));
+      
+      setIsEditingName(false);
+      Alert.alert('สำเร็จ', 'บันทึกชื่อเรียบร้อยแล้ว');
+      
     } catch (error) {
-      console.error('Error in handleSave:', error);
-      alert('เกิดข้อผิดพลาดที่ไม่คาดคิด');
+      console.error('Error in handleSaveName:', error);
+      Alert.alert('ข้อผิดพลาด', 'เกิดข้อผิดพลาดในการบันทึก');
     }
   };
 
-  const handleImageUpload = async () => {
-    const options = {
-      mediaType: 'photo',
-      quality: 1,
-    };
-
-    ImagePicker.launchImageLibrary(options, async (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.error) {
-        console.error('ImagePicker Error: ', response.error);
-      } else {
-        const uri = response.assets[0].uri;
-        const fileName = uri.split('/').pop();
-        const formData = new FormData();
-        formData.append('file', {
-          uri,
-          name: fileName,
-          type: response.assets[0].type,
-        });
-
-        try {
-          const { data, error } = await supabase.storage
-            .from('profile-images')
-            .upload(`public/${fileName}`, formData);
-
-          if (error) {
-            console.error('Error uploading image:', error);
-            alert('Failed to upload image');
-          } else {
-            const imageUrl = `${supabase.storage.from('profile-images').getPublicUrl(`public/${fileName}`).publicURL}`;
-            setProfileImage(imageUrl);
-
-            // Update user profile with the new image URL
-            const { data: updateData, error: updateError } = await supabase
-              .from('users')
-              .update({ profile_image: imageUrl })
-              .eq('email', email);
-
-            if (updateError) {
-              console.error('Error updating profile image:', updateError);
-              alert('Failed to update profile image');
-            } else {
-              alert('Profile image updated successfully');
-            }
-          }
-        } catch (uploadError) {
-          console.error('Unexpected error during image upload:', uploadError);
-          alert('Unexpected error during image upload');
-        }
-      }
-    });
+  const startEditName = () => {
+    setTempName(userData.name === 'ไม่ระบุชื่อ' ? '' : userData.name);
+    setIsEditingName(true);
   };
+
+  const cancelEditName = () => {
+    setTempName(userData.name);
+    setIsEditingName(false);
+  };
+
+  // ฟังก์ชันสำหรับนำทางไปหน้า Setting2Screen
+  const navigateToSetting2 = () => {
+    navigation.navigate('Setting2Screen');
+  };
+
+  // ฟังก์ชันสำหรับนำทางไปหน้า Home4Screen
+  const navigateToHome4 = () => {
+    navigation.navigate('Home4Screen');
+  };
+
+  // Loading screen
+  if (isLoading) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <Text style={styles.loadingText}>กำลังโหลดข้อมูล...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
+      {/* Header - แยกออกจาก ScrollView */}
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backBtn} 
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <View style={styles.backBtnIcon}>
+              <Text style={styles.backIcon}>←</Text>
+            </View>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>การตั้งค่าบัญชี</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+      </View>
+
       <ScrollView 
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Enhanced Header */}
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
-            <TouchableOpacity 
-              style={styles.backBtn} 
-              onPress={() => navigation.goBack()}
-              activeOpacity={0.7}
-            >
-              <View style={styles.backBtnIcon}>
-                <Text style={styles.backIcon}>←</Text>
+        {/* Profile Section */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileSection}>
+            <View style={styles.avatarContainer}>
+              <Image
+                source={require('./assets/images/logo.png')}
+                style={styles.avatar}
+              />
+              <View style={styles.avatarBadge}>
+                <Text style={styles.avatarBadgeIcon}>✨</Text>
               </View>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>การตั้งค่าบัญชี</Text>
-            <View style={styles.headerSpacer} />
+            </View>
+            <Text style={styles.profileName}>{userData.name}</Text>
+            <View style={styles.profileEmail}>
+              <Text style={styles.profileEmailText}>{userData.email}</Text>
+            </View>
           </View>
         </View>
 
-        <Animated.View style={[styles.animatedContent, { opacity: fadeAnim }]}>
-          {/* Enhanced Profile Section */}
-          <View style={styles.profileCard}>
-            <View style={styles.profileSection}>
-              <View style={styles.avatarContainer}>
-                <Image
-                  source={require('./assets/images/logo.png')}
-                  style={styles.avatar}
-                />
-                <View style={styles.avatarBadge}>
-                  <Text style={styles.avatarBadgeIcon}>✨</Text>
-                </View>
-              </View>
-              <Text style={styles.profileName}>{slipName || 'ไม่ระบุชื่อ'}</Text>
-              <TouchableOpacity
-                style={styles.changePhotoBtn}
-                activeOpacity={0.8}
-                onPress={handleImageUpload}
-              >
-                <Text style={styles.changePhotoIcon}>📸</Text>
-                <Text style={styles.changePhotoText}>เปลี่ยนภาพโปรไฟล์</Text>
-              </TouchableOpacity>
-            </View>
+        {/* Personal Information Section */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ข้อมูลส่วนตัว</Text>
+            <View style={styles.sectionTitleLine} />
           </View>
-
-          {/* Personal Information Section */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>ข้อมูลส่วนตัว</Text>
-              <View style={styles.sectionTitleLine} />
-            </View>
-            {personalInfo.map((item, index) => (
-              <View key={index} style={styles.fieldContainer}>
-                <View style={styles.fieldRow}>
-                  <View style={styles.fieldLeft}>
-                    <View style={styles.iconContainer}>
-                      <Text style={styles.fieldIcon}>{item.icon}</Text>
-                    </View>
-                    <View style={styles.fieldContent}>
-                      <Text style={styles.fieldLabel}>{item.label}</Text>
-                      <View style={styles.inputContainer}>
-                        {item.isEditable && item.label === 'ชื่อนามสกุล' ? (
-                          isEditingName ? (
-                            <TextInput
-                              style={[styles.fieldValue, styles.editableInput]}
-                              value={slipName}
-                              onChangeText={setSlipName}
-                              placeholder="กรุณาใส่ชื่อ-นามสกุล"
-                              placeholderTextColor="#999"
-                            />
-                          ) : (
-                            <Text style={styles.fieldValue}>{slipName || 'ไม่ระบุ'}</Text>
-                          )
-                        ) : item.label === 'รหัสผ่าน' ? (
-                          <Text style={styles.fieldValue}>
-                            {showPassword ? item.value : '••••••••'}
-                          </Text>
-                        ) : (
-                          <Text style={styles.fieldValue}>{item.value || 'ไม่ระบุ'}</Text>
-                        )}
-                      </View>
-                    </View>
-                  </View>
-                  <View style={styles.actionContainer}>
-                    {item.label === 'ชื่อนามสกุล' && (
-                      <TouchableOpacity 
-                        style={[styles.actionBtn, isEditingName && styles.saveBtn]} 
-                        activeOpacity={0.7} 
-                        onPress={() => setIsEditingName(!isEditingName)}
-                      >
-                        <Text style={[styles.actionText, isEditingName && styles.saveText]}>
-                          {isEditingName ? '💾' : '✏️'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    {item.label === 'รหัสผ่าน' && (
-                      <TouchableOpacity 
-                        style={styles.actionBtn} 
-                        onPress={() => setShowPassword(!showPassword)} 
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.actionText}>{showPassword ? '🙈' : '👁️'}</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-                {index < personalInfo.length - 1 && <View style={styles.divider} />}
-              </View>
-            ))}
-          </View>
-
-          {/* App Settings Section */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>การตั้งค่าแอป</Text>
-              <View style={styles.sectionTitleLine} />
-            </View>
-            {appSettings.map((item, index) => (
-              <View key={index} style={styles.fieldContainer}>
-                <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7} onPress={() => navigation.navigate('Setting2Screen')}>
-                  <View style={styles.fieldLeft}>
-                    <View style={styles.iconContainer}>
-                      <Text style={styles.fieldIcon}>{item.icon}</Text>
-                    </View>
-                    <View style={styles.fieldContent}>
-                      <Text style={styles.fieldLabel}>{item.label}</Text>
-                      <Text style={styles.fieldValue}>{item.value}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.actionContainer}>
-                  </View>
-                </TouchableOpacity>
-                {index < appSettings.length - 1 && <View style={styles.divider} />}
-              </View>
-            ))}
-          </View>
-
-          {/* Additional Options */}
-          <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>ตัวเลือกอื่นๆ</Text>
-              <View style={styles.sectionTitleLine} />
-            </View>
-            <TouchableOpacity 
-              style={styles.fieldRow} 
-              activeOpacity={0.7} 
-              onPress={() => navigation.navigate('Setting2Screen')}
-            >
+          
+          {/* ชื่อ-นามสกุล */}
+          <View style={styles.fieldContainer}>
+            <View style={styles.fieldRow}>
               <View style={styles.fieldLeft}>
                 <View style={styles.iconContainer}>
-                  <Text style={styles.fieldIcon}>🔔</Text>
+                  <Text style={styles.fieldIcon}>👤</Text>
                 </View>
-                <Text style={styles.optionLabel}>การแจ้งเตือน</Text>
+                <View style={styles.fieldContent}>
+                  <Text style={styles.fieldLabel}>ชื่อนามสกุล</Text>
+                  {isEditingName ? (
+                    <TextInput
+                      style={styles.editInput}
+                      value={tempName}
+                      onChangeText={setTempName}
+                      placeholder="กรุณากรอกชื่อ-นามสกุล"
+                      placeholderTextColor="#999"
+                      autoFocus
+                      returnKeyType="done"
+                      onSubmitEditing={handleSaveName}
+                    />
+                  ) : (
+                    <Text style={styles.fieldValue}>{userData.name}</Text>
+                  )}
+                </View>
               </View>
-            </TouchableOpacity>
+              <View style={styles.actionContainer}>
+                {isEditingName ? (
+                  <View style={styles.editActions}>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.cancelBtn]}
+                      onPress={cancelEditName}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.actionText}>✕</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionBtn, styles.saveBtn]}
+                      onPress={handleSaveName}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.actionText, styles.saveText]}>✓</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.actionBtn}
+                    onPress={startEditName}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.actionText}>✏️</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
             <View style={styles.divider} />
-            <TouchableOpacity style={styles.fieldRow} activeOpacity={0.7}
-            onPress={() => navigation.navigate('Home4Screen')}>
+          </View>
+          
+          {/* อีเมล */}
+          <View style={styles.fieldContainer}>
+            <View style={styles.fieldRow}>
               <View style={styles.fieldLeft}>
                 <View style={styles.iconContainer}>
-                  <Text style={styles.fieldIcon}>❓</Text>
+                  <Text style={styles.fieldIcon}>📧</Text>
                 </View>
-                <Text style={styles.optionLabel}>ติดต่อเรา</Text>
+                <View style={styles.fieldContent}>
+                  <Text style={styles.fieldLabel}>ที่อยู่อีเมล</Text>
+                  <Text style={[styles.fieldValue, styles.readOnlyField]}>
+                    {userData.email}
+                  </Text>
+                </View>
               </View>
-            </TouchableOpacity>
+            </View>
+            <View style={styles.divider} />
           </View>
+          
+          {/* เบอร์โทร */}
+          <View style={styles.fieldContainer}>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldLeft}>
+                <View style={styles.iconContainer}>
+                  <Text style={styles.fieldIcon}>📱</Text>
+                </View>
+                <View style={styles.fieldContent}>
+                  <Text style={styles.fieldLabel}>หมายเลขโทรศัพท์</Text>
+                  <Text style={[styles.fieldValue, styles.readOnlyField]}>
+                    {userData.phone}
+                  </Text>
+                </View>
+              </View>
+            </View>
+            <View style={styles.divider} />
+          </View>
+          
+          {/* รหัสผ่าน */}
+          <View style={styles.fieldContainer}>
+            <View style={styles.fieldRow}>
+              <View style={styles.fieldLeft}>
+                <View style={styles.iconContainer}>
+                  <Text style={styles.fieldIcon}>🔒</Text>
+                </View>
+                <View style={styles.fieldContent}>
+                  <Text style={styles.fieldLabel}>รหัสผ่าน</Text>
+                  <Text style={styles.fieldValue}>
+                    {showPassword ? 
+                      (userData.password || 'ไม่มีรหัสผ่าน') : 
+                      '••••••••'
+                    }
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.actionContainer}>
+                <TouchableOpacity
+                  style={styles.actionBtn}
+                  onPress={() => setShowPassword(!showPassword)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.actionText}>
+                    {showPassword ? '👁️' : '👁️'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
 
-          {/* Enhanced Save Button */}
+        {/* App Settings Section */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>การตั้งค่าแอป</Text>
+            <View style={styles.sectionTitleLine} />
+          </View>
+          
+          {/* สกุลเงินเริ่มต้น - แสดงเฉยๆ */}
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.fieldIcon}>💰</Text>
+              </View>
+              <View style={styles.fieldContent}>
+                <Text style={styles.fieldLabel}>สกุลเงินเริ่มต้น</Text>
+                <Text style={styles.fieldValue}>THB</Text>
+              </View>
+            </View>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          {/* ภาษา - แสดงเฉยๆ */}
+          <View style={styles.fieldRow}>
+            <View style={styles.fieldLeft}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.fieldIcon}>🌐</Text>
+              </View>
+              <View style={styles.fieldContent}>
+                <Text style={styles.fieldLabel}>ภาษา</Text>
+                <Text style={styles.fieldValue}>ภาษาไทย</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Additional Options */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>ตัวเลือกอื่นๆ</Text>
+            <View style={styles.sectionTitleLine} />
+          </View>
+          
+          {/* การแจ้งเตือน - นำทางไปหน้า Setting2Screen */}
           <TouchableOpacity 
-            style={styles.saveButton}
-            activeOpacity={0.8}
-            onPress={handleSave}
+            style={styles.fieldRow} 
+            activeOpacity={0.7}
+            onPress={navigateToSetting2}
           >
-            <View style={styles.saveButtonContent}>
-              <Text style={styles.saveButtonIcon}>💾</Text>
-              <Text style={styles.saveButtonText}>บันทึกการเปลี่ยนแปลง</Text>
+            <View style={styles.fieldLeft}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.fieldIcon}>🔔</Text>
+              </View>
+              <Text style={styles.optionLabel}>การแจ้งเตือน</Text>
+            </View>
+            <View style={styles.actionContainer}>
+              <Text style={styles.chevron}>›</Text>
             </View>
           </TouchableOpacity>
-        </Animated.View>
+          
+          <View style={styles.divider} />
+          
+          {/* ติดต่อเรา - นำทางไปหน้า Home4Screen */}
+          <TouchableOpacity 
+            style={styles.fieldRow} 
+            activeOpacity={0.7}
+            onPress={navigateToHome4}
+          >
+            <View style={styles.fieldLeft}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.fieldIcon}>❓</Text>
+              </View>
+              <Text style={styles.optionLabel}>ติดต่อเรา</Text>
+            </View>
+            <View style={styles.actionContainer}>
+              <Text style={styles.chevron}>›</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Debug Info - ซ่อนในเวอร์ชันจริง */}
+        {/* Debug section ถูกลบออกแล้ว เพื่อความปลอดภัย */}
       </ScrollView>
     </View>
   );
@@ -387,11 +482,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#88bdbdff',
   },
-  scrollContent: {
-    paddingBottom: 40,
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#2C3E50',
+    fontWeight: '500',
   },
   headerContainer: {
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    backgroundColor: '#667eea',
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
     paddingBottom: 20,
     borderBottomLeftRadius: 30,
@@ -401,6 +502,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
+    zIndex: 1000,
   },
   header: {
     flexDirection: 'row',
@@ -437,13 +539,17 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 44,
   },
-  animatedContent: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 40,
+    paddingTop: 0,
   },
   profileCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: -20,
+    marginTop: 10,
     borderRadius: 24,
     elevation: 8,
     shadowColor: '#000',
@@ -494,26 +600,18 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     color: '#1A1A1A',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  changePhotoBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  profileEmail: {
     backgroundColor: '#F0F8FF',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 25,
-    borderWidth: 1,
-    borderColor: '#E3F2FD',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
-  changePhotoIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  changePhotoText: {
+  profileEmailText: {
     color: '#1976D2',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   sectionCard: {
     backgroundColor: '#FFFFFF',
@@ -551,6 +649,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 12,
+    minHeight: 60,
   },
   fieldLeft: {
     flexDirection: 'row',
@@ -571,6 +670,7 @@ const styles = StyleSheet.create({
   },
   fieldContent: {
     flex: 1,
+    justifyContent: 'center',
   },
   fieldLabel: {
     fontSize: 12,
@@ -580,21 +680,32 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  inputContainer: {
-    flex: 1,
-  },
   fieldValue: {
     fontSize: 16,
     color: '#2C3E50',
     fontWeight: '600',
   },
-  editableInput: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#E3F2FD',
+  readOnlyField: {
+    color: '#7F8C8D',
+  },
+  editInput: {
+    fontSize: 16,
+    color: '#2C3E50',
+    fontWeight: '600',
+    borderBottomWidth: 2,
+    borderBottomColor: '#667eea',
     paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: '#F8FAFE',
+    borderRadius: 4,
+    minHeight: 40,
   },
   actionContainer: {
     marginLeft: 12,
+  },
+  editActions: {
+    flexDirection: 'row',
+    gap: 8,
   },
   actionBtn: {
     width: 36,
@@ -607,15 +718,20 @@ const styles = StyleSheet.create({
   saveBtn: {
     backgroundColor: '#4CAF50',
   },
+  cancelBtn: {
+    backgroundColor: '#F44336',
+  },
   actionText: {
     fontSize: 16,
   },
   saveText: {
     color: '#FFFFFF',
+    fontWeight: 'bold',
   },
   chevron: {
-    fontSize: 14,
+    fontSize: 20,
     color: '#BDC3C7',
+    fontWeight: 'bold',
   },
   optionLabel: {
     fontSize: 16,
@@ -627,34 +743,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F2F5',
     marginVertical: 8,
     marginLeft: 56,
-  },
-  saveButton: {
-    marginHorizontal: 16,
-    marginTop: 30,
-    borderRadius: 20,
-    overflow: 'hidden',
-    elevation: 8,
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-  },
-  saveButtonContent: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  saveButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 0.5,
   },
 });
 

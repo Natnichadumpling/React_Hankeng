@@ -69,7 +69,7 @@ const Page1Screen = ({ route }) => {
         {/* Finish Button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('Page2Screen', { email })}
+          onPress={() => navigation.navigate('Page2Screen', { email })} // ส่ง email ไปด้วย
         >
           <Text style={styles.buttonText}>เสร็จสิ้น</Text>
         </TouchableOpacity>

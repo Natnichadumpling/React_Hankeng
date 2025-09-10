@@ -53,7 +53,7 @@ const LoginScreen = () => {
     } catch (storageError) {
       console.error('Failed to save user data to AsyncStorage:', storageError);
     }
-    navigation.navigate('Page2Screen', {
+    navigation.navigate('PageScreen', {
       userData: {
         name: userData.name,
         email: userData.email,

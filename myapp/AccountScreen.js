@@ -66,10 +66,12 @@ const AccountScreen = () => {
 
   const menuItems = [
     { 
-      title: 'การตั้งค่าบัญชี',  // เปลี่ยนจาก "สแกน" เป็น "การตั้งค่า"
-      icon: '⚙️',           // ไอคอนการตั้งค่า
-      navigateTo: 'SettingScreen', // ไปที่หน้า SettingScreen
-      hasArrow: true 
+      title: 'การตั้งค่าบัญชี',
+      icon: '⚙️',
+      navigateTo: 'SettingScreen',
+      hasArrow: true,
+      // เพิ่มส่ง email ไปด้วย
+      params: { email: userEmail }
     },
     { 
       title: 'HarnKengPro', 
@@ -135,7 +137,12 @@ const AccountScreen = () => {
               onPress={() => {
                 console.log(`Navigating to: ${item.navigateTo}`);
                 if (item.navigateTo) {
-                  navigation.navigate(item.navigateTo);
+                  // ส่ง params ไปด้วยถ้ามี
+                  if (item.params) {
+                    navigation.navigate(item.navigateTo, item.params);
+                  } else {
+                    navigation.navigate(item.navigateTo);
+                  }
                 } else {
                   console.log('No navigateTo property found for this menu item.');
                 }

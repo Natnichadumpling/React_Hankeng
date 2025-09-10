@@ -88,7 +88,7 @@ const PageScreen = ({ route }) => {
         {/* Next Button */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate('AccountScreen', { email, userName })}
+          onPress={() => navigation.navigate('Page1Screen', { email })} // เปลี่ยนตรงนี้
         >
           <Text style={styles.buttonText}>ถัดไป</Text>
         </TouchableOpacity>
