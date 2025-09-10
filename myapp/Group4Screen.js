@@ -52,7 +52,7 @@ const Group4Screen = ({ navigation, route }) => {
       } else if (data) {
         setChatMessages(data.map(msg => ({
           type: msg.type,
-          uri: msg.content,
+          uri: msg.image_url || msg.content,
           userId: msg.sender_email,
           createdAt: msg.created_at,
           messageId: msg.id,
@@ -67,7 +67,7 @@ const Group4Screen = ({ navigation, route }) => {
   // subscribe realtime chat
   useEffect(() => {
     if (!groupId) return;
-    
+
     const channel = supabase
       .channel(`group_messages_${groupId}`)
       .on('postgres_changes', {
@@ -85,7 +85,7 @@ const Group4Screen = ({ navigation, route }) => {
           messageId: payload.new.id,
           messageText: payload.new.messageText || '', // ข้อความที่อยู่ใต้รูปภาพ
         };
-        
+
         // เพิ่มข้อความใหม่ต่อท้ายรายการ
         setChatMessages(prevMessages => [...prevMessages, newMessage]);
       })
@@ -146,84 +146,79 @@ const Group4Screen = ({ navigation, route }) => {
   };
 
   const handleSendMessage = async () => {
-  if (!groupId || !userId) {
-    Alert.alert('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้');
-    return;
-  }
-
-  // ส่งข้อความ
-  if (messageText.trim()) {
-    const { error } = await supabase
-      .from('group_messages')
-      .insert([{
-        group_id: groupId,
-        sender_email: userId,
-        type: 'text',
-        content: messageText.trim(),
-        messageText: messageText.trim(),
-      }]);
-    if (error) {
-      Alert.alert('เกิดข้อผิดพลาด', error.message);
+    if (!groupId || !userId) {
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้');
       return;
     }
-    setMessageText('');
-  }
 
-  // ส่งรูปภาพ (อัปโหลดไป storage ก่อน)
-  if (selectedImages.length > 0) {
-    for (const uri of selectedImages) {
-      const publicUrl = await uploadImageToSupabase(uri);
-      if (!publicUrl) {
-        Alert.alert('ไม่ได้รับ public URL จากการอัปโหลดรูป');
-        continue;
-      }
+    // ส่งข้อความ
+    if (messageText.trim()) {
       const { error } = await supabase
         .from('group_messages')
         .insert([{
           group_id: groupId,
           sender_email: userId,
-          type: 'image',
-          content: publicUrl,
-          image_url: publicUrl,
-          messageText: messageText.trim(),  // ส่งข้อความที่พิมพ์ด้วย
+          type: 'text',
+          content: messageText.trim(),
+          messageText: messageText.trim(),
         }]);
+
       if (error) {
         Alert.alert('เกิดข้อผิดพลาด', error.message);
         return;
       }
+
+      setChatMessages(prevMessages => [
+        ...prevMessages,
+        {
+          type: 'text',
+          uri: messageText.trim(),
+          userId: userId,
+          createdAt: new Date().toISOString(),
+          messageText: messageText.trim(),
+        },
+      ]);
+
+      setMessageText('');
     }
-    setSelectedImages([]); // ล้างรูปภาพที่เลือกหลังจากส่งแล้ว
-  }
-};
 
-{chatMessages.map((msg, idx) => (
-  <View
-    key={`${msg.messageId || idx}`}
-    style={[
-      styles.chatBubble,
-      msg.userId === userId ? styles.chatBubbleRight : styles.chatBubbleLeft,
-    ]}
-  >
-    {msg.type === 'image' ? (
-      <>
-        <Image source={{ uri: msg.uri }} style={styles.chatImage} />
-        {msg.messageText && <Text style={styles.chatText}>{msg.messageText}</Text>}  {/* แสดงข้อความใต้รูปภาพ */}
-        <Text style={styles.chatUploader}>
-          อัปโหลดโดย: {msg.userId === userId ? 'คุณ' : msg.userId}
-        </Text>
-      </>
-    ) : (
-      <Text style={styles.chatText}>{msg.uri}</Text>
-    )}
-    <Text style={styles.timestamp}>
-      {new Date(msg.createdAt).toLocaleTimeString('th-TH', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}
-    </Text>
-  </View>
-))}
+    // ส่งรูปภาพ (อัปโหลดไป storage ก่อน)
+    if (selectedImages.length > 0) {
+      for (const uri of selectedImages) {
+        const publicUrl = await uploadImageToSupabase(uri);
+        if (!publicUrl) {
+          Alert.alert('ไม่ได้รับ public URL จากการอัปโหลดรูป');
+          continue;
+        }
+        const { error } = await supabase
+          .from('group_messages')
+          .insert([{
+            group_id: groupId,
+            sender_email: userId,
+            type: 'image',
+            content: publicUrl,
+            image_url: publicUrl,
+            messageText: messageText.trim(),
+          }]);
+        if (error) {
+          Alert.alert('เกิดข้อผิดพลาด', error.message);
+          return;
+        }
 
+        setChatMessages(prevMessages => [
+          ...prevMessages,
+          {
+            type: 'image',
+            uri: publicUrl,
+            userId: userId,
+            createdAt: new Date().toISOString(),
+            messageText: messageText.trim(),
+          },
+        ]);
+      }
+      setSelectedImages([]);
+    }
+  };
 
   const goBack = () => navigation.goBack();
 
@@ -312,7 +307,10 @@ const Group4Screen = ({ navigation, route }) => {
             <Text style={styles.backIcon}>กลับ</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
-          <TouchableOpacity style={styles.menuButton} onPress={() => ('Group2Screen')}>
+          <TouchableOpacity 
+            style={styles.menuButton} 
+            onPress={() => navigation.navigate('Group2Screen', { groupName })}
+          >
             <Text style={styles.menuText}>เชิญเพื่อน</Text>
           </TouchableOpacity>
         </View>
@@ -365,7 +363,7 @@ const Group4Screen = ({ navigation, route }) => {
                       {msg.messageText && <Text style={styles.chatText}>{msg.messageText}</Text>}
                     </>
                   ) : (
-                    <Text style={styles.chatText}>{msg.uri}</Text>
+                    <Text style={styles.chatText}>{msg.messageText}</Text>
                   )}
                   <Text style={styles.timestamp}>
                     {new Date(msg.createdAt).toLocaleTimeString('th-TH', {
@@ -418,13 +416,12 @@ const Group4Screen = ({ navigation, route }) => {
           />
 
           <TouchableOpacity
-  style={[styles.sendButton, isSendDisabled && isSendTextDisabled && styles.sendButtonDisabled]}
-  onPress={handleSendMessage}
-  disabled={isSendDisabled && isSendTextDisabled}
->
-  <Text style={styles.sendIcon}>➤</Text>
-</TouchableOpacity>
-
+            style={[styles.sendButton, isSendDisabled && isSendTextDisabled && styles.sendButtonDisabled]}
+            onPress={handleSendMessage}
+            disabled={isSendDisabled && isSendTextDisabled}
+          >
+            <Text style={styles.sendIcon}>➤</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Image Picker Modal */}
@@ -658,7 +655,12 @@ const styles = StyleSheet.create({
   chipTextActive: { color: '#fff', fontWeight: '700' },
   cameraText: { fontSize: 14, color: '#333', marginTop: 10, textAlign: 'center' },
   chatBubble: { backgroundColor: '#e8f4fd', borderRadius: 12, padding: 8, marginBottom: 10, alignSelf: 'flex-start', maxWidth: '80%' },
-  chatImage: { width: 120, height: 120, borderRadius: 10 },
+  chatImage: {
+    width: '100%', // ปรับให้กว้างเต็มกรอบ
+    height: undefined, // ให้ความสูงปรับตามอัตราส่วนของรูป
+    aspectRatio: 16 / 9, // ใช้อัตราส่วน 16:9 สำหรับรูปแนวยาว
+    borderRadius: 10, // เพิ่มความโค้งมนให้กรอบ
+  },
   chatBubbleRight: { alignSelf: 'flex-end', backgroundColor: '#d1e7dd' },
   chatBubbleLeft: { alignSelf: 'flex-start', backgroundColor: '#e8f4fd' },
   chatUploader: {
