@@ -62,13 +62,6 @@ const ForgotPasswordScreen = () => {
       style={styles.backgroundImage}
       resizeMode="cover"
     >
-      {/* AppBar */}
-      <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Icon name="home" size={28} color="black" />
-          <Text style={styles.closeText}>Home</Text>
-        </TouchableOpacity>
-      </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.body}>
           <View style={styles.logoContainer}>

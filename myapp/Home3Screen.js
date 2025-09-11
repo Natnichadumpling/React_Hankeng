@@ -8,9 +8,6 @@ const Home3Screen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Text style={styles.closeText}>ปิด</Text>
-        </TouchableOpacity>
         <Text style={styles.appBarTitle}>นโยบายความเป็นส่วนตัว</Text>
       </View>
 

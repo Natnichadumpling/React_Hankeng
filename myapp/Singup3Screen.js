@@ -78,13 +78,6 @@ const Singup3Screen = () => {
             contentContainerStyle={styles.content}
             keyboardShouldPersistTaps="handled"
           >
-            {/* AppBar (โปร่งใส) */}
-            <View style={styles.appBar}>
-              <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-                <Text style={styles.backText}>‹ กลับ</Text>
-              </TouchableOpacity>
-            </View>
-
             {/* เนื้อหากลางจอ — ไม่มีกรอบขาว */}
             <View style={styles.formWrap}>
               {/* โลโก้ */}

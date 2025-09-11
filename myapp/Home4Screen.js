@@ -13,9 +13,6 @@ const Home4Screen = () => {
       <ScrollView contentContainerStyle={styles.container}>
         {/* AppBar */}
         <View style={styles.appBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-            <Text style={styles.closeText}>❌</Text>
-          </TouchableOpacity>
           <Text style={styles.appBarTitle}>ช่องทางการติดต่อเรา</Text>
         </View>
 

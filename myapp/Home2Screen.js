@@ -12,10 +12,6 @@ const Home2Screen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.appBar}>
-        {/* ปุ่มย้อนกลับที่ทำงานได้แน่นอน */}
-        <TouchableOpacity onPress={() => navigation.navigate('HomeScreen')} style={styles.closeButton}>
-          <Text style={styles.closeText}>← ย้อนกลับ</Text>
-        </TouchableOpacity>
         <Text style={styles.appBarTitle}>ข้อกำหนดการให้บริการ</Text>
       </View>
 

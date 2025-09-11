@@ -17,12 +17,6 @@ const Singup2Screen = () => {
       source={require('./assets/images/p.png')} // ใส่พื้นหลังเป็น p.png
       style={styles.container}
     >
-      {/* AppBar */}
-      <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <Text style={styles.closeText}>กลับ</Text>
-        </TouchableOpacity>
-      </View>
 
       <View style={styles.body}>
         {/* Logo */}

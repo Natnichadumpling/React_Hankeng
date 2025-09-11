@@ -15,12 +15,6 @@ const SingupScreen = () => {
       source={require('./assets/images/p.png')}
       style={styles.container}
     >
-      {/* App Bar */}
-      <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
-          <MaterialCommunityIcons name="home" size={30} color="black" /> {/* ไอคอนบ้าน */}
-        </TouchableOpacity>
-      </View>
 
       {/* Body Content */}
       <View style={styles.body}>

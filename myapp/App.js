@@ -75,7 +75,7 @@ export default function App() {
         <Stack.Screen name="ActivityScreen" component={ActivityScreen} />
         <Stack.Screen name="Group6Screen" component={Group6Screen} options={{ title: 'สรุปรายการโอน' }} />
         <Stack.Screen name="SettingScreen" component={SettingScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ title: 'ลืมรหัสผ่าน' }} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="RateAppScreen" component={RateAppScreen} options={{ title: 'ให้คะแนน HarnKeng' }} />
 
         {/* เปลี่ยนหน้าหลักให้เป็น TabNavigator */}
