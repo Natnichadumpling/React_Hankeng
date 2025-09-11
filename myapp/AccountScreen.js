@@ -215,13 +215,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 16,
+    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
   },
   profileEmail: {
-    fontSize: 14,
+    fontSize: 16, // เพิ่มขนาดตัวหนังสือ
     color: '#666',
   },
   arrow: {
@@ -271,11 +271,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuText: {
-    fontSize: 16,
+    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
     color: '#333',
     fontWeight: '500',
   },
   specialText: {
+    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
     color: '#4169e1',
     fontWeight: '600',
   },
@@ -293,7 +294,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   logoutText: {
-    fontSize: 16,
+    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
     color: '#666',
     fontWeight: '500',
   },

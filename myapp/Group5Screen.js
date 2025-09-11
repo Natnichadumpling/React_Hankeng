@@ -5,7 +5,7 @@ import {
   TextInput, Alert, Modal, Image,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 
 /* ===== Utilities ===== */
 const round2 = (x) => Math.round(x * 100) / 100;
@@ -87,6 +87,7 @@ const PersonCard = ({ name, paidTotal, oweTotal, paidItems, owedItems, expanded,
 export default function Group5Screen({ navigation }) {
   const route = useRoute();
   const groupName = route?.params?.groupName || DEFAULT_GROUP.groupName;
+  const nav = useNavigation(); // Add navigation hook
 
   const [people, setPeople] = useState(route?.params?.members || DEFAULT_GROUP.members);
   // item = {id, name, price, paidByMap, sharedBy, receiptByPayer: { [payer]: uri|null }}
@@ -286,6 +287,11 @@ export default function Group5Screen({ navigation }) {
   /* ===== UI ===== */
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+      {/* Back Button */}
+      <TouchableOpacity style={styles.backButton} onPress={() => nav.goBack()}>
+        <Text style={styles.backButtonText}>ย้อนกลับ</Text>
+      </TouchableOpacity>
+
       <Text style={styles.header}>{groupName}</Text>
       <Text style={styles.subHeader}>จัดรายการ + สรุปยอดต่อคน</Text>
 
@@ -655,4 +661,18 @@ const styles = StyleSheet.create({
   btn:{ paddingHorizontal:12, paddingVertical:8, borderRadius:8 },
   btnPurple:{ backgroundColor:'#148cdce3' },
   btnText:{ color:'#fff', fontWeight:'700' },
+
+  /* Back button and tab header */
+  backButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
+  backButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+  },
 });

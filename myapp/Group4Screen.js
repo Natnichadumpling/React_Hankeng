@@ -33,8 +33,7 @@ const Group4Screen = ({ navigation, route }) => {
   const groupId = route?.params?.groupId;
   const userId = route?.params?.userId;
 
-  const isSendDisabled = selectedImages.length === 0;
-  const isSendTextDisabled = !messageText.trim();
+  const isSendDisabled = selectedImages.length === 0 && !messageText.trim();
 
   // โหลดข้อความแชทจากฐานข้อมูล Supabase
   useEffect(() => {
@@ -56,7 +55,7 @@ const Group4Screen = ({ navigation, route }) => {
           userId: msg.sender_email,
           createdAt: msg.created_at,
           messageId: msg.id,
-          messageText: msg.messageText || '', // ข้อความที่อยู่ใต้รูปภาพ
+          messageText: msg.content || msg.messageText || '',
         })));
       }
       setIsLoadingMessages(false);
@@ -79,11 +78,11 @@ const Group4Screen = ({ navigation, route }) => {
         console.log('New message received:', payload);
         const newMessage = {
           type: payload.new.type,
-          uri: payload.new.content,
+          uri: payload.new.image_url || payload.new.content,
           userId: payload.new.sender_email,
           createdAt: payload.new.created_at,
           messageId: payload.new.id,
-          messageText: payload.new.messageText || '', // ข้อความที่อยู่ใต้รูปภาพ
+          messageText: payload.new.content || payload.new.messageText || '',
         };
 
         // เพิ่มข้อความใหม่ต่อท้ายรายการ
@@ -145,78 +144,72 @@ const Group4Screen = ({ navigation, route }) => {
     }
   };
 
+  // ปรับปรุงฟังก์ชัน handleSendMessage
   const handleSendMessage = async () => {
     if (!groupId || !userId) {
       Alert.alert('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้');
       return;
     }
 
-    // ส่งข้อความ
-    if (messageText.trim()) {
-      const { error } = await supabase
-        .from('group_messages')
-        .insert([{
-          group_id: groupId,
-          sender_email: userId,
-          type: 'text',
-          content: messageText.trim(),
-          messageText: messageText.trim(),
-        }]);
+    const hasText = messageText.trim();
+    const hasImages = selectedImages.length > 0;
 
-      if (error) {
-        Alert.alert('เกิดข้อผิดพลาด', error.message);
-        return;
-      }
+    if (!hasText && !hasImages) return;
 
-      setChatMessages(prevMessages => [
-        ...prevMessages,
-        {
-          type: 'text',
-          uri: messageText.trim(),
-          userId: userId,
-          createdAt: new Date().toISOString(),
-          messageText: messageText.trim(),
-        },
-      ]);
+    console.log('Sending message...', { hasText, hasImages, messageText: hasText });
 
-      setMessageText('');
-    }
-
-    // ส่งรูปภาพ (อัปโหลดไป storage ก่อน)
-    if (selectedImages.length > 0) {
-      for (const uri of selectedImages) {
-        const publicUrl = await uploadImageToSupabase(uri);
-        if (!publicUrl) {
-          Alert.alert('ไม่ได้รับ public URL จากการอัปโหลดรูป');
-          continue;
-        }
+    try {
+      // ส่งข้อความธรรมดา
+      if (hasText && !hasImages) {
+        console.log('Sending text message to database...');
         const { error } = await supabase
           .from('group_messages')
           .insert([{
             group_id: groupId,
             sender_email: userId,
-            type: 'image',
-            content: publicUrl,
-            image_url: publicUrl,
-            messageText: messageText.trim(),
+            type: 'text',
+            content: hasText,
           }]);
+
         if (error) {
+          console.error('Database error:', error);
           Alert.alert('เกิดข้อผิดพลาด', error.message);
           return;
         }
-
-        setChatMessages(prevMessages => [
-          ...prevMessages,
-          {
-            type: 'image',
-            uri: publicUrl,
-            userId: userId,
-            createdAt: new Date().toISOString(),
-            messageText: messageText.trim(),
-          },
-        ]);
+        console.log('Text message sent successfully');
+        setMessageText('');
       }
-      setSelectedImages([]);
+
+      // ส่งรูปภาพพร้อมข้อความ (ถ้ามี)
+      if (hasImages) {
+        console.log('Sending image messages...');
+        for (const uri of selectedImages) {
+          const publicUrl = await uploadImageToSupabase(uri);
+          if (!publicUrl) continue;
+
+          const { error } = await supabase
+            .from('group_messages')
+            .insert([{
+              group_id: groupId,
+              sender_email: userId,
+              type: 'image',
+              content: hasText || '', // ข้อความที่จะแสดงใต้รูป
+              image_url: publicUrl,
+            }]);
+
+          if (error) {
+            console.error('Database error for image:', error);
+            Alert.alert('เกิดข้อผิดพลาด', error.message);
+            return;
+          }
+        }
+        console.log('Image messages sent successfully');
+        setSelectedImages([]);
+        setMessageText('');
+      }
+    } catch (error) {
+      console.error('Send message error:', error);
+      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อความได้');
     }
   };
 
@@ -249,11 +242,11 @@ const Group4Screen = ({ navigation, route }) => {
   };
 
   const handleCurrencySelect = (currency) => {
-    setSelectedCurrency(currency); // 'THB' หรือ 'USD'
-    setConvertedAmount(null); // Reset the conversion result
+    setSelectedCurrency(currency);
+    setConvertedAmount(null);
 
     if (currency === 'THB' && from && to && amountParam) {
-      setAmount(Number(amountParam || 0).toFixed(2)); // Set the amount in THB format
+      setAmount(Number(amountParam || 0).toFixed(2));
     }
 
     if (currency === 'USD' && rateTHB) {
@@ -357,11 +350,15 @@ const Group4Screen = ({ navigation, route }) => {
                   ]}
                 >
                   {msg.type === 'image' ? (
-                    <>
+                    <View>
                       <Image source={{ uri: msg.uri }} style={styles.chatImage} />
-                      <Text style={styles.chatUploader}>อัปโหลดโดย: {msg.userId === userId ? 'คุณ' : msg.userId}</Text>
-                      {msg.messageText && <Text style={styles.chatText}>{msg.messageText}</Text>}
-                    </>
+                      <Text style={styles.chatUploader}>
+                        อัปโหลดโดย: {msg.userId === userId ? 'คุณ' : msg.userId}
+                      </Text>
+                      {msg.messageText && (
+                        <Text style={styles.chatImageCaption}>{msg.messageText}</Text>
+                      )}
+                    </View>
                   ) : (
                     <Text style={styles.chatText}>{msg.messageText}</Text>
                   )}
@@ -379,19 +376,18 @@ const Group4Screen = ({ navigation, route }) => {
           {/* แสดงรูปที่เลือกแล้วรอส่ง */}
           {selectedImages.length > 0 && (
             <View style={styles.selectedImagesContainer}>
-              <View>
-                {selectedImages.map((uri, index) => (
-                  <View key={index} style={styles.imagePreview}>
-                    <Image source={{ uri }} style={styles.previewImage} />
-                    <TouchableOpacity
-                      style={styles.removeImageButton}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Text style={styles.removeImageText}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </View>
+              <Text style={styles.selectedImagesTitle}>รูปภาพที่เลือก:</Text>
+              {selectedImages.map((uri, index) => (
+                <View key={index} style={styles.imagePreview}>
+                  <Image source={{ uri }} style={styles.previewImage} />
+                  <TouchableOpacity
+                    style={styles.removeImageButton}
+                    onPress={() => removeImage(index)}
+                  >
+                    <Text style={styles.removeImageText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
             </View>
           )}
         </ScrollView>
@@ -413,12 +409,13 @@ const Group4Screen = ({ navigation, route }) => {
             value={messageText}
             onChangeText={setMessageText}
             multiline
+            textAlignVertical="top"
           />
 
           <TouchableOpacity
-            style={[styles.sendButton, isSendDisabled && isSendTextDisabled && styles.sendButtonDisabled]}
+            style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
             onPress={handleSendMessage}
-            disabled={isSendDisabled && isSendTextDisabled}
+            disabled={isSendDisabled}
           >
             <Text style={styles.sendIcon}>➤</Text>
           </TouchableOpacity>
@@ -429,32 +426,26 @@ const Group4Screen = ({ navigation, route }) => {
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>เพิ่มไฟล์ภาพ</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#ccc', borderRadius: 12, padding: 10, backgroundColor: '#fafafa', minWidth: 160, justifyContent: 'center' }}>
+              <View style={styles.imagePickerContainer}>
                 <TouchableOpacity
-                  style={{ backgroundColor: '#e0e0e0', padding: 15, borderRadius: 50 }}
+                  style={styles.imagePickerButton}
                   onPress={handleImageSelect}
                 >
-                  <Text style={{ fontSize: 30, color: '#333' }}>📷</Text>
+                  <Text style={styles.imagePickerIcon}>📷</Text>
                 </TouchableOpacity>
                 {selectedImages.length > 0 && (
-                  <Image source={{ uri: selectedImages[selectedImages.length - 1] }} style={{ width: 80, height: 80, borderRadius: 10, marginLeft: 15, backgroundColor: '#eee' }} />
+                  <Image 
+                    source={{ uri: selectedImages[selectedImages.length - 1] }} 
+                    style={styles.imagePickerPreview} 
+                  />
                 )}
               </View>
               <Text style={styles.cameraText}>เลือกไฟล์ภาพ</Text>
               <TouchableOpacity
-                style={[styles.sendButton, selectedImages.length === 0 && styles.sendButtonDisabled, { marginTop: 10 }]}
-                onPress={() => {
-                  setShowImagePicker(false);
-                  if (selectedImages.length > 0) {
-                    handleSendMessage();
-                  }
-                }}
-                disabled={selectedImages.length === 0}
+                style={styles.modalCancelButton} 
+                onPress={() => setShowImagePicker(false)}
               >
-                <Text style={styles.sendIcon}>➤ ส่ง</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowImagePicker(false)}>
-                <Text style={styles.modalCancelText}>ยกเลิก</Text>
+                <Text style={styles.modalCancelText}>ปิด</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -483,19 +474,18 @@ const Group4Screen = ({ navigation, route }) => {
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>แปลงสกุลเงิน</Text>
 
-              <View style={{ marginBottom: 10, alignItems: 'center' }}>
-                {isLoadingRate ? <ActivityIndicator /> : <Text style={{ color: rateError ? '#d32f2f' : '#333' }}>{rateBanner}</Text>}
+              <View style={styles.rateBannerContainer}>
+                {isLoadingRate ? <ActivityIndicator /> : <Text style={[styles.rateBanner, { color: rateError ? '#d32f2f' : '#333' }]}>{rateBanner}</Text>}
               </View>
 
-              <Text style={{ marginBottom: 6, color: '#333' }}>จำนวนเงินที่ต้องจ่าย(สกุลเงิน):</Text>
-              <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+              <Text style={styles.currencyLabel}>จำนวนเงินที่ต้องจ่าย(สกุลเงิน):</Text>
+              <View style={styles.chipContainer}>
                 <TouchableOpacity
                   style={[styles.chip, selectedCurrency === 'THB' && styles.chipActive]}
                   onPress={() => handleCurrencySelect('THB')}
                 >
                   <Text style={[styles.chipText, selectedCurrency === 'THB' && styles.chipTextActive]}>THB</Text>
                 </TouchableOpacity>
-                <View style={{ width: 10 }} />
                 <TouchableOpacity
                   style={[styles.chip, selectedCurrency === 'USD' && styles.chipActive]}
                   onPress={() => handleCurrencySelect('USD')}
@@ -520,15 +510,15 @@ const Group4Screen = ({ navigation, route }) => {
                 <Text style={styles.convertButtonText}>แปลง</Text>
               </TouchableOpacity>
 
-              {convertedAmount !== null && selectedCurrency ? (
+              {convertedAmount !== null && selectedCurrency && (
                 <Text style={styles.convertResult}>
                   ผลลัพธ์: {selectedCurrency === 'THB'
                     ? `${convertedAmount.toFixed(2)} USD`
                     : `${convertedAmount.toFixed(2)} THB`}
                 </Text>
-              ) : null}
+              )}
 
-              <TouchableOpacity style={[styles.modalCancelButton, { marginTop: 16 }]} onPress={() => setShowCurrencyModal(false)}>
+              <TouchableOpacity style={[styles.modalCancelButton, styles.currencyCloseButton]} onPress={() => setShowCurrencyModal(false)}>
                 <Text style={styles.modalCancelText}>ปิด</Text>
               </TouchableOpacity>
             </View>
@@ -540,64 +530,159 @@ const Group4Screen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  textInput: {
-    flex: 1,
-    minHeight: 40,
-    maxHeight: 80,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    marginHorizontal: 8,
-    backgroundColor: '#fff',
-    fontSize: 15,
-    color: '#333',
+  container: { 
+    flex: 1 
   },
-  chatText: {
-    fontSize: 15,
-    color: '#333',
-    paddingVertical: 2,
-  },
-  container: { flex: 1 },
 
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 15, paddingVertical: 15,
-    backgroundColor: 'rgba(255,255,255,0.9)', borderBottomWidth: 1, borderBottomColor: '#e0e0e0',
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between',
+    paddingHorizontal: 15, 
+    paddingVertical: 15,
+    backgroundColor: 'rgba(255,255,255,0.9)', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#e0e0e0',
   },
-  backButton: { padding: 5 },
-  backIcon: { fontSize: 24, color: '#333' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  menuButton: { paddingHorizontal: 10, paddingVertical: 5, backgroundColor: '#e8f4fd', borderRadius: 15 },
-  menuText: { fontSize: 14, color: '#4a90e2' },
+  backButton: { 
+    padding: 5 
+  },
+  backIcon: { 
+    fontSize: 24, 
+    color: '#333' 
+  },
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: '#333' 
+  },
+  menuButton: { 
+    paddingHorizontal: 10, 
+    paddingVertical: 5, 
+    backgroundColor: '#e8f4fd', 
+    borderRadius: 15 
+  },
+  menuText: { 
+    fontSize: 14, 
+    color: '#4a90e2' 
+  },
 
-  transferInfo: { paddingHorizontal: 15, paddingVertical: 8, backgroundColor: '#fff8e1' },
-  transferInfoText: { color: '#6d4c41', fontSize: 13 },
+  transferInfo: { 
+    paddingHorizontal: 15, 
+    paddingVertical: 8, 
+    backgroundColor: '#fff8e1' 
+  },
+  transferInfoText: { 
+    color: '#6d4c41', 
+    fontSize: 13 
+  },
 
-  messagesContainer: { flex: 1, paddingHorizontal: 15, paddingVertical: 20 },
-  emptyChatContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 60 },
-  emptyChatText: { fontSize: 18, fontWeight: 'bold', color: '#666', marginBottom: 10 },
-  emptyChatSubText: { fontSize: 14, color: '#999', textAlign: 'center' },
+  messagesContainer: { 
+    flex: 1, 
+    paddingHorizontal: 15, 
+    paddingVertical: 20 
+  },
+  emptyChatContainer: { 
+    flex: 1, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    marginTop: 60 
+  },
+  emptyChatText: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: '#666', 
+    marginBottom: 10 
+  },
+  emptyChatSubText: { 
+    fontSize: 14, 
+    color: '#999', 
+    textAlign: 'center' 
+  },
 
+  // Chat bubble styles
+  chatBubble: { 
+    borderRadius: 18, 
+    padding: 12, 
+    marginVertical: 4, 
+    maxWidth: '80%',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chatBubbleRight: { 
+    alignSelf: 'flex-end', 
+    backgroundColor: '#4a90e2',
+    marginLeft: '20%',
+  },
+  chatBubbleLeft: { 
+    alignSelf: 'flex-start', 
+    backgroundColor: '#ffffff',
+    marginRight: '20%',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  chatText: {
+    fontSize: 16,
+    lineHeight: 20,
+    color: '#333',
+  },
+  chatImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  chatUploader: {
+    fontSize: 11,
+    color: '#666',
+    marginBottom: 4,
+    fontStyle: 'italic',
+  },
+  chatImageCaption: {
+    fontSize: 15,
+    color: '#333',
+    marginTop: 6,
+    lineHeight: 18,
+  },
+  timestamp: { 
+    fontSize: 10, 
+    color: '#999', 
+    marginTop: 6, 
+    textAlign: 'right' 
+  },
+
+  // Selected images preview
   selectedImagesContainer: { 
-    marginTop: 10, 
+    marginVertical: 10,
     padding: 15, 
-    backgroundColor: 'rgba(255,255,255,0.85)', 
-    borderRadius: 10,
-    marginBottom: 10
+    backgroundColor: 'rgba(255,255,255,0.95)', 
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
   },
-  selectedImagesTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  selectedImagesTitle: { 
+    fontSize: 14, 
+    fontWeight: 'bold', 
+    marginBottom: 10, 
+    color: '#333' 
+  },
   imagePreview: { 
-    backgroundColor: '#f0f0f0', 
+    backgroundColor: '#f8f9fa', 
     padding: 8, 
     borderRadius: 8, 
-    marginBottom: 10,  // เพิ่มระยะห่างระหว่างรูปภาพ
+    marginBottom: 10,
     position: 'relative',
     alignItems: 'center'
   },
   previewImage: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 8,
   },
   removeImageButton: { 
@@ -605,36 +690,211 @@ const styles = StyleSheet.create({
     top: -5, 
     right: -5, 
     backgroundColor: '#ff4444', 
-    borderRadius: 10, 
-    width: 20, 
-    height: 20, 
+    borderRadius: 12, 
+    width: 24, 
+    height: 24, 
     alignItems: 'center', 
-    justifyContent: 'center' 
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 4,
   },
-  removeImageText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  removeImageText: { 
+    color: '#fff', 
+    fontSize: 14, 
+    fontWeight: 'bold' 
+  },
 
+  // Input area
   inputContainer: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10,
-    backgroundColor: 'rgba(255,255,255,0.95)', borderTopWidth: 1, borderTopColor: '#e0e0e0',
+    flexDirection: 'row', 
+    alignItems: 'flex-end', 
+    paddingHorizontal: 15, 
+    paddingVertical: 12,
+    backgroundColor: 'rgba(255,255,255,0.95)', 
+    borderTopWidth: 1, 
+    borderTopColor: '#e0e0e0',
   },
-  iconButton: { padding: 8, marginRight: 8 },
-  iconText: { fontSize: 22, color: '#666' },
-  sendButton: { backgroundColor: '#4a90e2', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
-  sendButtonDisabled: { opacity: 0.5 },
-  sendIcon: { fontSize: 18, color: '#fff' },
+  iconButton: { 
+    padding: 10, 
+    marginRight: 6,
+  },
+  iconText: { 
+    fontSize: 22, 
+    color: '#666' 
+  },
+  textInput: {
+    flex: 1,
+    minHeight: 40,
+    maxHeight: 100,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginHorizontal: 8,
+    backgroundColor: '#fff',
+    fontSize: 16,
+    color: '#333',
+    textAlignVertical: 'top',
+  },
+  sendButton: { 
+    backgroundColor: '#4a90e2', 
+    borderRadius: 22, 
+    width: 44,
+    height: 44,
+    alignItems: 'center', 
+    justifyContent: 'center',
+    shadowColor: '#4a90e2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sendButtonDisabled: { 
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  sendIcon: { 
+    fontSize: 18, 
+    color: '#fff',
+    fontWeight: 'bold',
+  },
 
-  modalContainer: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 20, paddingVertical: 30 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#333' },
-  modalOption: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  modalOptionText: { fontSize: 16, color: '#333' },
-  modalCancelButton: { paddingVertical: 15, marginTop: 10, backgroundColor: '#f8f8f8', borderRadius: 10, alignItems: 'center' },
-  modalCancelText: { fontSize: 16, color: '#666', fontWeight: 'bold' },
+  // Modal styles
+  modalContainer: { 
+    flex: 1, 
+    backgroundColor: 'rgba(0,0,0,0.5)', 
+    justifyContent: 'flex-end' 
+  },
+  modalContent: { 
+    backgroundColor: '#fff', 
+    borderTopLeftRadius: 20, 
+    borderTopRightRadius: 20, 
+    paddingHorizontal: 20, 
+    paddingVertical: 30 
+  },
+  modalTitle: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginBottom: 20, 
+    color: '#333' 
+  },
+  modalOption: { 
+    paddingVertical: 15, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#f0f0f0' 
+  },
+  modalOptionText: { 
+    fontSize: 16, 
+    color: '#333' 
+  },
+  modalCancelButton: { 
+    paddingVertical: 15, 
+    marginTop: 10, 
+    backgroundColor: '#f8f8f8', 
+    borderRadius: 10, 
+    alignItems: 'center' 
+  },
+  modalCancelText: { 
+    fontSize: 16, 
+    color: '#666', 
+    fontWeight: 'bold' 
+  },
 
-  currencyInput: { borderWidth: 1, borderColor: '#ccc', padding: 10, marginVertical: 10, borderRadius: 5 },
+  // Image picker modal styles
+  imagePickerContainer: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: '#ccc', 
+    borderRadius: 12, 
+    padding: 10, 
+    backgroundColor: '#fafafa', 
+    minWidth: 160, 
+    justifyContent: 'center',
+    marginBottom: 15,
+  },
+  imagePickerButton: {
+    backgroundColor: '#e0e0e0', 
+    padding: 15, 
+    borderRadius: 50,
+  },
+  imagePickerIcon: {
+    fontSize: 30, 
+    color: '#333',
+  },
+  imagePickerPreview: {
+    width: 80, 
+    height: 80, 
+    borderRadius: 10, 
+    marginLeft: 15, 
+    backgroundColor: '#eee',
+  },
+  cameraText: { 
+    fontSize: 14, 
+    color: '#333', 
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+
+  // Currency modal styles
+  rateBannerContainer: {
+    marginBottom: 15, 
+    alignItems: 'center',
+  },
+  rateBanner: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  currencyLabel: {
+    marginBottom: 10, 
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  chipContainer: {
+    flexDirection: 'row', 
+    marginBottom: 15,
+    gap: 10,
+  },
+  chip: { 
+    paddingHorizontal: 20, 
+    paddingVertical: 10, 
+    borderRadius: 25, 
+    borderWidth: 2, 
+    borderColor: '#e0e0e0',
+    backgroundColor: '#fff',
+  },
+  chipActive: { 
+    backgroundColor: '#4a90e2', 
+    borderColor: '#4a90e2' 
+  },
+  chipText: { 
+    color: '#333', 
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  chipTextActive: { 
+    color: '#fff', 
+    fontWeight: '700' 
+  },
+  currencyInput: { 
+    borderWidth: 1, 
+    borderColor: '#e0e0e0', 
+    padding: 12, 
+    marginVertical: 10, 
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
   convertButton: {
     backgroundColor: '#4a90e2',
-    padding: 12,
+    padding: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
@@ -647,29 +907,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  convertResult: { fontSize: 16, color: '#333', marginTop: 10, textAlign: 'center', fontWeight: 'bold' },
-
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#ccc' },
-  chipActive: { backgroundColor: '#4a90e2', borderColor: '#4a90e2' },
-  chipText: { color: '#333', fontSize: 14 },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
-  cameraText: { fontSize: 14, color: '#333', marginTop: 10, textAlign: 'center' },
-  chatBubble: { backgroundColor: '#e8f4fd', borderRadius: 12, padding: 8, marginBottom: 10, alignSelf: 'flex-start', maxWidth: '80%' },
-  chatImage: {
-    width: '100%', // ปรับให้กว้างเต็มกรอบ
-    height: undefined, // ให้ความสูงปรับตามอัตราส่วนของรูป
-    aspectRatio: 16 / 9, // ใช้อัตราส่วน 16:9 สำหรับรูปแนวยาว
-    borderRadius: 10, // เพิ่มความโค้งมนให้กรอบ
+  convertResult: { 
+    fontSize: 16, 
+    color: '#333', 
+    marginTop: 15, 
+    textAlign: 'center', 
+    fontWeight: 'bold',
+    backgroundColor: '#f0f8ff',
+    padding: 12,
+    borderRadius: 8,
   },
-  chatBubbleRight: { alignSelf: 'flex-end', backgroundColor: '#d1e7dd' },
-  chatBubbleLeft: { alignSelf: 'flex-start', backgroundColor: '#e8f4fd' },
-  chatUploader: {
-    fontSize: 12,
-    color: '#555',
-    marginTop: 4,
-    alignSelf: 'flex-start',
+  currencyCloseButton: {
+    marginTop: 20,
   },
-  timestamp: { fontSize: 10, color: '#999', marginTop: 4, textAlign: 'right' },
 });
 
 export default Group4Screen;
