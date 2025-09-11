@@ -36,6 +36,7 @@ import TabBar from './components/TabBar';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// BottomTabNavigator ที่จะใช้ใน Stack
 const BottomTabNavigator = () => {
   return (
     <Tab.Navigator tabBar={(props) => <TabBar {...props} />}>

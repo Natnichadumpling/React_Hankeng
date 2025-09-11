@@ -23,15 +23,15 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
   if (!email || !password) {
-    alert('กรุณากรอกอีเมลและรหัสผ่าน');
+    global.alert('กรุณากรอกอีเมลและรหัสผ่าน');
     return;
   }
   if (!validateEmail(email)) {
-    alert('รูปแบบอีเมลไม่ถูกต้อง');
+    global.alert('รูปแบบอีเมลไม่ถูกต้อง');
     return;
   }
   if (password.length < 8) {
-    alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
+    global.alert('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
     return;
   }
   setLoading(true);
@@ -43,7 +43,7 @@ const LoginScreen = () => {
     .eq('password', hashedInput);
   setLoading(false);
   if (error || !data || data.length === 0) {
-    alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
+    global.alert('เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง');
   } else {
     const userData = data[0];
     try {
@@ -100,6 +100,7 @@ const LoginScreen = () => {
           </View>
           <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
           <TouchableOpacity
+            testID="loginButton"
             style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)', marginBottom: 18 }]}
             onPress={handleLogin}
             disabled={loading}
