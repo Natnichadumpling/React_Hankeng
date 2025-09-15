@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -61,6 +60,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    justifyContent: 'flex-start', // Align content to the top
   },
   appBar: {
     backgroundColor: 'transparent',
@@ -74,29 +74,29 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Align content to the top
     alignItems: 'center',
     paddingHorizontal: 30,
-    paddingTop: 50,
+    paddingTop: 20, // Reduce top padding
   },
   logoContainer: {
-    height: 150,
-    width: 150,
+    height: 120, // Adjusted size for better alignment
+    width: 120,
     backgroundColor: 'white',
-    borderRadius: 75,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 70,
+    marginBottom: 40, // Reduce spacing
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22, // Slightly smaller font size
     fontWeight: 'bold',
-    marginBottom: 50,
+    marginBottom: 30, // Reduce spacing
     color: 'black',
   },
   input: {
@@ -106,14 +106,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 15,
     backgroundColor: '#f0f0f0',
-    marginBottom: 15,
+    marginBottom: 10, // Reduce spacing
   },
   validationText: {
-    fontSize: 12,
+    fontSize: 14, // เพิ่มขนาดจาก 12 เป็น 14
     fontWeight: 'bold',
     color: '#232323',
     alignSelf: 'flex-start',
-    marginBottom: 30,
+    marginBottom: 20, // Reduce spacing
   },
   button: {
     width: '100%',

@@ -297,7 +297,7 @@ const Group4Screen = ({ navigation, route }) => {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backButton}>
-            <Text style={styles.backIcon}>กลับ</Text>
+            <Text style={styles.backIcon}>ย้อนกลับ </Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
           <TouchableOpacity 
@@ -548,7 +548,7 @@ const styles = StyleSheet.create({
     padding: 5 
   },
   backIcon: { 
-    fontSize: 24, 
+    fontSize: 16, 
     color: '#333' 
   },
   headerTitle: { 

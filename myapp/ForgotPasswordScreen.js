@@ -3,8 +3,6 @@ import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView,
 import { useNavigation } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import { hashPassword } from './utils/hashPassword';
-import Icon from 'react-native-vector-icons/FontAwesome';
-
 
 const ForgotPasswordScreen = () => {
   const navigation = useNavigation();
@@ -87,8 +85,14 @@ const ForgotPasswordScreen = () => {
               onChangeText={setNewPassword}
               autoCapitalize="none"
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-              <Icon name={showPassword ? 'eye-slash' : 'eye'} size={24} color="#232323" />
+            <TouchableOpacity 
+              onPress={() => setShowPassword(!showPassword)} 
+              style={styles.eyeButton}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.cuteEyeEmoji}>
+                {showPassword ? '👁️' : '🙈'}
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.validationText}>*รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร</Text>
@@ -105,7 +109,6 @@ const ForgotPasswordScreen = () => {
   );
 };
 
-
 const styles = StyleSheet.create({
   backgroundImage: {
     flex: 1,
@@ -114,7 +117,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 0,
     minHeight: '100%',
@@ -144,13 +147,13 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
     maxWidth: 350,
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 20,
     paddingBottom: 32,
   },
   logoContainer: {
@@ -196,7 +199,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   validationText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#232323',
     alignSelf: 'flex-start',
@@ -219,7 +222,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   eyeButton: {
+    position: 'absolute',
+    right: 8,
     padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cuteEyeEmoji: {
+    fontSize: 16,
+    textAlign: 'center',
   },
 });
 

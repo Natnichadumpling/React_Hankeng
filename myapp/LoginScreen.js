@@ -62,7 +62,6 @@ const LoginScreen = () => {
   }
 };
 
-
   return (
     <ImageBackground
       source={require('./assets/images/p.png')}
@@ -94,8 +93,14 @@ const LoginScreen = () => {
               onChangeText={setPassword}
               autoCapitalize="none"
             />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeButton}>
-              <MaterialCommunityIcons name={showPassword ? 'eye-off' : 'eye'} size={24} color="#232323" />
+            <TouchableOpacity 
+              onPress={() => setShowPassword(!showPassword)} 
+              style={styles.eyeButton}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.cuteEyeEmoji}>
+                {showPassword ? '🙈' : '👁️'}
+              </Text>
             </TouchableOpacity>
           </View>
           <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
@@ -121,44 +126,45 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+    justifyContent: 'flex-start',
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     padding: 0,
     minHeight: '100%',
   },
   body: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     width: '100%',
     maxWidth: 350,
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 20,
     paddingBottom: 32,
   },
   logoContainer: {
-    height: 140,
-    width: 140,
+    height: 120,
+    width: 120,
     backgroundColor: 'white',
-    borderRadius: 70,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 12,
     elevation: 3,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     resizeMode: 'contain',
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 18,
+    marginBottom: 12,
     color: 'black',
     textAlign: 'center',
   },
@@ -171,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingLeft: 12,
     backgroundColor: '#f0f0f0',
-    marginBottom: 10,
+    marginBottom: 8,
     fontSize: 15,
   },
   passwordRow: {
@@ -180,17 +186,25 @@ const styles = StyleSheet.create({
     width: '100%',
     minWidth: 180,
     maxWidth: 320,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   eyeButton: {
-    paddingHorizontal: 8,
+    position: 'absolute',
+    right: 8,
+    padding: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cuteEyeEmoji: {
+    fontSize: 16,
+    textAlign: 'center',
   },
   validationText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#232323',
     alignSelf: 'flex-start',
-    marginBottom: 14,
+    marginBottom: 10,
     marginLeft: 4,
   },
   button: {
@@ -201,7 +215,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 8,
+    marginTop: 20, // Added margin to increase spacing from the email input
     elevation: 2,
   },
   buttonText: {
