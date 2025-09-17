@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, ScrollView, ImageBackground, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons'; // นำเข้าไอคอน
 import { hashPassword } from './utils/hashPassword';
@@ -10,49 +10,54 @@ const SingupScreen = () => {
   const [password, setPassword] = useState('');
 
   return (
-    <ImageBackground
-      source={require('./assets/images/p.png')}
-      style={styles.container}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      <ImageBackground
+        source={require('./assets/images/p.png')}
+        style={styles.container}
+      >
 
-      {/* Body Content */}
-      <View style={styles.body}>
-        {/* โลโก้ */}
-        <View style={styles.logoContainer}>
-          <Image source={require('./assets/images/logo.png')} style={styles.logo} />
+        {/* Body Content */}
+        <View style={styles.body}>
+          {/* โลโก้ */}
+          <View style={styles.logoContainer}>
+            <Image source={require('./assets/images/logo.png')} style={styles.logo} />
+          </View>
+
+          <Text style={styles.title}>สมัครใช้งาน</Text>
+
+          {/* Signup Form */}
+          <TextInput
+            style={styles.input}
+            placeholder="ที่อยู่อีเมล"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="รหัสผ่าน"
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+          />
+
+          {/* Validation Message */}
+          <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
+
+          {/* Button to go to next screen */}
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]} 
+            onPress={async () => {
+              const hashed = await hashPassword(password);
+              navigation.navigate('Singup2Screen', { email, hashedPassword: hashed });
+            }}>
+            <Text style={styles.buttonText}>ถัดไป</Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.title}>สมัครใช้งาน</Text>
-
-        {/* Signup Form */}
-        <TextInput
-          style={styles.input}
-          placeholder="ที่อยู่อีเมล"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="รหัสผ่าน"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        {/* Validation Message */}
-        <Text style={styles.validationText}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
-
-        {/* Button to go to next screen */}
-        <TouchableOpacity 
-          style={[styles.button, { backgroundColor: 'rgb(67, 154, 67)' }]} 
-          onPress={async () => {
-            const hashed = await hashPassword(password);
-            navigation.navigate('Singup2Screen', { email, hashedPassword: hashed });
-          }}>
-          <Text style={styles.buttonText}>ถัดไป</Text>
-        </TouchableOpacity>
-      </View>
-    </ImageBackground>
+      </ImageBackground>
+    </KeyboardAvoidingView>
   );
 };
 
