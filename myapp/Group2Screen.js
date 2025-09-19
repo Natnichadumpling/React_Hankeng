@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 25,
     borderRadius: 8,
-    marginTop: 270,
+    marginTop: 50, // Reduced margin to move the button up
     alignItems: 'center',
     width: '100%',
   },

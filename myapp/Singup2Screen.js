@@ -97,10 +97,10 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start', // Adjusted to move elements to the top
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 0, 
+    paddingTop: 20, // Added padding to create space at the top
   },
   logoContainer: {
     height: 120,
