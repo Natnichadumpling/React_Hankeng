@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, ImageBackground } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, ImageBackground, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Setting2Screen = ({ navigation }) => {
+  // ฟังก์ชันบันทึกค่าการตั้งค่า
+  const handleSave = async () => {
+    try {
+      await AsyncStorage.setItem('notificationSettings', JSON.stringify({
+        groupJoin,
+        expense,
+        other,
+      }));
+      Alert.alert('สำเร็จ', 'บันทึกการเปลี่ยนแปลงเรียบร้อยแล้ว');
+      // navigation.goBack(); // ถ้าต้องการกลับหน้าก่อน
+    } catch (e) {
+      Alert.alert('ผิดพลาด', 'ไม่สามารถบันทึกการเปลี่ยนแปลงได้');
+    }
+  };
   // State สำหรับ radio group
   const [groupJoin, setGroupJoin] = useState('join');
   const [expense, setExpense] = useState([]); // ใช้เป็น array เพื่อเลือกได้หลายตัว
@@ -93,7 +108,7 @@ const Setting2Screen = ({ navigation }) => {
           </View>
 
           {/* Save Button */}
-          <TouchableOpacity style={styles.saveBtn}>
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
             <Text style={styles.saveBtnText}>บันทึกการเปลี่ยนแปลง</Text>
           </TouchableOpacity>
 

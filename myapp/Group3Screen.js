@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+// URL รูป default จาก Supabase Storage หรือ Cloud Storage
+const DEFAULT_IMAGE_URL = 'https://your-supabase-url/storage/v1/object/public/group-images/default.png';
 import { useRoute } from '@react-navigation/native';
 import { supabase } from './supabaseClient';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput, Image, ScrollView } from 'react-native';
@@ -41,7 +43,8 @@ const Group3Screen = ({ navigation }) => {
     const fetchGroups = async () => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, image_url');
+        .select('id, name, image_url')
+        .order('id', { ascending: false }); // เรียงลำดับ id จากมากไปน้อย (ล่าสุดอยู่บน)
       if (data) {
         setGroups(data);
         console.log('Fetched groups:', data); // Debugging log
@@ -77,8 +80,7 @@ const Group3Screen = ({ navigation }) => {
             <View style={styles.content}>
               <View style={styles.header}>
                 <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
-                <View style={{ marginBottom: 20 }} /> {/* Add spacing between welcome message and search bar */}
-                {/* Search Bar */}
+                {/* Add spacing between welcome message and search bar */}
                 <View style={styles.searchContainer}>
                   <View style={styles.searchBar}>
                     <Text style={styles.searchIcon}>🔍</Text>
@@ -103,16 +105,12 @@ const Group3Screen = ({ navigation }) => {
                     style={styles.groupCard}
                     onPress={() => navigation.navigate('Group5Screen', { groupName: group.name })}
                   >
-                    {group.image_url ? (
+                    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
                       <Image
-                        source={{ uri: group.image_url }}
+                        source={group.image_url ? { uri: group.image_url } : { uri: DEFAULT_IMAGE_URL }}
                         style={styles.groupImage}
                       />
-                    ) : (
-                      <View style={styles.groupImagePlaceholder}>
-                        <Text style={styles.placeholderText}>🖼️</Text>
-                      </View>
-                    )}
+                    </View>
                     <Text style={styles.groupName}>{group.name}</Text>
                   </TouchableOpacity>
                 ))}
