@@ -4,8 +4,17 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollVi
 const Setting2Screen = ({ navigation }) => {
   // State สำหรับ radio group
   const [groupJoin, setGroupJoin] = useState('join');
-  const [expense, setExpense] = useState('add');
+  const [expense, setExpense] = useState([]); // ใช้เป็น array เพื่อเลือกได้หลายตัว
   const [other, setOther] = useState('summary');
+
+  // ฟังก์ชันสำหรับ toggle ค่าใช้จ่าย
+  const toggleExpense = (value) => {
+    setExpense(prevExpense => 
+      prevExpense.includes(value) 
+        ? prevExpense.filter(item => item !== value) // ลบค่าออกถ้าเลือกแล้ว
+        : [...prevExpense, value] // เพิ่มค่าเข้าไปถ้าไม่เลือก
+    );
+  };
 
   return (
     <ImageBackground
@@ -43,28 +52,28 @@ const Setting2Screen = ({ navigation }) => {
             <Text style={styles.sectionTitle}>ค่าใช้จ่าย</Text>
             <RadioItem
               label="เมื่อมีการเพิ่มค่าใช้จ่าย"
-              selected={expense === 'add'}
-              onPress={() => setExpense('add')}
+              selected={expense.includes('add')}
+              onPress={() => toggleExpense('add')}
             />
             <RadioItem
               label="เมื่อมีการแก้ไข/ลบค่าใช้จ่าย"
-              selected={expense === 'edit'}
-              onPress={() => setExpense('edit')}
+              selected={expense.includes('edit')}
+              onPress={() => toggleExpense('edit')}
             />
             <RadioItem
               label="เมื่อมีคนแสดงความคิดเห็นกับค่าใช้จ่าย"
-              selected={expense === 'comment'}
-              onPress={() => setExpense('comment')}
+              selected={expense.includes('comment')}
+              onPress={() => toggleExpense('comment')}
             />
             <RadioItem
               label="เมื่อมีใครชำระค่าใช้จ่ายครบ"
-              selected={expense === 'paid'}
-              onPress={() => setExpense('paid')}
+              selected={expense.includes('paid')}
+              onPress={() => toggleExpense('paid')}
             />
             <RadioItem
               label="เมื่อถึงวันครบกำหนดชำระ"
-              selected={expense === 'due'}
-              onPress={() => setExpense('due')}
+              selected={expense.includes('due')}
+              onPress={() => toggleExpense('due')}
             />
           </View>
 
