@@ -125,6 +125,26 @@ export default function Group5Screen() {
     ]);
   };
 
+  const onRemovePerson = (person) => {
+    Alert.alert(
+      'ยืนยันการลบ',
+      `คุณต้องการลบ ${person} ออกจากกลุ่มหรือไม่?`,
+      [
+        {
+          text: 'ยกเลิก',
+          style: 'cancel',
+        },
+        {
+          text: 'ลบ',
+          style: 'destructive',
+          onPress: () => {
+            setPeople((prev) => prev.filter((p) => p !== person));
+          },
+        },
+      ]
+    );
+  };
+
   /* ===== Edit payers ===== */
   const openEditPayers = (item) => {
     const current = Object.entries(item.paidByMap || {})
@@ -219,6 +239,9 @@ export default function Group5Screen() {
           {people.map((person) => (
             <View key={person} style={styles.personChip}>
               <Text style={styles.personText}>{person}</Text>
+              <TouchableOpacity onPress={() => onRemovePerson(person)} style={styles.personRemove}>
+                <Text style={styles.personRemoveText}>×</Text>
+              </TouchableOpacity>
             </View>
           ))}
         </View>
@@ -492,6 +515,8 @@ const styles = StyleSheet.create({
   peopleWrap: { flexDirection: 'row', flexWrap: 'wrap' },
   personChip: { backgroundColor: '#e0f2fe', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginRight: 6, marginBottom: 6 },
   personText: { fontWeight: '600' },
+  personRemove: { marginLeft: 8, backgroundColor: '#ef4444', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  personRemoveText: { color: '#fff', fontWeight: '700' },
   primaryBtn: { backgroundColor: '#2563eb', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
   primaryBtnText: { color: '#fff', fontWeight: '700' },
   itemCard: { backgroundColor: '#f9fafb', padding: 10, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#e5e7eb' },
