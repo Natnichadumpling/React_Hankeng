@@ -1,65 +1,58 @@
+// Group6Screen.js
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-
-/**
- * Group6Screen
- * อธิบายละเอียด: ใครต้องโอนให้ใคร เท่าไหร่ และมาจากบิลอะไรบ้าง (พร้อมหักลบ)
- * route.params: { groupName, people, items }
- * - items[i] รูปแบบ:
- *   {
- *     id, name, price: number,
- *     paidByMap: { [personName]: number },   // คนออกเงิน (ออกหลายคนได้, ผลรวม=price)
- *     sharedBy: string[]                      // รายชื่อคนหาร
- *   }
- */
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
+import { useRoute } from '@react-navigation/native';
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
-// คำนวณ breakdown ระดับ "คู่บุคคล" จากข้อมูลบิล
-function useSettlement(routeParams) {
-  const { groupName = 'กลุ่มของเรา', people = [], items = [] } = routeParams || {};
+/* ===== Hook: คำนวณ balance + breakdown ===== */
+const useSettlement = (routeParams) => {
+  const { groupName = 'กลุ่มของเรา', people = [], items = [] } =
+    routeParams || {};
 
-  // 1) คำนวณ balance ต่อคน (บวก = ควรได้รับคืน, ลบ = เป็นลูกหนี้)
   const { balances, pairBreakdown } = useMemo(() => {
     const b = {};
-    const pair = {}; // key: "from|to" -> { total, items: [{name, amount, info}] }
-
+    const pair = {};
     const ensure = (k) => {
       if (!pair[k]) pair[k] = { total: 0, items: [] };
       return pair[k];
     };
 
-    // init
     people.forEach((p) => (b[p] = 0));
 
     items.forEach((it) => {
       const { name, price, sharedBy = [], paidByMap = {} } = it;
       if (!price || !sharedBy.length) return;
 
-      // ส่วนของคนหาร
       const share = price / sharedBy.length;
-
-      // เครดิตให้ผู้จ่าย
-      const totalPaid = Object.values(paidByMap).reduce((s, v) => s + (v || 0), 0);
+      const totalPaid = Object.values(paidByMap).reduce(
+        (s, v) => s + (v || 0),
+        0
+      );
       if (totalPaid <= 0) return;
 
-      // + เพิ่มเครดิตให้ผู้จ่าย
+      // เครดิตผู้จ่าย
       Object.entries(paidByMap).forEach(([payer, amt]) => {
         if (b[payer] != null) b[payer] += amt;
       });
 
-      // - หนี้ให้คนหาร
+      // หนี้ของคนหาร
       sharedBy.forEach((debtor) => {
         if (b[debtor] != null) b[debtor] -= share;
       });
 
-      // สร้าง breakdown รายคู่อย่าง “สัดส่วนผู้จ่าย”
+      // breakdown รายคู่
       Object.entries(paidByMap).forEach(([payer, amt]) => {
-        const ratio = (amt || 0) / totalPaid; // สัดส่วนที่ payer ออกจากทั้งบิล
+        const ratio = (amt || 0) / totalPaid;
         if (ratio <= 0) return;
 
         sharedBy.forEach((debtor) => {
-          // debtor เป็นหนี้ payer ตามสัดส่วนนี้
           const portion = share * ratio;
           const key = `${debtor}|${payer}`;
           const bucket = ensure(key);
@@ -68,13 +61,14 @@ function useSettlement(routeParams) {
           bucket.items.push({
             name,
             amount: portion,
-            info: `ราคา ฿${price.toFixed(2)} / หาร ${sharedBy.length} คน (ผู้จ่ายตามสัดส่วน)`,
+            info: `ราคา ฿${price.toFixed(
+              2
+            )} / หาร ${sharedBy.length} คน (ผู้จ่ายตามสัดส่วน)`,
           });
         });
       });
     });
 
-    // ปัดเศษให้สวยงาม
     Object.keys(b).forEach((k) => (b[k] = round2(b[k])));
     Object.values(pair).forEach((v) => {
       v.total = round2(v.total);
@@ -84,21 +78,25 @@ function useSettlement(routeParams) {
     return { balances: b, pairBreakdown: pair };
   }, [people, items]);
 
-  // 2) ทำรายการโอน (ลดจำนวนรายการโดยหักกลบ)
+  // จัดลิสต์โอน
   const transfers = useMemo(() => {
     const debtors = [];
     const creditors = [];
+
     Object.entries(balances).forEach(([name, val]) => {
       if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
       else if (val > 0.01) creditors.push({ name, amount: val });
     });
+
     debtors.sort((a, b) => b.amount - a.amount);
     creditors.sort((a, b) => b.amount - a.amount);
 
     const list = [];
-    let i = 0, j = 0;
+    let i = 0,
+      j = 0;
     while (i < debtors.length && j < creditors.length) {
-      const d = debtors[i], c = creditors[j];
+      const d = debtors[i],
+        c = creditors[j];
       const amt = Math.min(d.amount, c.amount);
       if (amt > 0.01) {
         list.push({ from: d.name, to: c.name, amount: round2(amt) });
@@ -111,18 +109,33 @@ function useSettlement(routeParams) {
     return list;
   }, [balances]);
 
-  return { groupName, people, items, balances, pairBreakdown, transfers };
+  return { groupName, balances, pairBreakdown, transfers };
 }
 
+/* ===== Main Screen ===== */
 export default function Group6Screen({ route, navigation }) {
-  const { groupName, pairBreakdown, transfers } = useSettlement(route?.params);
+  const allItems = route?.params?.items || [];
+  const people = route?.params?.people || [];
+  const groupName = route?.params?.groupName || 'กลุ่มของเรา';
 
-  // ชำระแล้ว + note
-  const [settledMap, setSettledMap] = useState({}); // key: "from|to" -> {note?: string}
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  const filteredItems = selectedItem
+    ? allItems.filter((it) => it.name === selectedItem)
+    : allItems;
+
+  const { pairBreakdown, transfers } = useSettlement({
+    groupName,
+    people,
+    items: filteredItems,
+  });
+
+  const [settledMap, setSettledMap] = useState({});
   const [showSettled, setShowSettled] = useState(true);
-  const [expanded, setExpanded] = useState({}); // key -> true/false
+  const [expanded, setExpanded] = useState({});
 
-  const toggleExpand = (k) => setExpanded((s) => ({ ...s, [k]: !s[k] }));
+  const toggleExpand = (k) =>
+    setExpanded((s) => ({ ...s, [k]: !s[k] }));
   const expandAll = () => {
     const m = {};
     transfers.forEach((t) => (m[`${t.from}|${t.to}`] = true));
@@ -137,28 +150,71 @@ export default function Group6Screen({ route, navigation }) {
   });
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      {/* Header */}
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+    >
       <Text style={styles.title}>สรุปรายการโอน</Text>
       <Text style={styles.subtitle}>กลุ่ม: {groupName}</Text>
+
+      {/* เลือกรายการ */}
+      <View style={styles.filterBox}>
+        <Text style={styles.filterLabel}>เลือกรายการ:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <TouchableOpacity
+            onPress={() => setSelectedItem(null)}
+            style={[
+              styles.filterBtn,
+              selectedItem === null && styles.filterBtnOn,
+            ]}
+          >
+            <Text style={styles.filterBtnText}>ทั้งหมด</Text>
+          </TouchableOpacity>
+          {allItems.map((it, idx) => (
+            <TouchableOpacity
+              key={idx}
+              onPress={() => setSelectedItem(it.name)}
+              style={[
+                styles.filterBtn,
+                selectedItem === it.name && styles.filterBtnOn,
+              ]}
+            >
+              <Text style={styles.filterBtnText}>{it.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Controls */}
       <View style={styles.controlsRow}>
         <TouchableOpacity
           onPress={() => setShowSettled((s) => !s)}
-          style={[styles.ctrlBtn, { backgroundColor: showSettled ? '#ef4444' : '#6b7280' }]}
+          style={[
+            styles.ctrlBtn,
+            { backgroundColor: showSettled ? '#ef4444' : '#6b7280' },
+          ]}
         >
-          <Text style={styles.ctrlBtnText}>{showSettled ? 'ซ่อนรายการที่ชำระแล้ว' : 'แสดงรายการที่ชำระแล้ว'}</Text>
+          <Text style={styles.ctrlBtnText}>
+            {showSettled
+              ? 'ซ่อนรายการที่ชำระแล้ว'
+              : 'แสดงรายการที่ชำระแล้ว'}
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={expandAll} style={[styles.ctrlBtn, { backgroundColor: '#2563eb' }]}>
+        <TouchableOpacity
+          onPress={expandAll}
+          style={[styles.ctrlBtn, { backgroundColor: '#2563eb' }]}
+        >
           <Text style={styles.ctrlBtnText}>ขยายทั้งหมด</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={collapseAll} style={[styles.ctrlBtn, { backgroundColor: '#374151' }]}>
+        <TouchableOpacity
+          onPress={collapseAll}
+          style={[styles.ctrlBtn, { backgroundColor: '#374151' }]}
+        >
           <Text style={styles.ctrlBtnText}>ย่อทั้งหมด</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Cards */}
+      {/* Transfers */}
       {visibleTransfers.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.muted}>ไม่มีรายการต้องโอน</Text>
@@ -168,22 +224,56 @@ export default function Group6Screen({ route, navigation }) {
           const key = `${t.from}|${t.to}`;
           const isSettled = !!settledMap[key];
           const pos = pairBreakdown[key] || { total: 0, items: [] };
-          const neg = pairBreakdown[`${t.to}|${t.from}`] || { total: 0, items: [] };
+          const neg = pairBreakdown[`${t.to}|${t.from}`] || {
+            total: 0,
+            items: [],
+          };
 
           return (
-            <View key={key} style={[styles.card, isSettled && styles.cardSettled]}>
-              {/* Header line */}
-              <Text style={styles.cardTitle}>
-                <Text style={styles.nameFrom}>{t.from}</Text>
-                <Text> ต้องโอนให้ </Text>
-                <Text style={styles.nameTo}>{t.to}</Text>
-              </Text>
-              <Text style={styles.amount}>฿{t.amount.toFixed(2)}</Text>
+            <View
+              key={key}
+              style={[styles.card, isSettled && styles.cardSettled]}
+            >
+              {/* Summary Line + แนบหลักฐาน */}
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLine}>
+                   {t.from} ต้องจ่ายให้ {t.to} จำนวน ฿
+                  {t.amount.toFixed(2)}
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('Group4Screen', {
+                      groupName,
+                      from: t.from,
+                      to: t.to,
+                      amount: t.amount,
+                    })
+                  }
+                  style={styles.evidenceBtn}
+                >
+                  <Text style={styles.evidenceText}>แนบหลักฐาน</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Header */}
+              <View style={styles.cardHeaderRow}>
+                <Text style={styles.cardTitle}>
+                  <Text style={styles.nameFrom}>{t.from}</Text>
+                  <Text> → </Text>
+                  <Text style={styles.nameTo}>{t.to}</Text>
+                </Text>
+                <Text style={styles.amount}>฿{t.amount.toFixed(2)}</Text>
+              </View>
 
               {/* Actions */}
               <View style={styles.actionsRow}>
-                <TouchableOpacity onPress={() => toggleExpand(key)} style={[styles.chip]}>
-                  <Text style={styles.chipText}>{expanded[key] ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}</Text>
+                <TouchableOpacity
+                  onPress={() => toggleExpand(key)}
+                  style={[styles.chip]}
+                >
+                  <Text style={styles.chipText}>
+                    {expanded[key] ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -195,32 +285,23 @@ export default function Group6Screen({ route, navigation }) {
                       return n;
                     })
                   }
-                  style={[styles.chip, isSettled ? styles.chipOn : styles.chipOff]}
+                  style={[
+                    styles.chip,
+                    isSettled ? styles.chipOn : styles.chipOff,
+                  ]}
                 >
-                  <Text style={styles.chipText}>{isSettled ? 'ยกเลิกชำระแล้ว' : 'ทำเครื่องหมายว่าชำระแล้ว'}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate('Group4Screen', {
-                      groupName,
-                      transferKey: key,
-                      from: t.from,
-                      to: t.to,
-                      amount: t.amount,
-                    })
-                  }
-                  style={[styles.chip, { backgroundColor: '#7c3aed' }]}
-                >
-                  <Text style={styles.chipText}>แนบหลักฐาน</Text>
+                  <Text style={styles.chipText}>
+                    {isSettled ? 'ยกเลิกชำระแล้ว' : 'ทำเครื่องหมายว่าชำระแล้ว'}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Detail breakdown */}
+              {/* Breakdown */}
               {expanded[key] && (
                 <View style={styles.detailBox}>
-                  {/* บวก */}
-                  <Text style={styles.detailTitle}>มาจากรายการที่ {t.to} ออกให้ {t.from}:</Text>
+                  <Text style={styles.detailTitle}>
+                    มาจากบิลที่ {t.to} ออกให้ {t.from}:
+                  </Text>
                   {pos.items.length ? (
                     pos.items.map((it, i) => (
                       <View key={`p-${i}`} style={styles.detailRow}>
@@ -229,19 +310,20 @@ export default function Group6Screen({ route, navigation }) {
                           <Text style={styles.detailName}>{it.name}</Text>
                           <Text style={styles.detailInfo}>{it.info}</Text>
                         </View>
-                        <Text style={styles.plus}>+฿{it.amount.toFixed(2)}</Text>
+                        <Text style={styles.plus}>
+                          +฿{it.amount.toFixed(2)}
+                        </Text>
                       </View>
                     ))
                   ) : (
                     <Text style={styles.muted}>— ไม่มี —</Text>
                   )}
 
-                  {/* ลบ */}
                   {neg.items.length > 0 && <View style={styles.divider} />}
                   {neg.items.length > 0 && (
                     <>
                       <Text style={styles.detailTitle}>
-                        หักลบจากรายการที่ {t.from} เคยออกให้ {t.to}:
+                        หักลบจากบิลที่ {t.from} เคยออกให้ {t.to}:
                       </Text>
                       {neg.items.map((it, i) => (
                         <View key={`n-${i}`} style={styles.detailRow}>
@@ -250,16 +332,18 @@ export default function Group6Screen({ route, navigation }) {
                             <Text style={styles.detailName}>{it.name}</Text>
                             <Text style={styles.detailInfo}>{it.info}</Text>
                           </View>
-                          <Text style={styles.minus}>−฿{it.amount.toFixed(2)}</Text>
+                          <Text style={styles.minus}>
+                            −฿{it.amount.toFixed(2)}
+                          </Text>
                         </View>
                       ))}
                     </>
                   )}
 
-                  {/* สรุปสมการ */}
                   <View style={styles.equation}>
                     <Text style={styles.muted}>
-                      (รวมบวก ฿{pos.total.toFixed(2)}) − (รวมลบ ฿{neg.total.toFixed(2)}) = สุทธิ ฿
+                      (รวมบวก ฿{pos.total.toFixed(2)}) − (รวมลบ ฿
+                      {neg.total.toFixed(2)}) = สุทธิ ฿
                       {(round2(pos.total - neg.total)).toFixed(2)}
                     </Text>
                   </View>
@@ -273,17 +357,40 @@ export default function Group6Screen({ route, navigation }) {
   );
 }
 
-
+/* ===== Styles ===== */
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   title: { fontSize: 22, fontWeight: '800', color: '#111827' },
   subtitle: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
 
-  controlsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  filterBox: { marginBottom: 12 },
+  filterLabel: { fontWeight: '700', marginBottom: 6, color: '#111827' },
+  filterBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 8,
+    marginRight: 6,
+  },
+  filterBtnOn: { backgroundColor: '#2563eb' },
+  filterBtnText: { color: '#111827', fontWeight: '700' },
+
+  controlsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
   ctrlBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   ctrlBtnText: { color: '#fff', fontWeight: '700' },
 
-  emptyBox: { padding: 16, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb' },
+  emptyBox: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
   muted: { color: '#6b7280' },
 
   card: {
@@ -293,23 +400,77 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    shadowColor: '#000', shadowOpacity: 0.06, shadowOffset: { width: 0, height: 1 }, shadowRadius: 4, elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 1 },
+    shadowRadius: 4,
+    elevation: 2,
   },
   cardSettled: { opacity: 0.6 },
+
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  summaryLine: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#dc2626',
+    flex: 1,
+    marginRight: 8,
+  },
+  evidenceBtn: {
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  evidenceText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   cardTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
   nameFrom: { color: '#ef4444', fontWeight: '800' },
   nameTo: { color: '#10b981', fontWeight: '800' },
-  amount: { position: 'absolute', right: 14, top: 14, fontWeight: '800', color: '#f59e0b' },
+  amount: { fontWeight: '800', color: '#f59e0b' },
 
-  actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
-  chip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#1f2937' },
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#1f2937',
+  },
   chipOn: { backgroundColor: '#059669' },
   chipOff: { backgroundColor: '#1f2937' },
   chipText: { color: '#fff', fontWeight: '700', fontSize: 12 },
 
-  detailBox: { marginTop: 10, backgroundColor: '#f9fafb', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e5e7eb' },
+  detailBox: {
+    marginTop: 10,
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
   detailTitle: { fontWeight: '700', color: '#111827', marginBottom: 6 },
-  detailRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 6 },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginBottom: 6,
+  },
   dot: { color: '#9ca3af', marginTop: 2 },
   detailName: { fontWeight: '600', color: '#111827' },
   detailInfo: { color: '#6b7280', fontSize: 12 },

@@ -17,6 +17,7 @@ const Group4Screen = ({ navigation, route }) => {
 
   const [selectedImages, setSelectedImages] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messagesError, setMessagesError] = useState(null);
   const [messageText, setMessageText] = useState('');
@@ -37,35 +38,72 @@ const Group4Screen = ({ navigation, route }) => {
 
   // โหลดข้อความแชทจากฐานข้อมูล Supabase
   useEffect(() => {
-    const fetchMessages = async () => {
-      if (!groupId) return;
+    const fetchMessagesAndExpenses = async () => {
+      if (!groupId) {
+        console.log('fetchMessagesAndExpenses: groupId is missing');
+        return;
+      }
+      console.log('Fetching messages and expenses for groupId:', groupId);
       setIsLoadingMessages(true);
       setMessagesError(null);
-      const { data, error } = await supabase
-        .from('group_messages')
-        .select('*')
-        .eq('group_id', groupId)
-        .order('created_at', { ascending: true });
-      if (error) {
-        setMessagesError(error.message);
-      } else if (data) {
-        setChatMessages(data.map(msg => ({
-          type: msg.type,
-          uri: msg.image_url || msg.content,
-          userId: msg.sender_email,
-          createdAt: msg.created_at,
-          messageId: msg.id,
-          messageText: msg.content || msg.messageText || '',
-        })));
+
+      try {
+        // Fetch messages
+        const { data: messagesData, error: messagesError } = await supabase
+          .from('group_messages')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: true });
+
+        if (messagesError) {
+          console.error('Error fetching messages:', messagesError.message);
+          setMessagesError(messagesError.message);
+        } else {
+          setChatMessages(messagesData.map(msg => ({
+            type: msg.type,
+            uri: msg.image_url || msg.content,
+            userId: msg.sender_email,
+            createdAt: msg.created_at,
+            messageId: msg.id,
+            messageText: msg.content || msg.messageText || '',
+          })));
+        }
+
+        // Fetch expenses
+        const { data: expensesData, error: expensesError } = await supabase
+          .from('group_expenses')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: true });
+
+        if (expensesError) {
+          console.error('Error fetching expenses:', expensesError.message);
+        } else {
+          console.log('Fetched expenses:', expensesData);
+          setExpenses(expensesData); // Assuming you have a state variable for expenses
+        }
+      } catch (err) {
+        console.error('Unexpected error:', err);
+      } finally {
+        setIsLoadingMessages(false);
       }
-      setIsLoadingMessages(false);
     };
-    fetchMessages();
-  }, [groupId]);
+
+    fetchMessagesAndExpenses();
+
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('Screen focused, refreshing data...');
+      fetchMessagesAndExpenses();
+    });
+
+    return unsubscribe;
+  }, [groupId, navigation]);
 
   // subscribe realtime chat
   useEffect(() => {
     if (!groupId) return;
+
+    console.log('🔄 Setting up realtime subscription for group:', groupId);
 
     const channel = supabase
       .channel(`group_messages_${groupId}`)
@@ -75,22 +113,40 @@ const Group4Screen = ({ navigation, route }) => {
         table: 'group_messages',
         filter: `group_id=eq.${groupId}`,
       }, (payload) => {
-        console.log('New message received:', payload);
+        console.log('📡 New message received via realtime:', payload);
+        
         const newMessage = {
-          type: payload.new.type,
-          uri: payload.new.image_url || payload.new.content,
+          type: payload.new.type || 'text',
           userId: payload.new.sender_email,
           createdAt: payload.new.created_at,
           messageId: payload.new.id,
-          messageText: payload.new.content || payload.new.messageText || '',
+          messageText: '',
+          uri: null
         };
 
+        if (payload.new.type === 'image') {
+          newMessage.uri = payload.new.image_url;
+          newMessage.messageText = payload.new.content || payload.new.message || '';
+          console.log('🖼️ Realtime image message:', {
+            id: payload.new.id,
+            image_url: payload.new.image_url,
+            content: payload.new.content
+          });
+        } else {
+          newMessage.messageText = payload.new.content || payload.new.message || '';
+        }
+
         // เพิ่มข้อความใหม่ต่อท้ายรายการ
-        setChatMessages(prevMessages => [...prevMessages, newMessage]);
+        setChatMessages(prevMessages => {
+          const updated = [...prevMessages, newMessage];
+          console.log('📝 Updated chat messages:', updated);
+          return updated;
+        });
       })
       .subscribe();
 
     return () => {
+      console.log('🔌 Unsubscribing from realtime channel');
       supabase.removeChannel(channel);
     };
   }, [groupId]);
@@ -98,29 +154,42 @@ const Group4Screen = ({ navigation, route }) => {
   // ฟังก์ชันอัปโหลดรูปไป Supabase Storage
   const uploadImageToSupabase = async (uri) => {
     try {
-      console.log('เริ่มอัปโหลดรูป:', uri);
+      console.log('📤 Starting image upload:', uri);
       const response = await fetch(uri);
       const blob = await response.blob();
-      const fileExt = uri.split('.').pop();
-      const fileName = `chat_${Date.now()}.${fileExt}`;
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `chat_images/${fileName}`;
-      const { data, error } = await supabase.storage
+      console.log('📁 Upload path:', filePath);
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat-images')
         .upload(filePath, blob, {
           cacheControl: '3600',
           upsert: false,
         });
-      if (error) {
-        console.log('อัปโหลดรูปผิดพลาด:', error.message);
-        throw error;
+
+      if (uploadError) {
+        console.error('❌ Upload error:', uploadError);
+        throw uploadError;
       }
-      const { publicUrl } = supabase.storage
+
+      console.log('✅ Upload successful:', uploadData);
+
+      // แก้ไขการดึง public URL
+      const { data: { publicUrl } } = supabase.storage
         .from('chat-images')
-        .getPublicUrl(filePath).data;
-      console.log('publicUrl ที่ได้:', publicUrl);
+        .getPublicUrl(filePath);
+      
+      console.log('🔗 Generated public URL:', publicUrl);
+
+      if (!publicUrl) {
+        throw new Error('ไม่สามารถสร้าง public URL ได้');
+      }
+
       return publicUrl;
     } catch (err) {
-      console.log('เกิดข้อผิดพลาดระหว่างอัปโหลด:', err);
+      console.error('❌ Upload failed:', err);
       Alert.alert('อัปโหลดรูปไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด');
       return null;
     }
@@ -156,60 +225,159 @@ const Group4Screen = ({ navigation, route }) => {
 
     if (!hasText && !hasImages) return;
 
-    console.log('Sending message...', { hasText, hasImages, messageText: hasText });
+    console.log('📨 Sending message...', { 
+      hasText: !!hasText, 
+      hasImages, 
+      imageCount: selectedImages.length,
+      text: hasText 
+    });
 
     try {
       // ส่งข้อความธรรมดา
       if (hasText && !hasImages) {
-        console.log('Sending text message to database...');
-        const { error } = await supabase
+        console.log('📝 Sending text message...');
+        const insertData = {
+          group_id: groupId,
+          sender_email: userId,
+          type: 'text',
+          content: hasText,
+          message: hasText
+        };
+        
+        console.log('💾 Text insert data:', insertData);
+        
+        const { data, error } = await supabase
           .from('group_messages')
-          .insert([{
-            group_id: groupId,
-            sender_email: userId,
-            type: 'text',
-            content: hasText,
-          }]);
+          .insert([insertData])
+          .select();
 
         if (error) {
-          console.error('Database error:', error);
+          console.error('❌ Database error for text:', error);
           Alert.alert('เกิดข้อผิดพลาด', error.message);
           return;
         }
-        console.log('Text message sent successfully');
+        
+        console.log('✅ Text message saved:', data);
         setMessageText('');
       }
 
       // ส่งรูปภาพพร้อมข้อความ (ถ้ามี)
       if (hasImages) {
-        console.log('Sending image messages...');
-        for (const uri of selectedImages) {
+        console.log('🖼️ Sending image messages...');
+        for (let i = 0; i < selectedImages.length; i++) {
+          const uri = selectedImages[i];
+          console.log(`📤 Uploading image ${i + 1}/${selectedImages.length}:`, uri);
+          
           const publicUrl = await uploadImageToSupabase(uri);
-          if (!publicUrl) continue;
+          if (!publicUrl) {
+            console.error('❌ Failed to upload image, skipping...');
+            continue;
+          }
 
-          const { error } = await supabase
+          const insertData = {
+            group_id: groupId,
+            sender_email: userId,
+            type: 'image',
+            content: hasText || '',
+            message: hasText || '',
+            image_url: publicUrl
+          };
+          
+          console.log('💾 Image insert data:', insertData);
+
+          const { data, error } = await supabase
             .from('group_messages')
-            .insert([{
-              group_id: groupId,
-              sender_email: userId,
-              type: 'image',
-              content: hasText || '', // ข้อความที่จะแสดงใต้รูป
-              image_url: publicUrl,
-            }]);
+            .insert([insertData])
+            .select();
 
           if (error) {
-            console.error('Database error for image:', error);
+            console.error('❌ Database error for image:', error);
             Alert.alert('เกิดข้อผิดพลาด', error.message);
             return;
           }
+          
+          console.log('✅ Image message saved:', data);
         }
-        console.log('Image messages sent successfully');
+        
         setSelectedImages([]);
         setMessageText('');
       }
     } catch (error) {
-      console.error('Send message error:', error);
+      console.error('❌ Send message error:', error);
       Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อความได้');
+    }
+  };
+
+  const handleAddExpense = async (expenseDetails) => {
+    if (!groupId || !userId) {
+      Alert.alert('Error', 'Group or user information is missing.');
+      return;
+    }
+
+    try {
+      const { amount, description } = expenseDetails;
+      console.log('Adding expense:', { amount, description });
+
+      const { data, error } = await supabase
+        .from('group_expenses')
+        .insert([{
+          group_id: groupId,
+          user_id: userId,
+          amount,
+          description,
+          created_at: new Date().toISOString(),
+        }]);
+
+      if (error) {
+        console.error('Error adding expense:', error);
+        Alert.alert('Error', 'Failed to add expense.');
+        return;
+      }
+
+      console.log('Expense added successfully:', data);
+      Alert.alert('Success', 'Expense added successfully.');
+
+      // Optionally refresh the expense list
+      fetchMessages();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      Alert.alert('Error', 'An unexpected error occurred.');
+    }
+  };
+
+  const addGroupExpense = async (expense) => {
+    if (!groupId) {
+      Alert.alert('Error', 'Group ID is missing.');
+      return;
+    }
+
+    try {
+      const { name, price } = expense;
+      console.log('Adding expense:', { name, price });
+
+      const { data, error } = await supabase
+        .from('group_items')
+        .insert([{
+          group_id: groupId,
+          name,
+          price,
+          created_at: new Date().toISOString(),
+        }]);
+
+      if (error) {
+        console.error('Error adding expense:', error.message);
+        Alert.alert('Error', 'Failed to add expense.');
+        return;
+      }
+
+      console.log('Expense added successfully:', data);
+      Alert.alert('Success', 'Expense added successfully.');
+
+      // Refresh the expense list
+      fetchGroupExpenses();
+    } catch (err) {
+      console.error('Unexpected error while adding expense:', err);
+      Alert.alert('Error', 'An unexpected error occurred while adding expense.');
     }
   };
 
@@ -224,13 +392,22 @@ const Group4Screen = ({ navigation, route }) => {
         copyToCacheDirectory: true,
         multiple: false,
       });
+      
+      console.log('📷 Image picker result:', res);
+      
       if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
-        setSelectedImages(prev => [...prev, res.assets[0].uri]);
+        const newImageUri = res.assets[0].uri;
+        setSelectedImages(prev => {
+          const updated = [...prev, newImageUri];
+          console.log('🖼️ Updated selected images:', updated);
+          return updated;
+        });
         Alert.alert('เลือกรูปภาพ', 'เลือกรูปภาพแล้ว');
       } else {
         Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเลือกไฟล์ภาพได้');
       }
     } catch (err) {
+      console.error('❌ Image picker error:', err);
       Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเลือกไฟล์ภาพได้');
     }
   };
@@ -288,6 +465,15 @@ const Group4Screen = ({ navigation, route }) => {
     return 'ยังไม่มีอัตราแลกเปลี่ยน';
   }, [isLoadingRate, rateError, rateTHB]);
 
+  // เพิ่ม debug info
+  console.log('🔍 Current state:', {
+    groupId,
+    userId,
+    chatMessagesCount: chatMessages.length,
+    selectedImagesCount: selectedImages.length,
+    isLoadingMessages
+  });
+
   return (
     <ImageBackground
       source={require('./assets/images/p1.png')}
@@ -333,14 +519,9 @@ const Group4Screen = ({ navigation, route }) => {
             <View style={styles.emptyChatContainer}>
               <Text style={styles.emptyChatText}>เกิดข้อผิดพลาด: {messagesError}</Text>
             </View>
-          ) : chatMessages.length === 0 && selectedImages.length === 0 ? (
-            <View style={styles.emptyChatContainer}>
-              <Text style={styles.emptyChatText}>แนบหลักฐานการชำระเงิน</Text>
-              <Text style={styles.emptyChatSubText}>กดไอคอนรูปภาพด้านล่างเพื่อเลือกรูป หรือพิมพ์ข้อความ</Text>
-            </View>
           ) : (
             <>
-              {/* แสดงข้อความแชท */}
+              {/* Display chat messages */}
               {chatMessages.map((msg, idx) => (
                 <View
                   key={`${msg.messageId || idx}`}
@@ -370,15 +551,28 @@ const Group4Screen = ({ navigation, route }) => {
                   </Text>
                 </View>
               ))}
+
+              {/* Display expenses */}
+              {expenses && expenses.length > 0 && (
+                <View style={styles.expensesContainer}>
+                  <Text style={styles.expensesTitle}>รายการค่าใช้จ่าย:</Text>
+                  {expenses.map((expense, index) => (
+                    <View key={index} style={styles.expenseItem}>
+                      <Text style={styles.expenseDescription}>{expense.name}</Text>
+                      <Text style={styles.expenseAmount}>฿{expense.price.toFixed(2)}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </>
           )}
 
           {/* แสดงรูปที่เลือกแล้วรอส่ง */}
           {selectedImages.length > 0 && (
             <View style={styles.selectedImagesContainer}>
-              <Text style={styles.selectedImagesTitle}>รูปภาพที่เลือก:</Text>
+              <Text style={styles.selectedImagesTitle}>รูปภาพที่เลือก ({selectedImages.length}):</Text>
               {selectedImages.map((uri, index) => (
-                <View key={index} style={styles.imagePreview}>
+                <View key={`selected-${index}`} style={styles.imagePreview}>
                   <Image source={{ uri }} style={styles.previewImage} />
                   <TouchableOpacity
                     style={styles.removeImageButton}
@@ -582,6 +776,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15, 
     paddingVertical: 20 
   },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 40,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#666',
+    fontSize: 14,
+  },
   emptyChatContainer: { 
     flex: 1, 
     alignItems: 'center', 
@@ -630,13 +835,38 @@ const styles = StyleSheet.create({
   chatText: {
     fontSize: 16,
     lineHeight: 20,
+  },
+  chatTextRight: {
+    color: '#fff',
+  },
+  chatTextLeft: {
     color: '#333',
   },
   chatImage: {
-    width: '100%',
+    width: 250,
     height: 200,
     borderRadius: 12,
     marginBottom: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderStyle: 'dashed',
+  },
+  imagePlaceholderText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  imagePlaceholderSubtext: {
+    color: '#999',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'center',
   },
   chatUploader: {
     fontSize: 11,
@@ -919,6 +1149,39 @@ const styles = StyleSheet.create({
   },
   currencyCloseButton: {
     marginTop: 20,
+  },
+
+  // Expenses styles
+  expensesContainer: {
+    marginTop: 20,
+    padding: 15,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  expensesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  expenseItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  expenseDescription: {
+    fontSize: 14,
+    color: '#333',
+  },
+  expenseAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4caf50',
   },
 });
 
