@@ -1,18 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Alert, TextInput } from 'react-native';
-import { View, Text, TouchableOpacity, StyleSheet, Image, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { supabase } from './supabaseClient';
-import TabBar from './components/TabBar'; // Import TabBar
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from "react";
+import { Alert, TextInput } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+} from "react-native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { supabase } from "./supabaseClient";
+import TabBar from "./components/TabBar";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AccountScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { email, userName } = route.params || {}; // รับค่า email และ userName จาก params
-
-  const [userNameState, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
+  const { email, userName } = route.params || {};
+  const [userNameState, setUserName] = useState("");
+  const [userEmail, setUserEmail] = useState("");
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -20,100 +26,117 @@ const AccountScreen = () => {
 
       if (!userEmail) {
         try {
-          userEmail = await AsyncStorage.getItem('userEmail');
+          userEmail = await AsyncStorage.getItem("userEmail");
         } catch (storageError) {
-          console.error('Failed to retrieve user email from AsyncStorage:', storageError);
+          console.error(
+            "Failed to retrieve user email from AsyncStorage:",
+            storageError
+          );
         }
       }
 
       if (!userEmail) {
-        setUserName('ไม่ทราบชื่อ');
-        setUserEmail('ไม่ทราบอีเมล');
+        setUserName("ไม่ทราบชื่อ");
+        setUserEmail("ไม่ทราบอีเมล");
         return;
       }
 
       try {
         const { data, error } = await supabase
-          .from('users')
-          .select('name, email')
-          .eq('email', userEmail)
+          .from("users")
+          .select("name, email")
+          .eq("email", userEmail)
           .single();
 
         if (error) {
-          console.error('Error fetching user data:', error);
-          setUserName('ไม่ทราบชื่อ');
-          setUserEmail('ไม่ทราบอีเมล');
+          console.error("Error fetching user data:", error);
+          setUserName("ไม่ทราบชื่อ");
+          setUserEmail("ไม่ทราบอีเมล");
         } else {
-          setUserName(data.name || 'ไม่ทราบชื่อ');
-          setUserEmail(data.email || 'ไม่ทราบอีเมล');
+          setUserName(data.name || "ไม่ทราบชื่อ");
+          setUserEmail(data.email || "ไม่ทราบอีเมล");
         }
       } catch (fetchError) {
-        console.error('Unexpected error fetching user data:', fetchError);
-        setUserName('ไม่ทราบชื่อ');
-        setUserEmail('ไม่ทราบอีเมล');
+        console.error("Unexpected error fetching user data:", fetchError);
+        setUserName("ไม่ทราบชื่อ");
+        setUserEmail("ไม่ทราบอีเมล");
       }
     };
 
     fetchUserData();
-  }, [email]); // เมื่อ email หรือ userName เปลี่ยน
+  }, [email]);
 
   const bottomTabs = [
-    { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
-    { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: false, navigateTo: 'Group3Screen' },
-    { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
-    { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: true }
+    {
+      name: "หน้าหลัก",
+      icon: require("./assets/images/logo1.png"),
+      active: false,
+      navigateTo: "Page2Screen",
+    },
+    {
+      name: "กลุ่ม",
+      icon: require("./assets/images/logo2.png"),
+      active: false,
+      navigateTo: "Group3Screen",
+    },
+    {
+      name: "กิจกรรม",
+      icon: require("./assets/images/logo3.png"),
+      active: false,
+      navigateTo: "ActivityScreen",
+    },
+    { name: "บัญชี", icon: require("./assets/images/logo4.png"), active: true },
   ];
 
   const menuItems = [
-    { 
-      title: 'การตั้งค่าบัญชี',
-      icon: '⚙️',
-      navigateTo: 'SettingScreen',
+    {
+      title: "การตั้งค่าบัญชี",
+      icon: "⚙️",
+      navigateTo: "SettingScreen",
       hasArrow: true,
-      // เพิ่มส่ง email ไปด้วย
-      params: { email: userEmail }
+      params: { email: userEmail },
     },
-    { 
-      title: 'HarnKengPro', 
-      icon: '💎',
-      navigateTo: 'ProScreen',
+    {
+      title: "HarnKengPro",
+      icon: "💎",
+      navigateTo: "ProScreen",
       hasArrow: true,
-      isSpecial: true
+      isSpecial: true,
     },
-    { 
-      title: 'ให้คะแนน HarnKeng', 
-      navigateTo: 'RateAppScreen',
-      hasArrow: true 
+    {
+      title: "ให้คะแนน HarnKeng",
+      navigateTo: "RateAppScreen",
+      hasArrow: true,
     },
-    { 
-      title: 'ติดต่อเรา', 
-      navigateTo: 'ContactScreen',
-      navigateTo: 'Home4Screen',
-      hasArrow: true 
-    }
+    {
+      title: "ติดต่อเรา",
+      navigateTo: "ContactScreen",
+      navigateTo: "Home4Screen",
+      hasArrow: true,
+    },
   ];
 
   const handleLogout = () => {
-    Alert.alert(
-      'ยืนยันการออกจากระบบ',
-      'คุณต้องการออกจากระบบหรือไม่?',
-      [
-        { text: 'ยกเลิก', style: 'cancel' },
-        { text: 'ออกจากระบบ', style: 'destructive', onPress: () => navigation.navigate('LoginScreen') }
-      ]
-    );
+    Alert.alert("ยืนยันการออกจากระบบ", "คุณต้องการออกจากระบบหรือไม่?", [
+      { text: "ยกเลิก", style: "cancel" },
+      {
+        text: "ออกจากระบบ",
+        style: "destructive",
+        onPress: () => navigation.navigate("LoginScreen"),
+      },
+    ]);
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        
-
-        {/* Profile Section */}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.content}
+      >
         <TouchableOpacity style={styles.profileSection}>
           <View style={styles.profileImageContainer}>
             <Image
-              source={require('./assets/images/logo.png')}
+              source={require("./assets/images/logo.png")}
               style={styles.profileImage}
             />
           </View>
@@ -129,34 +152,45 @@ const AccountScreen = () => {
           {menuItems.map((item, index) => (
             <TouchableOpacity
               key={index}
-              style={[ 
+              style={[
                 styles.menuItem,
                 item.isSpecial && styles.specialMenuItem,
-                index === menuItems.length - 1 && styles.lastMenuItem
+                index === menuItems.length - 1 && styles.lastMenuItem,
               ]}
               onPress={() => {
                 console.log(`Navigating to: ${item.navigateTo}`);
                 if (item.navigateTo) {
-                  // ส่ง params ไปด้วยถ้ามี
                   if (item.params) {
                     navigation.navigate(item.navigateTo, item.params);
                   } else {
                     navigation.navigate(item.navigateTo);
                   }
                 } else {
-                  console.log('No navigateTo property found for this menu item.');
+                  console.log(
+                    "No navigateTo property found for this menu item."
+                  );
                 }
               }}
               activeOpacity={0.7}
             >
               <View style={styles.menuLeft}>
                 {item.icon && (
-                  <Text style={[styles.menuIcon, item.isSpecial && styles.specialIcon]}>
+                  <Text
+                    style={[
+                      styles.menuIcon,
+                      item.isSpecial && styles.specialIcon,
+                    ]}
+                  >
                     {item.icon}
                   </Text>
                 )}
                 <View style={styles.menuTextContainer}>
-                  <Text style={[styles.menuText, item.isSpecial && styles.specialText]}>
+                  <Text
+                    style={[
+                      styles.menuText,
+                      item.isSpecial && styles.specialText,
+                    ]}
+                  >
                     {item.title}
                   </Text>
                   {item.subtitle && (
@@ -169,7 +203,6 @@ const AccountScreen = () => {
           ))}
         </View>
 
-        {/* Logout Button */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
@@ -179,7 +212,6 @@ const AccountScreen = () => {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Bottom Navigation */}
       <TabBar bottomTabs={bottomTabs} navigation={navigation} />
     </View>
   );
@@ -188,16 +220,16 @@ const AccountScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: "#f7f7f7",
   },
   profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
@@ -215,54 +247,54 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileName: {
-    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
     marginBottom: 2,
   },
   profileEmail: {
-    fontSize: 16, // เพิ่มขนาดตัวหนังสือ
-    color: '#666',
+    fontSize: 16,
+    color: "#666",
   },
   arrow: {
     fontSize: 18,
-    color: '#ccc',
-    fontWeight: '300',
+    color: "#ccc",
+    fontWeight: "300",
   },
   menuContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     marginBottom: 24,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 2,
   },
   menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   lastMenuItem: {
     borderBottomWidth: 0,
   },
   specialMenuItem: {
-    backgroundColor: '#f8f9ff',
+    backgroundColor: "#f8f9ff",
   },
   menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   menuIcon: {
     fontSize: 18,
     marginRight: 12,
     width: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   specialIcon: {
     fontSize: 20,
@@ -271,32 +303,32 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   menuText: {
-    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
-    color: '#333',
-    fontWeight: '500',
+    fontSize: 18,
+    color: "#333",
+    fontWeight: "500",
   },
   specialText: {
-    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
-    color: '#4169e1',
-    fontWeight: '600',
+    fontSize: 18,
+    color: "#4169e1",
+    fontWeight: "600",
   },
   menuSubtitle: {
     fontSize: 12,
-    color: '#4169e1',
+    color: "#4169e1",
     marginTop: 2,
   },
   logoutButton: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 20,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 8,
   },
   logoutText: {
-    fontSize: 18, // เพิ่มขนาดตัวหนังสือ
-    color: '#666',
-    fontWeight: '500',
+    fontSize: 18,
+    color: "#666",
+    fontWeight: "500",
   },
 });
 

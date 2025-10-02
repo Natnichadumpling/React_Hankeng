@@ -1,14 +1,23 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { supabase } from './supabaseClient';
-import * as DocumentPicker from 'expo-document-picker';
-import { Image } from 'react-native';
+import React, { useMemo, useState, useEffect } from "react";
+import { supabase } from "./supabaseClient";
+import * as DocumentPicker from "expo-document-picker";
+import { Image } from "react-native";
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ScrollView, ImageBackground, Alert, Modal, TextInput, ActivityIndicator
-} from 'react-native';
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  ImageBackground,
+  Alert,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+} from "react-native";
 
 const API_URL =
-  'https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD';
+  "https://api.freecurrencyapi.com/v1/latest?apikey=fca_live_R8PxpJWiO0qlvgzzhE7UKsiO2Pgbdw1ZQ53KK9Vl&currencies=THB&base_currency=USD";
 
 const Group4Screen = ({ navigation, route }) => {
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -20,17 +29,23 @@ const Group4Screen = ({ navigation, route }) => {
   const [expenses, setExpenses] = useState([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messagesError, setMessagesError] = useState(null);
-  const [messageText, setMessageText] = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState(''); // 'THB' | 'USD'
-  const [amount, setAmount] = useState('');
+  const [messageText, setMessageText] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState(""); // 'THB' | 'USD'
+  const [amount, setAmount] = useState("");
   const [convertedAmount, setConvertedAmount] = useState(null);
 
-  const [rateTHB, setRateTHB] = useState(null);  // จำนวนบาทต่อ 1 USD
+  const [rateTHB, setRateTHB] = useState(null); // จำนวนบาทต่อ 1 USD
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [rateError, setRateError] = useState(null);
 
-  const { groupName: gNameFromNav, transferKey, from, to, amount: amountParam } = route?.params || {};
-  const groupName = gNameFromNav || route?.params?.groupName || 'กลุ่มของเรา';
+  const {
+    groupName: gNameFromNav,
+    transferKey,
+    from,
+    to,
+    amount: amountParam,
+  } = route?.params || {};
+  const groupName = gNameFromNav || route?.params?.groupName || "กลุ่มของเรา";
   const groupId = route?.params?.groupId;
   const userId = route?.params?.userId;
 
@@ -40,50 +55,66 @@ const Group4Screen = ({ navigation, route }) => {
   useEffect(() => {
     const fetchMessagesAndExpenses = async () => {
       if (!groupId) {
-        console.log('fetchMessagesAndExpenses: groupId is missing');
+        console.log("fetchMessagesAndExpenses: groupId is missing");
         return;
       }
-      console.log('Fetching messages and expenses for groupId:', groupId);
+      console.log(
+        "Fetching messages, expenses, and images for groupId:",
+        groupId
+      );
       setIsLoadingMessages(true);
       setMessagesError(null);
 
       try {
-        // Fetch messages
         const { data: messagesData, error: messagesError } = await supabase
-          .from('group_messages')
-          .select('*')
-          .eq('group_id', groupId)
-          .order('created_at', { ascending: true });
+          .from("group_messages")
+          .select("*")
+          .eq("group_id", groupId)
+          .order("created_at", { ascending: true });
 
         if (messagesError) {
-          console.error('Error fetching messages:', messagesError.message);
+          console.error("Error fetching messages:", messagesError.message);
           setMessagesError(messagesError.message);
         } else {
-          setChatMessages(messagesData.map(msg => ({
-            type: msg.type,
-            uri: msg.image_url || msg.content,
-            userId: msg.sender_email,
-            createdAt: msg.created_at,
-            messageId: msg.id,
-            messageText: msg.content || msg.messageText || '',
-          })));
+          setChatMessages(
+            messagesData.map((msg) => ({
+              type: msg.type,
+              uri: msg.image_url || msg.content,
+              userId: msg.sender_email,
+              createdAt: msg.created_at,
+              messageId: msg.id,
+              messageText: msg.content || msg.messageText || "",
+            }))
+          );
         }
 
-        // Fetch expenses
         const { data: expensesData, error: expensesError } = await supabase
-          .from('group_expenses')
-          .select('*')
-          .eq('group_id', groupId)
-          .order('created_at', { ascending: true });
+          .from("group_expenses")
+          .select("*")
+          .eq("group_id", groupId)
+          .order("created_at", { ascending: true });
 
         if (expensesError) {
-          console.error('Error fetching expenses:', expensesError.message);
+          console.error("Error fetching expenses:", expensesError.message);
         } else {
-          console.log('Fetched expenses:', expensesData);
-          setExpenses(expensesData); // Assuming you have a state variable for expenses
+          console.log("Fetched expenses:", expensesData);
+          setExpenses(expensesData);
+        }
+
+        const { data: imagesData, error: imagesError } = await supabase
+          .from("group_images")
+          .select("*")
+          .eq("group_id", groupId)
+          .order("created_at", { ascending: true });
+
+        if (imagesError) {
+          console.error("Error fetching images:", imagesError.message);
+        } else {
+          console.log("Fetched images:", imagesData);
+          setSelectedImages(imagesData.map((img) => img.image_url));
         }
       } catch (err) {
-        console.error('Unexpected error:', err);
+        console.error("Unexpected error:", err);
       } finally {
         setIsLoadingMessages(false);
       }
@@ -91,106 +122,126 @@ const Group4Screen = ({ navigation, route }) => {
 
     fetchMessagesAndExpenses();
 
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('Screen focused, refreshing data...');
+    const unsubscribe = navigation.addListener("focus", () => {
+      console.log("Screen focused, refreshing data...");
       fetchMessagesAndExpenses();
     });
 
     return unsubscribe;
   }, [groupId, navigation]);
 
-  // subscribe realtime chat
   useEffect(() => {
     if (!groupId) return;
 
-    console.log('🔄 Setting up realtime subscription for group:', groupId);
+    console.log("🔄 Setting up realtime subscription for group:", groupId);
 
     const channel = supabase
       .channel(`group_messages_${groupId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'group_messages',
-        filter: `group_id=eq.${groupId}`,
-      }, (payload) => {
-        console.log('📡 New message received via realtime:', payload);
-        
-        const newMessage = {
-          type: payload.new.type || 'text',
-          userId: payload.new.sender_email,
-          createdAt: payload.new.created_at,
-          messageId: payload.new.id,
-          messageText: '',
-          uri: null
-        };
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "group_messages",
+          filter: `group_id=eq.${groupId}`,
+        },
+        (payload) => {
+          console.log("📡 New message received via realtime:", payload);
 
-        if (payload.new.type === 'image') {
-          newMessage.uri = payload.new.image_url;
-          newMessage.messageText = payload.new.content || payload.new.message || '';
-          console.log('🖼️ Realtime image message:', {
-            id: payload.new.id,
-            image_url: payload.new.image_url,
-            content: payload.new.content
+          const newMessage = {
+            type: payload.new.type || "text",
+            userId: payload.new.sender_email,
+            createdAt: payload.new.created_at,
+            messageId: payload.new.id,
+            messageText: "",
+            uri: null,
+          };
+
+          if (payload.new.type === "image") {
+            newMessage.uri = payload.new.image_url;
+            newMessage.messageText =
+              payload.new.content || payload.new.message || "";
+            console.log("🖼️ Realtime image message:", {
+              id: payload.new.id,
+              image_url: payload.new.image_url,
+              content: payload.new.content,
+            });
+          } else {
+            newMessage.messageText =
+              payload.new.content || payload.new.message || "";
+          }
+
+          setChatMessages((prevMessages) => {
+            const updated = [...prevMessages, newMessage];
+            console.log("📝 Updated chat messages:", updated);
+            return updated;
           });
-        } else {
-          newMessage.messageText = payload.new.content || payload.new.message || '';
         }
-
-        // เพิ่มข้อความใหม่ต่อท้ายรายการ
-        setChatMessages(prevMessages => {
-          const updated = [...prevMessages, newMessage];
-          console.log('📝 Updated chat messages:', updated);
-          return updated;
-        });
-      })
+      )
       .subscribe();
 
     return () => {
-      console.log('🔌 Unsubscribing from realtime channel');
+      console.log("🔌 Unsubscribing from realtime channel");
       supabase.removeChannel(channel);
     };
   }, [groupId]);
 
-  // ฟังก์ชันอัปโหลดรูปไป Supabase Storage
   const uploadImageToSupabase = async (uri) => {
     try {
-      console.log('📤 Starting image upload:', uri);
+      console.log("📤 Starting image upload:", uri);
       const response = await fetch(uri);
       const blob = await response.blob();
-      const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const fileExt = uri.split(".").pop() || "jpg";
+      const fileName = `chat_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}.${fileExt}`;
       const filePath = `chat_images/${fileName}`;
-      console.log('📁 Upload path:', filePath);
+      console.log("📁 Upload path:", filePath);
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('chat-images')
+        .from("chat-images")
         .upload(filePath, blob, {
-          cacheControl: '3600',
+          cacheControl: "3600",
           upsert: false,
         });
 
       if (uploadError) {
-        console.error('❌ Upload error:', uploadError);
+        console.error("❌ Upload error:", uploadError);
         throw uploadError;
       }
 
-      console.log('✅ Upload successful:', uploadData);
+      console.log("✅ Upload successful:", uploadData);
 
-      // แก้ไขการดึง public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('chat-images')
-        .getPublicUrl(filePath);
-      
-      console.log('🔗 Generated public URL:', publicUrl);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+
+      console.log("🔗 Generated public URL:", publicUrl);
 
       if (!publicUrl) {
-        throw new Error('ไม่สามารถสร้าง public URL ได้');
+        throw new Error("ไม่สามารถสร้าง public URL ได้");
       }
+
+      const { data, error } = await supabase.from("group_images").insert([
+        {
+          group_id: groupId,
+          user_id: userId,
+          image_url: publicUrl,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+      if (error) {
+        console.error("❌ Database error:", error);
+        throw error;
+      }
+
+      console.log("✅ Image metadata saved to database:", data);
 
       return publicUrl;
     } catch (err) {
-      console.error('❌ Upload failed:', err);
-      Alert.alert('อัปโหลดรูปไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด');
+      console.error("❌ Upload failed:", err);
+      Alert.alert("อัปโหลดรูปไม่สำเร็จ", err.message || "เกิดข้อผิดพลาด");
       return null;
     }
   };
@@ -204,19 +255,19 @@ const Group4Screen = ({ navigation, route }) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       const thb = json && json.data && json.data.THB;
-      if (typeof thb !== 'number') throw new Error('Invalid response: THB missing');
+      if (typeof thb !== "number")
+        throw new Error("Invalid response: THB missing");
       setRateTHB(thb);
     } catch (e) {
-      setRateError(e?.message || 'โหลดอัตราแลกเปลี่ยนไม่สำเร็จ');
+      setRateError(e?.message || "โหลดอัตราแลกเปลี่ยนไม่สำเร็จ");
     } finally {
       setIsLoadingRate(false);
     }
   };
 
-  // ปรับปรุงฟังก์ชัน handleSendMessage
   const handleSendMessage = async () => {
     if (!groupId || !userId) {
-      Alert.alert('เกิดข้อผิดพลาด', 'ไม่พบข้อมูลกลุ่มหรือผู้ใช้');
+      Alert.alert("เกิดข้อผิดพลาด", "ไม่พบข้อมูลกลุ่มหรือผู้ใช้");
       return;
     }
 
@@ -225,190 +276,191 @@ const Group4Screen = ({ navigation, route }) => {
 
     if (!hasText && !hasImages) return;
 
-    console.log('📨 Sending message...', { 
-      hasText: !!hasText, 
-      hasImages, 
+    console.log("📨 Sending message...", {
+      hasText: !!hasText,
+      hasImages,
       imageCount: selectedImages.length,
-      text: hasText 
+      text: hasText,
     });
 
     try {
-      // ส่งข้อความธรรมดา
       if (hasText && !hasImages) {
-        console.log('📝 Sending text message...');
+        console.log("📝 Sending text message...");
         const insertData = {
           group_id: groupId,
           sender_email: userId,
-          type: 'text',
+          type: "text",
           content: hasText,
-          message: hasText
+          message: hasText,
         };
-        
-        console.log('💾 Text insert data:', insertData);
-        
+
+        console.log("💾 Text insert data:", insertData);
+
         const { data, error } = await supabase
-          .from('group_messages')
+          .from("group_messages")
           .insert([insertData])
           .select();
 
         if (error) {
-          console.error('❌ Database error for text:', error);
-          Alert.alert('เกิดข้อผิดพลาด', error.message);
+          console.error("❌ Database error for text:", error);
+          Alert.alert("เกิดข้อผิดพลาด", error.message);
           return;
         }
-        
-        console.log('✅ Text message saved:', data);
-        setMessageText('');
+
+        console.log("✅ Text message saved:", data);
+        setMessageText("");
       }
 
-      // ส่งรูปภาพพร้อมข้อความ (ถ้ามี)
       if (hasImages) {
-        console.log('🖼️ Sending image messages...');
+        console.log("🖼️ Sending image messages...");
         for (let i = 0; i < selectedImages.length; i++) {
           const uri = selectedImages[i];
-          console.log(`📤 Uploading image ${i + 1}/${selectedImages.length}:`, uri);
-          
+          console.log(
+            `📤 Uploading image ${i + 1}/${selectedImages.length}:`,
+            uri
+          );
+
           const publicUrl = await uploadImageToSupabase(uri);
           if (!publicUrl) {
-            console.error('❌ Failed to upload image, skipping...');
+            console.error("❌ Failed to upload image, skipping...");
             continue;
           }
 
           const insertData = {
             group_id: groupId,
             sender_email: userId,
-            type: 'image',
-            content: hasText || '',
-            message: hasText || '',
-            image_url: publicUrl
+            type: "image",
+            content: hasText || "",
+            message: hasText || "",
+            image_url: publicUrl,
           };
-          
-          console.log('💾 Image insert data:', insertData);
+
+          console.log("💾 Image insert data:", insertData);
 
           const { data, error } = await supabase
-            .from('group_messages')
+            .from("group_messages")
             .insert([insertData])
             .select();
 
           if (error) {
-            console.error('❌ Database error for image:', error);
-            Alert.alert('เกิดข้อผิดพลาด', error.message);
+            console.error("❌ Database error for image:", error);
+            Alert.alert("เกิดข้อผิดพลาด", error.message);
             return;
           }
-          
-          console.log('✅ Image message saved:', data);
+
+          console.log("✅ Image message saved:", data);
         }
-        
+
         setSelectedImages([]);
-        setMessageText('');
+        setMessageText("");
       }
     } catch (error) {
-      console.error('❌ Send message error:', error);
-      Alert.alert('เกิดข้อผิดพลาด', 'ไม่สามารถส่งข้อความได้');
+      console.error("❌ Send message error:", error);
+      Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถส่งข้อความได้");
     }
   };
 
   const handleAddExpense = async (expenseDetails) => {
     if (!groupId || !userId) {
-      Alert.alert('Error', 'Group or user information is missing.');
+      Alert.alert("Error", "Group or user information is missing.");
       return;
     }
 
     try {
       const { amount, description } = expenseDetails;
-      console.log('Adding expense:', { amount, description });
+      console.log("Adding expense:", { amount, description });
 
-      const { data, error } = await supabase
-        .from('group_expenses')
-        .insert([{
+      const { data, error } = await supabase.from("group_expenses").insert([
+        {
           group_id: groupId,
           user_id: userId,
           amount,
           description,
           created_at: new Date().toISOString(),
-        }]);
+        },
+      ]);
 
       if (error) {
-        console.error('Error adding expense:', error);
-        Alert.alert('Error', 'Failed to add expense.');
+        console.error("Error adding expense:", error);
+        Alert.alert("Error", "Failed to add expense.");
         return;
       }
 
-      console.log('Expense added successfully:', data);
-      Alert.alert('Success', 'Expense added successfully.');
+      console.log("Expense added successfully:", data);
+      Alert.alert("Success", "Expense added successfully.");
 
-      // Optionally refresh the expense list
       fetchMessages();
     } catch (err) {
-      console.error('Unexpected error:', err);
-      Alert.alert('Error', 'An unexpected error occurred.');
+      console.error("Unexpected error:", err);
+      Alert.alert("Error", "An unexpected error occurred.");
     }
   };
 
   const addGroupExpense = async (expense) => {
     if (!groupId) {
-      Alert.alert('Error', 'Group ID is missing.');
+      Alert.alert("Error", "Group ID is missing.");
       return;
     }
 
     try {
       const { name, price } = expense;
-      console.log('Adding expense:', { name, price });
+      console.log("Adding expense:", { name, price });
 
-      const { data, error } = await supabase
-        .from('group_items')
-        .insert([{
+      const { data, error } = await supabase.from("group_items").insert([
+        {
           group_id: groupId,
           name,
           price,
           created_at: new Date().toISOString(),
-        }]);
+        },
+      ]);
 
       if (error) {
-        console.error('Error adding expense:', error.message);
-        Alert.alert('Error', 'Failed to add expense.');
+        console.error("Error adding expense:", error.message);
+        Alert.alert("Error", "Failed to add expense.");
         return;
       }
 
-      console.log('Expense added successfully:', data);
-      Alert.alert('Success', 'Expense added successfully.');
+      console.log("Expense added successfully:", data);
+      Alert.alert("Success", "Expense added successfully.");
 
-      // Refresh the expense list
       fetchGroupExpenses();
     } catch (err) {
-      console.error('Unexpected error while adding expense:', err);
-      Alert.alert('Error', 'An unexpected error occurred while adding expense.');
+      console.error("Unexpected error while adding expense:", err);
+      Alert.alert(
+        "Error",
+        "An unexpected error occurred while adding expense."
+      );
     }
   };
 
   const goBack = () => navigation.goBack();
 
-  // ฟังก์ชันเลือกไฟล์ภาพ
   const handleImageSelect = async () => {
     setShowImagePicker(false);
     try {
       const res = await DocumentPicker.getDocumentAsync({
-        type: 'image/*',
+        type: "image/*",
         copyToCacheDirectory: true,
         multiple: false,
       });
-      
-      console.log('📷 Image picker result:', res);
-      
+
+      console.log("📷 Image picker result:", res);
+
       if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
         const newImageUri = res.assets[0].uri;
-        setSelectedImages(prev => {
+        setSelectedImages((prev) => {
           const updated = [...prev, newImageUri];
-          console.log('🖼️ Updated selected images:', updated);
+          console.log("🖼️ Updated selected images:", updated);
           return updated;
         });
-        Alert.alert('เลือกรูปภาพ', 'เลือกรูปภาพแล้ว');
+        Alert.alert("เลือกรูปภาพ", "เลือกรูปภาพแล้ว");
       } else {
-        Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเลือกไฟล์ภาพได้');
+        Alert.alert("ข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
       }
     } catch (err) {
-      console.error('❌ Image picker error:', err);
-      Alert.alert('ข้อผิดพลาด', 'ไม่สามารถเลือกไฟล์ภาพได้');
+      console.error("❌ Image picker error:", err);
+      Alert.alert("ข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
     }
   };
 
@@ -422,11 +474,11 @@ const Group4Screen = ({ navigation, route }) => {
     setSelectedCurrency(currency);
     setConvertedAmount(null);
 
-    if (currency === 'THB' && from && to && amountParam) {
+    if (currency === "THB" && from && to && amountParam) {
       setAmount(Number(amountParam || 0).toFixed(2));
     }
 
-    if (currency === 'USD' && rateTHB) {
+    if (currency === "USD" && rateTHB) {
       const thbAmount = Number(amountParam || 0);
       const usdAmount = thbAmount / rateTHB;
       setAmount(usdAmount.toFixed(2));
@@ -436,18 +488,18 @@ const Group4Screen = ({ navigation, route }) => {
   const handleConvertCurrency = () => {
     const n = parseFloat(amount);
     if (isNaN(n) || n <= 0) {
-      Alert.alert('ข้อผิดพลาด', 'กรุณากรอกจำนวนเงินที่ถูกต้อง');
+      Alert.alert("ข้อผิดพลาด", "กรุณากรอกจำนวนเงินที่ถูกต้อง");
       return;
     }
     if (!rateTHB) {
-      Alert.alert('ข้อผิดพลาด', 'ยังไม่สามารถโหลดอัตราแลกเปลี่ยนได้');
+      Alert.alert("ข้อผิดพลาด", "ยังไม่สามารถโหลดอัตราแลกเปลี่ยนได้");
       return;
     }
 
     let result = null;
-    if (selectedCurrency === 'THB') {
+    if (selectedCurrency === "THB") {
       result = n / rateTHB;
-    } else if (selectedCurrency === 'USD') {
+    } else if (selectedCurrency === "USD") {
       result = n * rateTHB;
     }
     setConvertedAmount(result);
@@ -459,51 +511,47 @@ const Group4Screen = ({ navigation, route }) => {
   };
 
   const rateBanner = useMemo(() => {
-    if (isLoadingRate) return 'กำลังโหลดอัตราแลกเปลี่ยน...';
+    if (isLoadingRate) return "กำลังโหลดอัตราแลกเปลี่ยน...";
     if (rateError) return `โหลดอัตราแลกเปลี่ยนไม่สำเร็จ: ${rateError}`;
     if (rateTHB) return `อัตราล่าสุด: 1 USD ≈ ${rateTHB.toFixed(4)} THB`;
-    return 'ยังไม่มีอัตราแลกเปลี่ยน';
+    return "ยังไม่มีอัตราแลกเปลี่ยน";
   }, [isLoadingRate, rateError, rateTHB]);
 
-  // เพิ่ม debug info
-  console.log('🔍 Current state:', {
+  console.log("🔍 Current state:", {
     groupId,
     userId,
     chatMessagesCount: chatMessages.length,
     selectedImagesCount: selectedImages.length,
-    isLoadingMessages
+    isLoadingMessages,
   });
 
   return (
     <ImageBackground
-      source={require('./assets/images/p1.png')}
+      source={require("./assets/images/p1.png")}
       style={styles.container}
     >
       <SafeAreaView style={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={goBack} style={styles.backButton}>
             <Text style={styles.backIcon}>ย้อนกลับ </Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{groupName}</Text>
-          <TouchableOpacity 
-            style={styles.menuButton} 
-            onPress={() => navigation.navigate('Group2Screen', { groupName })}
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => navigation.navigate("Group2Screen", { groupName })}
           >
             <Text style={styles.menuText}>เชิญเพื่อน</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Transfer info */}
         {(from || to) && (
           <View style={styles.transferInfo}>
             <Text style={styles.transferInfoText}>
-              รายการ: {from} โอนให้{to} จำนวน ฿{Number(amountParam || 0).toFixed(2)}
+              รายการ: {from} โอนให้{to} จำนวน ฿
+              {Number(amountParam || 0).toFixed(2)}
             </Text>
           </View>
         )}
 
-        {/* Messages / Empty */}
         <ScrollView
           style={styles.messagesContainer}
           showsVerticalScrollIndicator={false}
@@ -514,52 +562,67 @@ const Group4Screen = ({ navigation, route }) => {
           }}
         >
           {isLoadingMessages ? (
-            <ActivityIndicator size="large" color="#4a90e2" style={{ marginTop: 40 }} />
+            <ActivityIndicator
+              size="large"
+              color="#4a90e2"
+              style={{ marginTop: 40 }}
+            />
           ) : messagesError ? (
             <View style={styles.emptyChatContainer}>
-              <Text style={styles.emptyChatText}>เกิดข้อผิดพลาด: {messagesError}</Text>
+              <Text style={styles.emptyChatText}>
+                เกิดข้อผิดพลาด: {messagesError}
+              </Text>
             </View>
           ) : (
             <>
-              {/* Display chat messages */}
               {chatMessages.map((msg, idx) => (
                 <View
                   key={`${msg.messageId || idx}`}
                   style={[
                     styles.chatBubble,
-                    msg.userId === userId ? styles.chatBubbleRight : styles.chatBubbleLeft,
+                    msg.userId === userId
+                      ? styles.chatBubbleRight
+                      : styles.chatBubbleLeft,
                   ]}
                 >
-                  {msg.type === 'image' ? (
+                  {msg.type === "image" ? (
                     <View>
-                      <Image source={{ uri: msg.uri }} style={styles.chatImage} />
+                      <Image
+                        source={{ uri: msg.uri }}
+                        style={styles.chatImage}
+                      />
                       <Text style={styles.chatUploader}>
-                        อัปโหลดโดย: {msg.userId === userId ? 'คุณ' : msg.userId}
+                        อัปโหลดโดย: {msg.userId === userId ? "คุณ" : msg.userId}
                       </Text>
                       {msg.messageText && (
-                        <Text style={styles.chatImageCaption}>{msg.messageText}</Text>
+                        <Text style={styles.chatImageCaption}>
+                          {msg.messageText}
+                        </Text>
                       )}
                     </View>
                   ) : (
                     <Text style={styles.chatText}>{msg.messageText}</Text>
                   )}
                   <Text style={styles.timestamp}>
-                    {new Date(msg.createdAt).toLocaleTimeString('th-TH', {
-                      hour: '2-digit',
-                      minute: '2-digit',
+                    {new Date(msg.createdAt).toLocaleTimeString("th-TH", {
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </Text>
                 </View>
               ))}
 
-              {/* Display expenses */}
               {expenses && expenses.length > 0 && (
                 <View style={styles.expensesContainer}>
                   <Text style={styles.expensesTitle}>รายการค่าใช้จ่าย:</Text>
                   {expenses.map((expense, index) => (
                     <View key={index} style={styles.expenseItem}>
-                      <Text style={styles.expenseDescription}>{expense.name}</Text>
-                      <Text style={styles.expenseAmount}>฿{expense.price.toFixed(2)}</Text>
+                      <Text style={styles.expenseDescription}>
+                        {expense.name}
+                      </Text>
+                      <Text style={styles.expenseAmount}>
+                        ฿{expense.price.toFixed(2)}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -567,10 +630,11 @@ const Group4Screen = ({ navigation, route }) => {
             </>
           )}
 
-          {/* แสดงรูปที่เลือกแล้วรอส่ง */}
           {selectedImages.length > 0 && (
             <View style={styles.selectedImagesContainer}>
-              <Text style={styles.selectedImagesTitle}>รูปภาพที่เลือก ({selectedImages.length}):</Text>
+              <Text style={styles.selectedImagesTitle}>
+                รูปภาพที่เลือก ({selectedImages.length}):
+              </Text>
               {selectedImages.map((uri, index) => (
                 <View key={`selected-${index}`} style={styles.imagePreview}>
                   <Image source={{ uri }} style={styles.previewImage} />
@@ -586,17 +650,21 @@ const Group4Screen = ({ navigation, route }) => {
           )}
         </ScrollView>
 
-        {/* Input Area */}
         <View style={styles.inputContainer}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => setShowImagePicker(true)}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowImagePicker(true)}
+          >
             <Text style={styles.iconText}>🖼️</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton} onPress={() => setShowToolsModal(true)}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowToolsModal(true)}
+          >
             <Text style={styles.iconText}>☰</Text>
           </TouchableOpacity>
 
-          {/* ช่องกรอกข้อความ */}
           <TextInput
             style={styles.textInput}
             placeholder="พิมพ์ข้อความ..."
@@ -607,7 +675,10 @@ const Group4Screen = ({ navigation, route }) => {
           />
 
           <TouchableOpacity
-            style={[styles.sendButton, isSendDisabled && styles.sendButtonDisabled]}
+            style={[
+              styles.sendButton,
+              isSendDisabled && styles.sendButtonDisabled,
+            ]}
             onPress={handleSendMessage}
             disabled={isSendDisabled}
           >
@@ -615,7 +686,6 @@ const Group4Screen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Image Picker Modal */}
         <Modal visible={showImagePicker} transparent animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -628,15 +698,15 @@ const Group4Screen = ({ navigation, route }) => {
                   <Text style={styles.imagePickerIcon}>📷</Text>
                 </TouchableOpacity>
                 {selectedImages.length > 0 && (
-                  <Image 
-                    source={{ uri: selectedImages[selectedImages.length - 1] }} 
-                    style={styles.imagePickerPreview} 
+                  <Image
+                    source={{ uri: selectedImages[selectedImages.length - 1] }}
+                    style={styles.imagePickerPreview}
                   />
                 )}
               </View>
               <Text style={styles.cameraText}>เลือกไฟล์ภาพ</Text>
               <TouchableOpacity
-                style={styles.modalCancelButton} 
+                style={styles.modalCancelButton}
                 onPress={() => setShowImagePicker(false)}
               >
                 <Text style={styles.modalCancelText}>ปิด</Text>
@@ -645,46 +715,88 @@ const Group4Screen = ({ navigation, route }) => {
           </View>
         </Modal>
 
-        {/* Tools Modal */}
         <Modal visible={showToolsModal} transparent animationType="slide">
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>เครื่องมือ</Text>
 
-              <TouchableOpacity style={styles.modalOption} onPress={openCurrencyTool}>
+              <TouchableOpacity
+                style={styles.modalOption}
+                onPress={openCurrencyTool}
+              >
                 <Text style={styles.modalOptionText}>💱 แปลงสกุลเงิน</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.modalCancelButton} onPress={() => setShowToolsModal(false)}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowToolsModal(false)}
+              >
                 <Text style={styles.modalCancelText}>ยกเลิก</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        {/* Currency Tool Modal */}
-        <Modal visible={showCurrencyModal} transparent animationType="slide" onRequestClose={() => setShowCurrencyModal(false)}>
+        <Modal
+          visible={showCurrencyModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCurrencyModal(false)}
+        >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>แปลงสกุลเงิน</Text>
 
               <View style={styles.rateBannerContainer}>
-                {isLoadingRate ? <ActivityIndicator /> : <Text style={[styles.rateBanner, { color: rateError ? '#d32f2f' : '#333' }]}>{rateBanner}</Text>}
+                {isLoadingRate ? (
+                  <ActivityIndicator />
+                ) : (
+                  <Text
+                    style={[
+                      styles.rateBanner,
+                      { color: rateError ? "#d32f2f" : "#333" },
+                    ]}
+                  >
+                    {rateBanner}
+                  </Text>
+                )}
               </View>
 
-              <Text style={styles.currencyLabel}>จำนวนเงินที่ต้องจ่าย(สกุลเงิน):</Text>
+              <Text style={styles.currencyLabel}>
+                จำนวนเงินที่ต้องจ่าย(สกุลเงิน):
+              </Text>
               <View style={styles.chipContainer}>
                 <TouchableOpacity
-                  style={[styles.chip, selectedCurrency === 'THB' && styles.chipActive]}
-                  onPress={() => handleCurrencySelect('THB')}
+                  style={[
+                    styles.chip,
+                    selectedCurrency === "THB" && styles.chipActive,
+                  ]}
+                  onPress={() => handleCurrencySelect("THB")}
                 >
-                  <Text style={[styles.chipText, selectedCurrency === 'THB' && styles.chipTextActive]}>THB</Text>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedCurrency === "THB" && styles.chipTextActive,
+                    ]}
+                  >
+                    THB
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.chip, selectedCurrency === 'USD' && styles.chipActive]}
-                  onPress={() => handleCurrencySelect('USD')}
+                  style={[
+                    styles.chip,
+                    selectedCurrency === "USD" && styles.chipActive,
+                  ]}
+                  onPress={() => handleCurrencySelect("USD")}
                 >
-                  <Text style={[styles.chipText, selectedCurrency === 'USD' && styles.chipTextActive]}>USD</Text>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedCurrency === "USD" && styles.chipTextActive,
+                    ]}
+                  >
+                    USD
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -692,27 +804,43 @@ const Group4Screen = ({ navigation, route }) => {
                 style={styles.currencyInput}
                 keyboardType="numeric"
                 value={amount}
-                onChangeText={t => { setAmount(t); setConvertedAmount(null); }}
+                onChangeText={(t) => {
+                  setAmount(t);
+                  setConvertedAmount(null);
+                }}
                 editable={!isLoadingRate && !rateError}
               />
 
               <TouchableOpacity
-                style={[styles.convertButton, (!amount || !selectedCurrency || isLoadingRate || rateError) && styles.convertButtonDisabled]}
+                style={[
+                  styles.convertButton,
+                  (!amount ||
+                    !selectedCurrency ||
+                    isLoadingRate ||
+                    rateError) &&
+                    styles.convertButtonDisabled,
+                ]}
                 onPress={handleConvertCurrency}
-                disabled={!amount || !selectedCurrency || isLoadingRate || rateError}
+                disabled={
+                  !amount || !selectedCurrency || isLoadingRate || rateError
+                }
               >
                 <Text style={styles.convertButtonText}>แปลง</Text>
               </TouchableOpacity>
 
               {convertedAmount !== null && selectedCurrency && (
                 <Text style={styles.convertResult}>
-                  ผลลัพธ์: {selectedCurrency === 'THB'
+                  ผลลัพธ์:{" "}
+                  {selectedCurrency === "THB"
                     ? `${convertedAmount.toFixed(2)} USD`
                     : `${convertedAmount.toFixed(2)} THB`}
                 </Text>
               )}
 
-              <TouchableOpacity style={[styles.modalCancelButton, styles.currencyCloseButton]} onPress={() => setShowCurrencyModal(false)}>
+              <TouchableOpacity
+                style={[styles.modalCancelButton, styles.currencyCloseButton]}
+                onPress={() => setShowCurrencyModal(false)}
+              >
                 <Text style={styles.modalCancelText}>ปิด</Text>
               </TouchableOpacity>
             </View>
@@ -724,94 +852,89 @@ const Group4Screen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1 
+  container: {
+    flex: 1,
   },
-
   header: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    paddingHorizontal: 15, 
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
     paddingVertical: 15,
-    backgroundColor: 'rgba(255,255,255,0.9)', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#e0e0e0',
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
   },
-  backButton: { 
-    padding: 5 
+  backButton: {
+    padding: 5,
   },
-  backIcon: { 
-    fontSize: 16, 
-    color: '#333' 
+  backIcon: {
+    fontSize: 16,
+    color: "#333",
   },
-  headerTitle: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#333' 
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
   },
-  menuButton: { 
-    paddingHorizontal: 10, 
-    paddingVertical: 5, 
-    backgroundColor: '#e8f4fd', 
-    borderRadius: 15 
+  menuButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: "#e8f4fd",
+    borderRadius: 15,
   },
-  menuText: { 
-    fontSize: 14, 
-    color: '#4a90e2' 
+  menuText: {
+    fontSize: 14,
+    color: "#4a90e2",
   },
-
-  transferInfo: { 
-    paddingHorizontal: 15, 
-    paddingVertical: 8, 
-    backgroundColor: '#fff8e1' 
+  transferInfo: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    backgroundColor: "#fff8e1",
   },
-  transferInfoText: { 
-    color: '#6d4c41', 
-    fontSize: 13 
+  transferInfoText: {
+    color: "#6d4c41",
+    fontSize: 13,
   },
-
-  messagesContainer: { 
-    flex: 1, 
-    paddingHorizontal: 15, 
-    paddingVertical: 20 
+  messagesContainer: {
+    flex: 1,
+    paddingHorizontal: 15,
+    paddingVertical: 20,
   },
   loadingContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginTop: 40,
   },
   loadingText: {
     marginTop: 10,
-    color: '#666',
+    color: "#666",
     fontSize: 14,
   },
-  emptyChatContainer: { 
-    flex: 1, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    marginTop: 60 
+  emptyChatContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 60,
   },
-  emptyChatText: { 
-    fontSize: 18, 
-    fontWeight: 'bold', 
-    color: '#666', 
-    marginBottom: 10 
+  emptyChatText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#666",
+    marginBottom: 10,
   },
-  emptyChatSubText: { 
-    fontSize: 14, 
-    color: '#999', 
-    textAlign: 'center' 
+  emptyChatSubText: {
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
   },
-
-  // Chat bubble styles
-  chatBubble: { 
-    borderRadius: 18, 
-    padding: 12, 
-    marginVertical: 4, 
-    maxWidth: '80%',
-    shadowColor: '#000',
+  chatBubble: {
+    borderRadius: 18,
+    padding: 12,
+    marginVertical: 4,
+    maxWidth: "80%",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -820,368 +943,356 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
-  chatBubbleRight: { 
-    alignSelf: 'flex-end', 
-    backgroundColor: '#4a90e2',
-    marginLeft: '20%',
+  chatBubbleRight: {
+    alignSelf: "flex-end",
+    backgroundColor: "#4a90e2",
+    marginLeft: "20%",
   },
-  chatBubbleLeft: { 
-    alignSelf: 'flex-start', 
-    backgroundColor: '#ffffff',
-    marginRight: '20%',
+  chatBubbleLeft: {
+    alignSelf: "flex-start",
+    backgroundColor: "#ffffff",
+    marginRight: "20%",
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   chatText: {
     fontSize: 16,
     lineHeight: 20,
   },
   chatTextRight: {
-    color: '#fff',
+    color: "#fff",
   },
   chatTextLeft: {
-    color: '#333',
+    color: "#333",
   },
   chatImage: {
     width: 250,
     height: 200,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
   imagePlaceholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderStyle: 'dashed',
+    borderColor: "#ddd",
+    borderStyle: "dashed",
   },
   imagePlaceholderText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   imagePlaceholderSubtext: {
-    color: '#999',
+    color: "#999",
     fontSize: 10,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   chatUploader: {
     fontSize: 11,
-    color: '#666',
+    color: "#666",
     marginBottom: 4,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   chatImageCaption: {
     fontSize: 15,
-    color: '#333',
+    color: "#333",
     marginTop: 6,
     lineHeight: 18,
   },
-  timestamp: { 
-    fontSize: 10, 
-    color: '#999', 
-    marginTop: 6, 
-    textAlign: 'right' 
+  timestamp: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 6,
+    textAlign: "right",
   },
-
-  // Selected images preview
-  selectedImagesContainer: { 
+  selectedImagesContainer: {
     marginVertical: 10,
-    padding: 15, 
-    backgroundColor: 'rgba(255,255,255,0.95)', 
+    padding: 15,
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
-  selectedImagesTitle: { 
-    fontSize: 14, 
-    fontWeight: 'bold', 
-    marginBottom: 10, 
-    color: '#333' 
-  },
-  imagePreview: { 
-    backgroundColor: '#f8f9fa', 
-    padding: 8, 
-    borderRadius: 8, 
+  selectedImagesTitle: {
+    fontSize: 14,
+    fontWeight: "bold",
     marginBottom: 10,
-    position: 'relative',
-    alignItems: 'center'
+    color: "#333",
+  },
+  imagePreview: {
+    backgroundColor: "#f8f9fa",
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 10,
+    position: "relative",
+    alignItems: "center",
   },
   previewImage: {
     width: 100,
     height: 100,
     borderRadius: 8,
   },
-  removeImageButton: { 
-    position: 'absolute', 
-    top: -5, 
-    right: -5, 
-    backgroundColor: '#ff4444', 
-    borderRadius: 12, 
-    width: 24, 
-    height: 24, 
-    alignItems: 'center', 
-    justifyContent: 'center',
-    shadowColor: '#000',
+  removeImageButton: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#ff4444",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
     elevation: 4,
   },
-  removeImageText: { 
-    color: '#fff', 
-    fontSize: 14, 
-    fontWeight: 'bold' 
+  removeImageText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
-
-  // Input area
   inputContainer: {
-    flexDirection: 'row', 
-    alignItems: 'flex-end', 
-    paddingHorizontal: 15, 
+    flexDirection: "row",
+    alignItems: "flex-end",
+    paddingHorizontal: 15,
     paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.95)', 
-    borderTopWidth: 1, 
-    borderTopColor: '#e0e0e0',
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
   },
-  iconButton: { 
-    padding: 10, 
+  iconButton: {
+    padding: 10,
     marginRight: 6,
   },
-  iconText: { 
-    fontSize: 22, 
-    color: '#666' 
+  iconText: {
+    fontSize: 22,
+    color: "#666",
   },
   textInput: {
     flex: 1,
     minHeight: 40,
     maxHeight: 100,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
     borderRadius: 20,
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginHorizontal: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     fontSize: 16,
-    color: '#333',
-    textAlignVertical: 'top',
+    color: "#333",
+    textAlignVertical: "top",
   },
-  sendButton: { 
-    backgroundColor: '#4a90e2', 
-    borderRadius: 22, 
+  sendButton: {
+    backgroundColor: "#4a90e2",
+    borderRadius: 22,
     width: 44,
     height: 44,
-    alignItems: 'center', 
-    justifyContent: 'center',
-    shadowColor: '#4a90e2',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#4a90e2",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
   },
-  sendButtonDisabled: { 
+  sendButtonDisabled: {
     opacity: 0.5,
     shadowOpacity: 0,
     elevation: 0,
   },
-  sendIcon: { 
-    fontSize: 18, 
-    color: '#fff',
-    fontWeight: 'bold',
+  sendIcon: {
+    fontSize: 18,
+    color: "#fff",
+    fontWeight: "bold",
   },
-
-  // Modal styles
-  modalContainer: { 
-    flex: 1, 
-    backgroundColor: 'rgba(0,0,0,0.5)', 
-    justifyContent: 'flex-end' 
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
   },
-  modalContent: { 
-    backgroundColor: '#fff', 
-    borderTopLeftRadius: 20, 
-    borderTopRightRadius: 20, 
-    paddingHorizontal: 20, 
-    paddingVertical: 30 
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
   },
-  modalTitle: { 
-    fontSize: 20, 
-    fontWeight: 'bold', 
-    textAlign: 'center', 
-    marginBottom: 20, 
-    color: '#333' 
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+    color: "#333",
   },
-  modalOption: { 
-    paddingVertical: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#f0f0f0' 
+  modalOption: {
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
   },
-  modalOptionText: { 
-    fontSize: 16, 
-    color: '#333' 
+  modalOptionText: {
+    fontSize: 16,
+    color: "#333",
   },
-  modalCancelButton: { 
-    paddingVertical: 15, 
-    marginTop: 10, 
-    backgroundColor: '#f8f8f8', 
-    borderRadius: 10, 
-    alignItems: 'center' 
+  modalCancelButton: {
+    paddingVertical: 15,
+    marginTop: 10,
+    backgroundColor: "#f8f8f8",
+    borderRadius: 10,
+    alignItems: "center",
   },
-  modalCancelText: { 
-    fontSize: 16, 
-    color: '#666', 
-    fontWeight: 'bold' 
+  modalCancelText: {
+    fontSize: 16,
+    color: "#666",
+    fontWeight: "bold",
   },
-
-  // Image picker modal styles
   imagePickerContainer: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    borderWidth: 1, 
-    borderColor: '#ccc', 
-    borderRadius: 12, 
-    padding: 10, 
-    backgroundColor: '#fafafa', 
-    minWidth: 160, 
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 12,
+    padding: 10,
+    backgroundColor: "#fafafa",
+    minWidth: 160,
+    justifyContent: "center",
     marginBottom: 15,
   },
   imagePickerButton: {
-    backgroundColor: '#e0e0e0', 
-    padding: 15, 
+    backgroundColor: "#e0e0e0",
+    padding: 15,
     borderRadius: 50,
   },
   imagePickerIcon: {
-    fontSize: 30, 
-    color: '#333',
+    fontSize: 30,
+    color: "#333",
   },
   imagePickerPreview: {
-    width: 80, 
-    height: 80, 
-    borderRadius: 10, 
-    marginLeft: 15, 
-    backgroundColor: '#eee',
+    width: 80,
+    height: 80,
+    borderRadius: 10,
+    marginLeft: 15,
+    backgroundColor: "#eee",
   },
-  cameraText: { 
-    fontSize: 14, 
-    color: '#333', 
-    textAlign: 'center',
+  cameraText: {
+    fontSize: 14,
+    color: "#333",
+    textAlign: "center",
     marginBottom: 15,
   },
-
-  // Currency modal styles
   rateBannerContainer: {
-    marginBottom: 15, 
-    alignItems: 'center',
+    marginBottom: 15,
+    alignItems: "center",
   },
   rateBanner: {
     fontSize: 14,
-    textAlign: 'center',
+    textAlign: "center",
   },
   currencyLabel: {
-    marginBottom: 10, 
-    color: '#333',
+    marginBottom: 10,
+    color: "#333",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   chipContainer: {
-    flexDirection: 'row', 
+    flexDirection: "row",
     marginBottom: 15,
     gap: 10,
   },
-  chip: { 
-    paddingHorizontal: 20, 
-    paddingVertical: 10, 
-    borderRadius: 25, 
-    borderWidth: 2, 
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
+  chip: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: "#e0e0e0",
+    backgroundColor: "#fff",
   },
-  chipActive: { 
-    backgroundColor: '#4a90e2', 
-    borderColor: '#4a90e2' 
+  chipActive: {
+    backgroundColor: "#4a90e2",
+    borderColor: "#4a90e2",
   },
-  chipText: { 
-    color: '#333', 
+  chipText: {
+    color: "#333",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
-  chipTextActive: { 
-    color: '#fff', 
-    fontWeight: '700' 
+  chipTextActive: {
+    color: "#fff",
+    fontWeight: "700",
   },
-  currencyInput: { 
-    borderWidth: 1, 
-    borderColor: '#e0e0e0', 
-    padding: 12, 
-    marginVertical: 10, 
+  currencyInput: {
+    borderWidth: 1,
+    borderColor: "#e0e0e0",
+    padding: 12,
+    marginVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     fontSize: 16,
   },
   convertButton: {
-    backgroundColor: '#4a90e2',
+    backgroundColor: "#4a90e2",
     padding: 15,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   convertButtonDisabled: {
     opacity: 0.5,
   },
   convertButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
-  convertResult: { 
-    fontSize: 16, 
-    color: '#333', 
-    marginTop: 15, 
-    textAlign: 'center', 
-    fontWeight: 'bold',
-    backgroundColor: '#f0f8ff',
+  convertResult: {
+    fontSize: 16,
+    color: "#333",
+    marginTop: 15,
+    textAlign: "center",
+    fontWeight: "bold",
+    backgroundColor: "#f0f8ff",
     padding: 12,
     borderRadius: 8,
   },
   currencyCloseButton: {
     marginTop: 20,
   },
-
-  // Expenses styles
   expensesContainer: {
     marginTop: 20,
     padding: 15,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: "rgba(255,255,255,0.95)",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: "#e0e0e0",
   },
   expensesTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
-    color: '#333',
+    color: "#333",
   },
   expenseItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   expenseDescription: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   expenseAmount: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#4caf50',
+    fontWeight: "bold",
+    color: "#4caf50",
   },
 });
 

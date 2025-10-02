@@ -1,6 +1,6 @@
 // components/SearchBar.js
-import React from 'react';
-import { View, TextInput, StyleSheet, Text } from 'react-native';
+import React from "react";
+import { View, TextInput, StyleSheet, Text } from "react-native";
 
 const SearchBar = ({ searchText, setSearchText, onDiamondPress }) => {
   return (
@@ -21,13 +21,13 @@ const SearchBar = ({ searchText, setSearchText, onDiamondPress }) => {
 
 const styles = StyleSheet.create({
   searchBarContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 10,
     marginBottom: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
@@ -35,12 +35,12 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   diamondIcon: {
     fontSize: 20,
     marginLeft: 10,
-    color: '#555',
+    color: "#555",
   },
 });
 

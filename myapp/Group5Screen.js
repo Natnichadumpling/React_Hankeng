@@ -1,5 +1,4 @@
-// Group5Screen.js
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,11 +8,10 @@ import {
   TextInput,
   Alert,
   Modal,
-} from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+} from "react-native";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-/* ===== Utilities ===== */
 const round2 = (x) => Math.round(x * 100) / 100;
 
 const evenSplitMap = (total, names) => {
@@ -35,11 +33,10 @@ const evenSplitMap = (total, names) => {
 };
 
 const DEFAULT_GROUP = {
-  groupName: 'กลุ่มของเรา',
-  members: ['คุณ', 'เพื่อน A', 'เพื่อน B'],
+  groupName: "กลุ่มของเรา",
+  members: ["คุณ", "เพื่อน A", "เพื่อน B"],
 };
 
-/* ===== Main Screen ===== */
 export default function Group5Screen() {
   const route = useRoute();
   const nav = useNavigation();
@@ -51,9 +48,9 @@ export default function Group5Screen() {
   const [items, setItems] = useState([]);
 
   // new inputs
-  const [newPersonName, setNewPersonName] = useState('');
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemPrice, setNewItemPrice] = useState('');
+  const [newPersonName, setNewPersonName] = useState("");
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemPrice, setNewItemPrice] = useState("");
 
   // modal states
   const [isAddPersonOpen, setIsAddPersonOpen] = useState(false);
@@ -67,27 +64,26 @@ export default function Group5Screen() {
 
   /* ===== Storage ===== */
   useEffect(() => {
-    AsyncStorage
-      .getItem(`items:${groupName}`)
-      .then((stored) => stored && setItems(JSON.parse(stored)));
+    AsyncStorage.getItem(`items:${groupName}`).then(
+      (stored) => stored && setItems(JSON.parse(stored))
+    );
   }, []);
 
   useEffect(() => {
     AsyncStorage.setItem(`items:${groupName}`, JSON.stringify(items));
   }, [items]);
 
-  /* ===== Handlers ===== */
   const onAddPerson = () => {
     const name = newPersonName.trim();
     if (!name) return;
 
     if (people.includes(name)) {
-      Alert.alert('ซ้ำ', 'มีชื่อนี้อยู่แล้ว');
+      Alert.alert("ซ้ำ", "มีชื่อนี้อยู่แล้ว");
       return;
     }
 
     setPeople((p) => [...p, name]);
-    setNewPersonName('');
+    setNewPersonName("");
     setIsAddPersonOpen(false);
   };
 
@@ -96,7 +92,7 @@ export default function Group5Screen() {
     const price = parseFloat(newItemPrice);
 
     if (!name || isNaN(price) || price <= 0) {
-      Alert.alert('ผิดพลาด', 'ใส่ชื่อและราคาที่ถูกต้อง');
+      Alert.alert("ผิดพลาด", "ใส่ชื่อและราคาที่ถูกต้อง");
       return;
     }
 
@@ -109,54 +105,49 @@ export default function Group5Screen() {
     };
 
     setItems((prev) => [newItem, ...prev]);
-    setNewItemName('');
-    setNewItemPrice('');
+    setNewItemName("");
+    setNewItemPrice("");
     setIsAddItemOpen(false);
   };
 
   const onRemoveItem = (id) => {
-    Alert.alert('ยืนยัน', 'ลบรายการนี้?', [
-      { text: 'ยกเลิก', style: 'cancel' },
+    Alert.alert("ยืนยัน", "ลบรายการนี้?", [
+      { text: "ยกเลิก", style: "cancel" },
       {
-        text: 'ลบ',
-        style: 'destructive',
+        text: "ลบ",
+        style: "destructive",
         onPress: () => setItems((prev) => prev.filter((it) => it.id !== id)),
       },
     ]);
   };
 
   const onRemovePerson = (person) => {
-    Alert.alert(
-      'ยืนยันการลบ',
-      `คุณต้องการลบ ${person} ออกจากกลุ่มหรือไม่?`,
-      [
-        {
-          text: 'ยกเลิก',
-          style: 'cancel',
+    Alert.alert("ยืนยันการลบ", `คุณต้องการลบ ${person} ออกจากกลุ่มหรือไม่?`, [
+      {
+        text: "ยกเลิก",
+        style: "cancel",
+      },
+      {
+        text: "ลบ",
+        style: "destructive",
+        onPress: () => {
+          setPeople((prev) => prev.filter((p) => p !== person));
         },
-        {
-          text: 'ลบ',
-          style: 'destructive',
-          onPress: () => {
-            setPeople((prev) => prev.filter((p) => p !== person));
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
 
-  /* ===== Edit payers ===== */
   const openEditPayers = (item) => {
     const current = Object.entries(item.paidByMap || {})
       .filter(([, a]) => a > 0.001)
       .map(([n]) => n);
 
     setEditItemId(item.id);
-    setEditSelected(current.length ? current : ['คุณ']);
+    setEditSelected(current.length ? current : ["คุณ"]);
 
     const next = {};
-    (current.length ? current : ['คุณ']).forEach((n) => {
-      next[n] = String(item.paidByMap?.[n] ?? (n === 'คุณ' ? item.price : 0));
+    (current.length ? current : ["คุณ"]).forEach((n) => {
+      next[n] = String(item.paidByMap?.[n] ?? (n === "คุณ" ? item.price : 0));
     });
     setEditAmounts(next);
     setEditPayersOpen(true);
@@ -172,7 +163,7 @@ export default function Group5Screen() {
         setEditAmounts(amounts);
         return next;
       } else {
-        setEditAmounts({ ...editAmounts, [name]: '' });
+        setEditAmounts({ ...editAmounts, [name]: "" });
         return [...prev, name];
       }
     });
@@ -191,13 +182,13 @@ export default function Group5Screen() {
 
     let sum = 0;
     editSelected.forEach((n) => {
-      sum += parseFloat(editAmounts[n] || '0') || 0;
+      sum += parseFloat(editAmounts[n] || "0") || 0;
     });
     const diff = round2(sum - item.price);
 
     if (Math.abs(diff) > 0.01) {
       Alert.alert(
-        'ยอดไม่ตรง',
+        "ยอดไม่ตรง",
         `รวมผู้จ่าย ฿${sum.toFixed(2)} ไม่ตรงกับราคา ฿${item.price.toFixed(2)}`
       );
       return;
@@ -205,7 +196,7 @@ export default function Group5Screen() {
 
     const nextPaid = {};
     editSelected.forEach((n) => {
-      const v = round2(parseFloat(editAmounts[n] || '0') || 0);
+      const v = round2(parseFloat(editAmounts[n] || "0") || 0);
       if (v > 0) nextPaid[n] = v;
     });
 
@@ -218,28 +209,32 @@ export default function Group5Screen() {
   };
 
   const goSummary = () => {
-    nav.navigate('Group6Screen', { groupName, people, items });
+    nav.navigate("Group6Screen", { groupName, people, items });
   };
 
-  /* ===== Render ===== */
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
       <Text style={styles.header}>{groupName}</Text>
 
-      <View style={{ alignItems: 'center', marginBottom: 12 }}>
+      <View style={{ alignItems: "center", marginBottom: 12 }}>
         <TouchableOpacity style={styles.primaryBtn} onPress={goSummary}>
           <Text style={styles.primaryBtnText}>ไปหน้าสรุปรายการ</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Members */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>สมาชิก ({people.length})</Text>
         <View style={styles.peopleWrap}>
           {people.map((person) => (
             <View key={person} style={styles.personChip}>
               <Text style={styles.personText}>{person}</Text>
-              <TouchableOpacity onPress={() => onRemovePerson(person)} style={styles.personRemove}>
+              <TouchableOpacity
+                onPress={() => onRemovePerson(person)}
+                style={styles.personRemove}
+              >
                 <Text style={styles.personRemoveText}>×</Text>
               </TouchableOpacity>
             </View>
@@ -253,7 +248,6 @@ export default function Group5Screen() {
         </TouchableOpacity>
       </View>
 
-      {/* Items */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>รายการ ({items.length})</Text>
 
@@ -272,7 +266,7 @@ export default function Group5Screen() {
 
           const payerSummary = Object.entries(item.paidByMap || {})
             .map(([n, v]) => `${n}: ฿${v.toFixed(2)}`)
-            .join(', ');
+            .join(", ");
 
           return (
             <View key={item.id} style={styles.itemCard}>
@@ -333,7 +327,9 @@ export default function Group5Screen() {
                     หาร {item.sharedBy.length} คน = ฿{perHead}/คน
                   </Text>
                   {item.sharedBy.map((p) => (
-                    <Text key={p}>• {p}: ฿{perHead}</Text>
+                    <Text key={p}>
+                      • {p}: ฿{perHead}
+                    </Text>
                   ))}
                 </View>
               )}
@@ -342,7 +338,6 @@ export default function Group5Screen() {
         })}
       </View>
 
-      {/* Modal: Add person */}
       <Modal transparent animationType="slide" visible={isAddPersonOpen}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -371,7 +366,6 @@ export default function Group5Screen() {
         </View>
       </Modal>
 
-      {/* Modal: Add item */}
       <Modal transparent animationType="slide" visible={isAddItemOpen}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -407,7 +401,6 @@ export default function Group5Screen() {
         </View>
       </Modal>
 
-      {/* Modal: Edit payers */}
       <Modal transparent animationType="slide" visible={editPayersOpen}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -415,7 +408,7 @@ export default function Group5Screen() {
               const it = items.find((x) => x.id === editItemId);
               const price = it?.price || 0;
               const sum = editSelected.reduce(
-                (s, n) => s + (parseFloat(editAmounts[n] || '0') || 0),
+                (s, n) => s + (parseFloat(editAmounts[n] || "0") || 0),
                 0
               );
               const diff = round2(sum - price);
@@ -437,7 +430,7 @@ export default function Group5Screen() {
                             onPress={() => toggleEditPayer(p)}
                           >
                             <Text style={styles.checkboxText}>
-                              {on ? '✓' : ''}
+                              {on ? "✓" : ""}
                             </Text>
                           </TouchableOpacity>
                           <Text style={{ flex: 1 }}>{p}</Text>
@@ -446,7 +439,7 @@ export default function Group5Screen() {
                               styles.input,
                               {
                                 width: 80,
-                                textAlign: 'right',
+                                textAlign: "right",
                                 marginTop: 0,
                               },
                               !on && { opacity: 0.4 },
@@ -454,7 +447,7 @@ export default function Group5Screen() {
                             placeholder="0.00"
                             keyboardType="numeric"
                             editable={on}
-                            value={on ? String(editAmounts[p] ?? '') : ''}
+                            value={on ? String(editAmounts[p] ?? "") : ""}
                             onChangeText={(t) =>
                               setEditAmounts((m) => ({ ...m, [p]: t }))
                             }
@@ -467,12 +460,12 @@ export default function Group5Screen() {
                   <Text
                     style={{
                       marginTop: 6,
-                      color: Math.abs(diff) < 0.01 ? 'green' : 'red',
+                      color: Math.abs(diff) < 0.01 ? "green" : "red",
                     }}
                   >
-                    รวมที่ระบุ: ฿{sum.toFixed(2)}{' '}
+                    รวมที่ระบุ: ฿{sum.toFixed(2)}{" "}
                     {Math.abs(diff) < 0.01
-                      ? '✓'
+                      ? "✓"
                       : `(ต่างจากราคา ${diff.toFixed(2)})`}
                   </Text>
 
@@ -506,42 +499,128 @@ export default function Group5Screen() {
   );
 }
 
-/* ===== Styles ===== */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5', padding: 16 },
-  header: { fontSize: 22, fontWeight: '700', textAlign: 'center', marginBottom: 10 },
-  section: { backgroundColor: '#fff', padding: 12, borderRadius: 12, marginBottom: 14 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  peopleWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  personChip: { backgroundColor: '#e0f2fe', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginRight: 6, marginBottom: 6 },
-  personText: { fontWeight: '600' },
-  personRemove: { marginLeft: 8, backgroundColor: '#ef4444', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  personRemoveText: { color: '#fff', fontWeight: '700' },
-  primaryBtn: { backgroundColor: '#2563eb', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10 },
-  primaryBtnText: { color: '#fff', fontWeight: '700' },
-  itemCard: { backgroundColor: '#f9fafb', padding: 10, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#e5e7eb' },
-  itemHead: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  itemName: { flex: 1, fontWeight: '700' },
-  itemPrice: { fontWeight: '700', color: '#dc2626', marginRight: 8 },
-  deleteBtn: { backgroundColor: '#ef4444', width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  deleteBtnText: { color: '#fff', fontWeight: '700' },
-  chip: { borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4, marginRight: 6, marginBottom: 6 },
-  chipOn: { backgroundColor: '#2563eb', borderColor: '#1d4ed8' },
+  container: { flex: 1, backgroundColor: "#f5f5f5", padding: 16 },
+  header: {
+    fontSize: 22,
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  section: {
+    backgroundColor: "#fff",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  sectionTitle: { fontSize: 16, fontWeight: "700", marginBottom: 8 },
+  peopleWrap: { flexDirection: "row", flexWrap: "wrap" },
+  personChip: {
+    backgroundColor: "#e0f2fe",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  personText: { fontWeight: "600" },
+  personRemove: {
+    marginLeft: 8,
+    backgroundColor: "#ef4444",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  personRemoveText: { color: "#fff", fontWeight: "700" },
+  primaryBtn: {
+    backgroundColor: "#2563eb",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  primaryBtnText: { color: "#fff", fontWeight: "700" },
+  itemCard: {
+    backgroundColor: "#f9fafb",
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  itemHead: { flexDirection: "row", alignItems: "center", marginBottom: 4 },
+  itemName: { flex: 1, fontWeight: "700" },
+  itemPrice: { fontWeight: "700", color: "#dc2626", marginRight: 8 },
+  deleteBtn: {
+    backgroundColor: "#ef4444",
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  deleteBtnText: { color: "#fff", fontWeight: "700" },
+  chip: {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  chipOn: { backgroundColor: "#2563eb", borderColor: "#1d4ed8" },
   chipText: { fontSize: 12 },
-  chipTextOn: { color: '#fff', fontWeight: '700' },
-  breakdownBox: { marginTop: 6, backgroundColor: '#effdf7', padding: 6, borderRadius: 6 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' },
-  modalContent: { backgroundColor: '#fff', borderRadius: 12, padding: 16, width: '88%' },
-  modalTitle: { fontWeight: '700', fontSize: 16, marginBottom: 8 },
-  input: { borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, padding: 8, marginTop: 6 },
-  modalRow: { flexDirection: 'row', marginTop: 10 },
-  modalBtn: { flex: 1, padding: 10, alignItems: 'center', borderRadius: 8, marginHorizontal: 4 },
-  btnGrey: { backgroundColor: '#d1d5db' },
-  btnBlue: { backgroundColor: '#2563eb' },
-  btnDark: { backgroundColor: '#111827' },
-  btnText: { color: '#fff', fontWeight: '700' },
-  payerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  checkbox: { width: 20, height: 20, borderWidth: 1, borderColor: '#9ca3af', marginRight: 6, alignItems: 'center', justifyContent: 'center' },
-  checkboxOn: { backgroundColor: '#2563eb' },
-  checkboxText: { color: '#fff', fontWeight: '700' },
+  chipTextOn: { color: "#fff", fontWeight: "700" },
+  breakdownBox: {
+    marginTop: 6,
+    backgroundColor: "#effdf7",
+    padding: 6,
+    borderRadius: 6,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 16,
+    width: "88%",
+  },
+  modalTitle: { fontWeight: "700", fontSize: 16, marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    padding: 8,
+    marginTop: 6,
+  },
+  modalRow: { flexDirection: "row", marginTop: 10 },
+  modalBtn: {
+    flex: 1,
+    padding: 10,
+    alignItems: "center",
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  btnGrey: { backgroundColor: "#d1d5db" },
+  btnBlue: { backgroundColor: "#2563eb" },
+  btnDark: { backgroundColor: "#111827" },
+  btnText: { color: "#fff", fontWeight: "700" },
+  payerRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#9ca3af",
+    marginRight: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkboxOn: { backgroundColor: "#2563eb" },
+  checkboxText: { color: "#fff", fontWeight: "700" },
 });

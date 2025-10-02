@@ -1,20 +1,21 @@
-// Group6Screen.js
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-} from 'react-native';
-import { useRoute } from '@react-navigation/native';
+} from "react-native";
+import { useRoute } from "@react-navigation/native";
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
-/* ===== Hook: คำนวณ balance + breakdown ===== */
 const useSettlement = (routeParams) => {
-  const { groupName = 'กลุ่มของเรา', people = [], items = [] } =
-    routeParams || {};
+  const {
+    groupName = "กลุ่มของเรา",
+    people = [],
+    items = [],
+  } = routeParams || {};
 
   const { balances, pairBreakdown } = useMemo(() => {
     const b = {};
@@ -37,17 +38,14 @@ const useSettlement = (routeParams) => {
       );
       if (totalPaid <= 0) return;
 
-      // เครดิตผู้จ่าย
       Object.entries(paidByMap).forEach(([payer, amt]) => {
         if (b[payer] != null) b[payer] += amt;
       });
 
-      // หนี้ของคนหาร
       sharedBy.forEach((debtor) => {
         if (b[debtor] != null) b[debtor] -= share;
       });
 
-      // breakdown รายคู่
       Object.entries(paidByMap).forEach(([payer, amt]) => {
         const ratio = (amt || 0) / totalPaid;
         if (ratio <= 0) return;
@@ -61,9 +59,9 @@ const useSettlement = (routeParams) => {
           bucket.items.push({
             name,
             amount: portion,
-            info: `ราคา ฿${price.toFixed(
-              2
-            )} / หาร ${sharedBy.length} คน (ผู้จ่ายตามสัดส่วน)`,
+            info: `ราคา ฿${price.toFixed(2)} / หาร ${
+              sharedBy.length
+            } คน (ผู้จ่ายตามสัดส่วน)`,
           });
         });
       });
@@ -78,7 +76,6 @@ const useSettlement = (routeParams) => {
     return { balances: b, pairBreakdown: pair };
   }, [people, items]);
 
-  // จัดลิสต์โอน
   const transfers = useMemo(() => {
     const debtors = [];
     const creditors = [];
@@ -110,13 +107,12 @@ const useSettlement = (routeParams) => {
   }, [balances]);
 
   return { groupName, balances, pairBreakdown, transfers };
-}
+};
 
-/* ===== Main Screen ===== */
 export default function Group6Screen({ route, navigation }) {
   const allItems = route?.params?.items || [];
   const people = route?.params?.people || [];
-  const groupName = route?.params?.groupName || 'กลุ่มของเรา';
+  const groupName = route?.params?.groupName || "กลุ่มของเรา";
 
   const [selectedItem, setSelectedItem] = useState(null);
 
@@ -134,8 +130,7 @@ export default function Group6Screen({ route, navigation }) {
   const [showSettled, setShowSettled] = useState(true);
   const [expanded, setExpanded] = useState({});
 
-  const toggleExpand = (k) =>
-    setExpanded((s) => ({ ...s, [k]: !s[k] }));
+  const toggleExpand = (k) => setExpanded((s) => ({ ...s, [k]: !s[k] }));
   const expandAll = () => {
     const m = {};
     transfers.forEach((t) => (m[`${t.from}|${t.to}`] = true));
@@ -157,7 +152,6 @@ export default function Group6Screen({ route, navigation }) {
       <Text style={styles.title}>สรุปรายการโอน</Text>
       <Text style={styles.subtitle}>กลุ่ม: {groupName}</Text>
 
-      {/* เลือกรายการ */}
       <View style={styles.filterBox}>
         <Text style={styles.filterLabel}>เลือกรายการ:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -185,36 +179,32 @@ export default function Group6Screen({ route, navigation }) {
         </ScrollView>
       </View>
 
-      {/* Controls */}
       <View style={styles.controlsRow}>
         <TouchableOpacity
           onPress={() => setShowSettled((s) => !s)}
           style={[
             styles.ctrlBtn,
-            { backgroundColor: showSettled ? '#ef4444' : '#6b7280' },
+            { backgroundColor: showSettled ? "#ef4444" : "#6b7280" },
           ]}
         >
           <Text style={styles.ctrlBtnText}>
-            {showSettled
-              ? 'ซ่อนรายการที่ชำระแล้ว'
-              : 'แสดงรายการที่ชำระแล้ว'}
+            {showSettled ? "ซ่อนรายการที่ชำระแล้ว" : "แสดงรายการที่ชำระแล้ว"}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={expandAll}
-          style={[styles.ctrlBtn, { backgroundColor: '#2563eb' }]}
+          style={[styles.ctrlBtn, { backgroundColor: "#2563eb" }]}
         >
           <Text style={styles.ctrlBtnText}>ขยายทั้งหมด</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={collapseAll}
-          style={[styles.ctrlBtn, { backgroundColor: '#374151' }]}
+          style={[styles.ctrlBtn, { backgroundColor: "#374151" }]}
         >
           <Text style={styles.ctrlBtnText}>ย่อทั้งหมด</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Transfers */}
       {visibleTransfers.length === 0 ? (
         <View style={styles.emptyBox}>
           <Text style={styles.muted}>ไม่มีรายการต้องโอน</Text>
@@ -234,15 +224,13 @@ export default function Group6Screen({ route, navigation }) {
               key={key}
               style={[styles.card, isSettled && styles.cardSettled]}
             >
-              {/* Summary Line + แนบหลักฐาน */}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLine}>
-                   {t.from} ต้องจ่ายให้ {t.to} จำนวน ฿
-                  {t.amount.toFixed(2)}
+                  {t.from} ต้องจ่ายให้ {t.to} จำนวน ฿{t.amount.toFixed(2)}
                 </Text>
                 <TouchableOpacity
                   onPress={() =>
-                    navigation.navigate('Group4Screen', {
+                    navigation.navigate("Group4Screen", {
                       groupName,
                       from: t.from,
                       to: t.to,
@@ -255,7 +243,6 @@ export default function Group6Screen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
 
-              {/* Header */}
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.cardTitle}>
                   <Text style={styles.nameFrom}>{t.from}</Text>
@@ -265,14 +252,13 @@ export default function Group6Screen({ route, navigation }) {
                 <Text style={styles.amount}>฿{t.amount.toFixed(2)}</Text>
               </View>
 
-              {/* Actions */}
               <View style={styles.actionsRow}>
                 <TouchableOpacity
                   onPress={() => toggleExpand(key)}
                   style={[styles.chip]}
                 >
                   <Text style={styles.chipText}>
-                    {expanded[key] ? 'ซ่อนรายละเอียด' : 'ดูรายละเอียด'}
+                    {expanded[key] ? "ซ่อนรายละเอียด" : "ดูรายละเอียด"}
                   </Text>
                 </TouchableOpacity>
 
@@ -281,7 +267,7 @@ export default function Group6Screen({ route, navigation }) {
                     setSettledMap((m) => {
                       const n = { ...m };
                       if (n[key]) delete n[key];
-                      else n[key] = { note: '' };
+                      else n[key] = { note: "" };
                       return n;
                     })
                   }
@@ -291,12 +277,11 @@ export default function Group6Screen({ route, navigation }) {
                   ]}
                 >
                   <Text style={styles.chipText}>
-                    {isSettled ? 'ยกเลิกชำระแล้ว' : 'ทำเครื่องหมายว่าชำระแล้ว'}
+                    {isSettled ? "ยกเลิกชำระแล้ว" : "ทำเครื่องหมายว่าชำระแล้ว"}
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Breakdown */}
               {expanded[key] && (
                 <View style={styles.detailBox}>
                   <Text style={styles.detailTitle}>
@@ -344,7 +329,7 @@ export default function Group6Screen({ route, navigation }) {
                     <Text style={styles.muted}>
                       (รวมบวก ฿{pos.total.toFixed(2)}) − (รวมลบ ฿
                       {neg.total.toFixed(2)}) = สุทธิ ฿
-                      {(round2(pos.total - neg.total)).toFixed(2)}
+                      {round2(pos.total - neg.total).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -357,50 +342,49 @@ export default function Group6Screen({ route, navigation }) {
   );
 }
 
-/* ===== Styles ===== */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  title: { fontSize: 22, fontWeight: '800', color: '#111827' },
-  subtitle: { fontSize: 14, color: '#6b7280', marginBottom: 12 },
+  container: { flex: 1, backgroundColor: "#f8fafc" },
+  title: { fontSize: 22, fontWeight: "800", color: "#111827" },
+  subtitle: { fontSize: 14, color: "#6b7280", marginBottom: 12 },
 
   filterBox: { marginBottom: 12 },
-  filterLabel: { fontWeight: '700', marginBottom: 6, color: '#111827' },
+  filterLabel: { fontWeight: "700", marginBottom: 6, color: "#111827" },
   filterBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: "#e5e7eb",
     borderRadius: 8,
     marginRight: 6,
   },
-  filterBtnOn: { backgroundColor: '#2563eb' },
-  filterBtnText: { color: '#111827', fontWeight: '700' },
+  filterBtnOn: { backgroundColor: "#2563eb" },
+  filterBtnText: { color: "#111827", fontWeight: "700" },
 
   controlsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginBottom: 12,
   },
   ctrlBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  ctrlBtnText: { color: '#fff', fontWeight: '700' },
+  ctrlBtnText: { color: "#fff", fontWeight: "700" },
 
   emptyBox: {
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
-  muted: { color: '#6b7280' },
+  muted: { color: "#6b7280" },
 
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 16,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 4,
@@ -409,40 +393,40 @@ const styles = StyleSheet.create({
   cardSettled: { opacity: 0.6 },
 
   summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 6,
   },
   summaryLine: {
     fontSize: 16,
-    fontWeight: '800',
-    color: '#dc2626',
+    fontWeight: "800",
+    color: "#dc2626",
     flex: 1,
     marginRight: 8,
   },
   evidenceBtn: {
-    backgroundColor: '#7c3aed',
+    backgroundColor: "#7c3aed",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
-  evidenceText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  evidenceText: { color: "#fff", fontWeight: "700", fontSize: 12 },
 
   cardHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 4,
   },
-  cardTitle: { fontSize: 16, fontWeight: '700', color: '#111827' },
-  nameFrom: { color: '#ef4444', fontWeight: '800' },
-  nameTo: { color: '#10b981', fontWeight: '800' },
-  amount: { fontWeight: '800', color: '#f59e0b' },
+  cardTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
+  nameFrom: { color: "#ef4444", fontWeight: "800" },
+  nameTo: { color: "#10b981", fontWeight: "800" },
+  amount: { fontWeight: "800", color: "#f59e0b" },
 
   actionsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: 8,
     marginTop: 10,
   },
@@ -450,32 +434,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#1f2937',
+    backgroundColor: "#1f2937",
   },
-  chipOn: { backgroundColor: '#059669' },
-  chipOff: { backgroundColor: '#1f2937' },
-  chipText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  chipOn: { backgroundColor: "#059669" },
+  chipOff: { backgroundColor: "#1f2937" },
+  chipText: { color: "#fff", fontWeight: "700", fontSize: 12 },
 
   detailBox: {
     marginTop: 10,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: "#e5e7eb",
   },
-  detailTitle: { fontWeight: '700', color: '#111827', marginBottom: 6 },
+  detailTitle: { fontWeight: "700", color: "#111827", marginBottom: 6 },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 6,
     marginBottom: 6,
   },
-  dot: { color: '#9ca3af', marginTop: 2 },
-  detailName: { fontWeight: '600', color: '#111827' },
-  detailInfo: { color: '#6b7280', fontSize: 12 },
-  plus: { color: '#10b981', fontWeight: '800' },
-  minus: { color: '#ef4444', fontWeight: '800' },
-  divider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 8 },
-  equation: { marginTop: 6, alignItems: 'flex-end' },
+  dot: { color: "#9ca3af", marginTop: 2 },
+  detailName: { fontWeight: "600", color: "#111827" },
+  detailInfo: { color: "#6b7280", fontSize: 12 },
+  plus: { color: "#10b981", fontWeight: "800" },
+  minus: { color: "#ef4444", fontWeight: "800" },
+  divider: { height: 1, backgroundColor: "#e5e7eb", marginVertical: 8 },
+  equation: { marginTop: 6, alignItems: "flex-end" },
 });

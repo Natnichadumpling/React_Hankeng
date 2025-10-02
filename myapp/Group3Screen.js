@@ -1,37 +1,67 @@
-import React, { useState, useEffect } from 'react';
-// URL รูป default จาก Supabase Storage หรือ Cloud Storage
-const DEFAULT_IMAGE_URL = 'https://your-supabase-url/storage/v1/object/public/group-images/default.png';
-import { useRoute } from '@react-navigation/native';
-import { supabase } from './supabaseClient';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ImageBackground, TextInput, Image, ScrollView } from 'react-native';
-import TabBar from './components/TabBar'; // Import the TabBar component
+import React, { useState, useEffect } from "react";
+const DEFAULT_IMAGE_URL =
+  "https://your-supabase-url/storage/v1/object/public/group-images/default.png";
+import { useRoute } from "@react-navigation/native";
+import { supabase } from "./supabaseClient";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ImageBackground,
+  TextInput,
+  Image,
+  ScrollView,
+} from "react-native";
+import TabBar from "./components/TabBar";
 
 const bottomTabs = [
-  { name: 'หน้าหลัก', icon: require('./assets/images/logo1.png'), active: false, navigateTo: 'Page2Screen' },
-  { name: 'กลุ่ม', icon: require('./assets/images/logo2.png'), active: true, navigateTo: 'Group3Screen' },
-  { name: 'กิจกรรม', icon: require('./assets/images/logo3.png'), active: false, navigateTo: 'ActivityScreen' },
-  { name: 'บัญชี', icon: require('./assets/images/logo4.png'), active: false, navigateTo: 'AccountScreen' },
+  {
+    name: "หน้าหลัก",
+    icon: require("./assets/images/logo1.png"),
+    active: false,
+    navigateTo: "Page2Screen",
+  },
+  {
+    name: "กลุ่ม",
+    icon: require("./assets/images/logo2.png"),
+    active: true,
+    navigateTo: "Group3Screen",
+  },
+  {
+    name: "กิจกรรม",
+    icon: require("./assets/images/logo3.png"),
+    active: false,
+    navigateTo: "ActivityScreen",
+  },
+  {
+    name: "บัญชี",
+    icon: require("./assets/images/logo4.png"),
+    active: false,
+    navigateTo: "AccountScreen",
+  },
 ];
 
 const Group3Screen = ({ navigation }) => {
-  const [searchText, setSearchText] = useState('');
-  const [userName, setUserName] = useState('');
+  const [searchText, setSearchText] = useState("");
+  const [userName, setUserName] = useState("");
   const [groups, setGroups] = useState([]);
   const [groupMembers, setGroupMembers] = useState([]);
   const route = useRoute();
   const email = route?.params?.email;
 
   const handleJoinGroup = () => {
-    navigation.navigate('Group5Screen'); // Navigate to Group5Screen
+    navigation.navigate("Group5Screen");
   };
 
   useEffect(() => {
     const fetchUserName = async () => {
       if (!email) return;
       const { data, error } = await supabase
-        .from('users')
-        .select('name')
-        .eq('email', email)
+        .from("users")
+        .select("name")
+        .eq("email", email)
         .single();
       if (data && data.name) setUserName(data.name);
       else setUserName(email);
@@ -42,14 +72,14 @@ const Group3Screen = ({ navigation }) => {
   useEffect(() => {
     const fetchGroups = async () => {
       const { data, error } = await supabase
-        .from('groups')
-        .select('id, name, image_url')
-        .order('id', { ascending: false }); // เรียงลำดับ id จากมากไปน้อย (ล่าสุดอยู่บน)
+        .from("groups")
+        .select("id, name, image_url")
+        .order("id", { ascending: false });
       if (data) {
         setGroups(data);
-        console.log('Fetched groups:', data); // Debugging log
+        console.log("Fetched groups:", data);
       } else {
-        console.error('Error fetching groups:', error); // Debugging log
+        console.error("Error fetching groups:", error);
       }
     };
     fetchGroups();
@@ -57,30 +87,29 @@ const Group3Screen = ({ navigation }) => {
 
   useEffect(() => {
     const fetchGroupMembers = async () => {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select('*');
+      const { data, error } = await supabase.from("group_members").select("*");
       if (data) setGroupMembers(data);
     };
     fetchGroupMembers();
   }, []);
 
-  const filteredGroups = groups.filter(group =>
+  const filteredGroups = groups.filter((group) =>
     group.name.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
     <View style={styles.outerContainer}>
       <ImageBackground
-        source={require('./assets/images/p1.png')}
+        source={require("./assets/images/p1.png")}
         style={styles.container}
       >
         <SafeAreaView style={styles.safeArea}>
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View style={styles.content}>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>{userName} ยินดีต้อนรับสู่ HarnKeng</Text>
-                {/* Add spacing between welcome message and search bar */}
+                <Text style={styles.headerTitle}>
+                  {userName} ยินดีต้อนรับสู่ HarnKeng
+                </Text>
                 <View style={styles.searchContainer}>
                   <View style={styles.searchBar}>
                     <Text style={styles.searchIcon}>🔍</Text>
@@ -91,7 +120,9 @@ const Group3Screen = ({ navigation }) => {
                       value={searchText}
                       onChangeText={setSearchText}
                     />
-                    <TouchableOpacity onPress={() => navigation.navigate('ProScreen')}>
+                    <TouchableOpacity
+                      onPress={() => navigation.navigate("ProScreen")}
+                    >
                       <Text style={styles.diamondIcon}>💎</Text>
                     </TouchableOpacity>
                   </View>
@@ -103,11 +134,21 @@ const Group3Screen = ({ navigation }) => {
                   <TouchableOpacity
                     key={group.id}
                     style={styles.groupCard}
-                    onPress={() => navigation.navigate('Group5Screen', { groupName: group.name })}
+                    onPress={() =>
+                      navigation.navigate("Group5Screen", {
+                        groupName: group.name,
+                      })
+                    }
                   >
-                    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                    <View
+                      style={{ justifyContent: "center", alignItems: "center" }}
+                    >
                       <Image
-                        source={group.image_url ? { uri: group.image_url } : { uri: DEFAULT_IMAGE_URL }}
+                        source={
+                          group.image_url
+                            ? { uri: group.image_url }
+                            : { uri: DEFAULT_IMAGE_URL }
+                        }
                         style={styles.groupImage}
                       />
                     </View>
@@ -119,8 +160,6 @@ const Group3Screen = ({ navigation }) => {
           </ScrollView>
         </SafeAreaView>
       </ImageBackground>
-
-      {/* TabBar อยู่นอก ImageBackground และ SafeAreaView */}
       <TabBar bottomTabs={bottomTabs} navigation={navigation} />
     </View>
   );
@@ -141,17 +180,17 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   searchContainer: {
     marginBottom: 20,
-    width: '100%',
+    width: "100%",
   },
   searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e8eaf0',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e8eaf0",
     borderRadius: 25,
     paddingHorizontal: 15,
     paddingVertical: 12,
@@ -163,35 +202,35 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   diamondIcon: {
     fontSize: 16,
-    color: '#4a90e2',
+    color: "#4a90e2",
   },
   headerTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
   },
   subTitle: {
     fontSize: 16,
-    color: '#666',
+    color: "#666",
     marginTop: 10,
   },
   groupSection: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   groupCard: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
@@ -206,19 +245,19 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#e0e0e0',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#e0e0e0",
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 15,
   },
   placeholderText: {
     fontSize: 24,
-    color: '#999',
+    color: "#999",
   },
   groupName: {
     fontSize: 18,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
 });
 

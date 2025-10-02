@@ -1,34 +1,43 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { Picker } from '@react-native-picker/picker';  // Correct import
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { Picker } from "@react-native-picker/picker"; // Correct import
 
 const ChangeScreen = () => {
-  const [selectedCurrency, setSelectedCurrency] = useState('THB'); // Default to Thailand code
+  const [selectedCurrency, setSelectedCurrency] = useState("THB"); // Default to Thailand code
   const navigation = useNavigation();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* AppBar */}
       <View style={styles.appBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.closeButton}
+        >
           <Text style={styles.closeText}>ปิด</Text>
         </TouchableOpacity>
         <Text style={styles.title}>สกุลเงินเริ่มต้น</Text>
       </View>
 
       <View style={styles.body}>
-        {/* Title */}
         <Text style={styles.sectionTitle}>เลือกสกุลเงิน</Text>
-
-        {/* Currency selection options with Picker */}
         <View style={styles.currencyOptions}>
           <TouchableOpacity
             style={styles.option}
-            onPress={() => setSelectedCurrency('THB')}
+            onPress={() => setSelectedCurrency("THB")}
           >
             <View style={styles.optionContent}>
-              <Image source={require('./assets/images/thai.png')} style={styles.flag} />
+              <Image
+                source={require("./assets/images/thai.png")}
+                style={styles.flag}
+              />
               <Text style={styles.optionText}>Baht (THB)</Text>
             </View>
             <Picker
@@ -43,10 +52,13 @@ const ChangeScreen = () => {
 
           <TouchableOpacity
             style={styles.option}
-            onPress={() => setSelectedCurrency('USD')}
+            onPress={() => setSelectedCurrency("USD")}
           >
             <View style={styles.optionContent}>
-              <Image source={require('./assets/images/usa.png')} style={styles.flag} />
+              <Image
+                source={require("./assets/images/usa.png")}
+                style={styles.flag}
+              />
               <Text style={styles.optionText}>United States dollar (USD)</Text>
             </View>
             <Picker
@@ -60,22 +72,21 @@ const ChangeScreen = () => {
         </View>
 
         <Text style={styles.selectedCurrency}>
-          {selectedCurrency === 'THB'
-            ? 'ฉันใช้ THB (฿) เป็นสกุลเงินของฉัน'
-            : 'ฉันใช้ USD (\$) เป็นสกุลเงินของฉัน'}
+          {selectedCurrency === "THB"
+            ? "ฉันใช้ THB (฿) เป็นสกุลเงินของฉัน"
+            : "ฉันใช้ USD ($) เป็นสกุลเงินของฉัน"}
         </Text>
 
-        {/* Button Row */}
         <View style={styles.buttonRow}>
           <TouchableOpacity
             style={styles.cancelButton}
-            onPress={() => navigation.navigate('Singup3Screen')}
+            onPress={() => navigation.navigate("Singup3Screen")}
           >
             <Text style={styles.buttonText}>ยกเลิก</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.nextButton}
-            onPress={() => navigation.navigate('Singup3Screen')}
+            onPress={() => navigation.navigate("Singup3Screen")}
           >
             <Text style={styles.buttonText}>ถัดไป</Text>
           </TouchableOpacity>
@@ -90,50 +101,50 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   appBar: {
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
     elevation: 0,
     paddingTop: 20,
     paddingLeft: 10,
     marginBottom: 20,
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
   },
   closeText: {
-    color: 'black',
+    color: "black",
     fontSize: 16,
   },
   title: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 20,
-    fontWeight: 'bold',
-    color: 'black',
+    fontWeight: "bold",
+    color: "black",
   },
   body: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 30,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 20,
-    color: 'black',
+    color: "black",
   },
   currencyOptions: {
-    width: '100%',
+    width: "100%",
     marginBottom: 20,
   },
   option: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 10,
   },
   optionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   flag: {
     width: 24,
@@ -142,33 +153,33 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 16,
-    color: 'black',
+    color: "black",
   },
   selectedCurrency: {
     fontSize: 16,
-    color: 'black',
+    color: "black",
     marginBottom: 20,
   },
   buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
   cancelButton: {
-    backgroundColor: 'grey',
+    backgroundColor: "grey",
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   nextButton: {
-    backgroundColor: '#43B020',
+    backgroundColor: "#43B020",
     paddingVertical: 15,
     paddingHorizontal: 20,
     borderRadius: 8,
   },
   buttonText: {
     fontSize: 16,
-    color: 'white',
+    color: "white",
   },
 });
 

@@ -1,6 +1,6 @@
 // components/ActivityList.js
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
 const ActivityList = ({ activities }) => {
   return (
@@ -20,22 +20,22 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   activityItem: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     padding: 15,
     marginBottom: 10,
     borderRadius: 8,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
   },
   activityTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   activityTime: {
     fontSize: 14,
-    color: '#888',
+    color: "#888",
     marginTop: 5,
   },
 });
