@@ -311,6 +311,7 @@ export default function Group5Screen() {
                           )
                         )
                       }
+                      
                       style={[styles.chip, on && styles.chipOn]}
                     >
                       <Text style={[styles.chipText, on && styles.chipTextOn]}>

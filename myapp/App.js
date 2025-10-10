@@ -74,7 +74,7 @@ export default function App() {
         <Stack.Screen
           name="Group6Screen"
           component={Group6Screen}
-          options={{ title: "สรุปรายการโอน" }}
+          options={{ title: "Group6Screen" }}
         />
         <Stack.Screen name="SettingScreen" component={SettingScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />

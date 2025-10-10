@@ -124,7 +124,8 @@ export default function Group6Screen({ route, navigation }) {
     groupName,
     people,
     items: filteredItems,
-  });
+  }
+);
 
   const [settledMap, setSettledMap] = useState({});
   const [showSettled, setShowSettled] = useState(true);

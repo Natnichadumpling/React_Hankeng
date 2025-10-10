@@ -1294,6 +1294,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#4caf50",
   },
+  
 });
 
 export default Group4Screen;
