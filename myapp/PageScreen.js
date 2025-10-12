@@ -7,25 +7,73 @@ import {
   ScrollView,
   ImageBackground,
   Image,
+  ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "./supabaseClient";
-import { useNavigation } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/FontAwesome5";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { FontAwesome } from "@expo/vector-icons";
 
-const PageScreen = ({ route }) => {
+const PageScreen = () => {
   const navigation = useNavigation();
-  const email = route?.params?.userData?.email;
-  const [userName, setUserName] = useState("");
+  const route = useRoute();
 
+  // รับ userData จาก route.params (ถูกส่งมาจาก LoginScreen)
+  const userData = route?.params?.userData;
+  const emailFromRoute = userData?.email;
+  const nameFromRoute = userData?.name;
+
+  console.log("=== PageScreen Received Data ===");
+  console.log("Full route.params:", route?.params);
+  console.log("userData:", userData);
+  console.log("Email from route:", emailFromRoute);
+  console.log("Name from route:", nameFromRoute);
+
+  const [email, setEmail] = useState(emailFromRoute || "");
+  const [userName, setUserName] = useState(nameFromRoute || "");
+  const [loading, setLoading] = useState(true);
+
+  // ถ้าไม่มี email จาก route, ดึงข้อมูลจาก AsyncStorage
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        if (!emailFromRoute || !nameFromRoute) {
+          console.log("Loading data from AsyncStorage...");
+          const savedEmail = await AsyncStorage.getItem("userEmail");
+          const savedName = await AsyncStorage.getItem("userName");
+          console.log("Saved email from AsyncStorage:", savedEmail);
+          console.log("Saved name from AsyncStorage:", savedName);
+          
+          if (savedEmail) setEmail(savedEmail);
+          if (savedName) setUserName(savedName);
+        } else {
+          console.log("Using data from route params");
+        }
+      } catch (error) {
+        console.error("Error loading user data from storage:", error);
+      }
+    };
+    loadUserData();
+  }, [emailFromRoute, nameFromRoute]);
+
+  // ดึงชื่อจาก Supabase ถ้ามี email แต่ไม่มี name
   useEffect(() => {
     const fetchUserName = async () => {
       if (!email) {
-        console.error("Email is undefined");
-        setUserName("Guest");
+        console.error("Email is undefined, returning to login...");
+        navigation.navigate("HomeScreen");
+        return;
+      }
+
+      // ถ้ามี userName อยู่แล้ว ไม่ต้องดึงจากฐานข้อมูลอีก
+      if (userName && userName !== "") {
+        console.log("Username already exists:", userName);
+        setLoading(false);
         return;
       }
 
       try {
+        console.log("Fetching username from Supabase for email:", email);
         const { data, error } = await supabase
           .from("users")
           .select("name")
@@ -35,17 +83,29 @@ const PageScreen = ({ route }) => {
         if (error) {
           console.error("Error fetching user name:", error);
           setUserName("Guest");
-        } else if (data && data.name) {
-          console.log("Fetched user name:", data.name);
+        } else if (data?.name) {
+          console.log("Username fetched from Supabase:", data.name);
+          setUserName(data.name);
         }
       } catch (fetchError) {
         console.error("Unexpected error fetching user name:", fetchError);
         setUserName("Guest");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserName();
-  }, [email]);
+  }, [email, userName]);
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#16A34A" />
+        <Text style={{ marginTop: 10, color: "#333" }}>กำลังโหลดข้อมูล...</Text>
+      </View>
+    );
+  }
 
   return (
     <ImageBackground
@@ -53,6 +113,7 @@ const PageScreen = ({ route }) => {
       style={styles.container}
     >
       <ScrollView contentContainerStyle={styles.innerContainer}>
+        {/* โลโก้ */}
         <View style={styles.logoContainer}>
           <Image
             source={require("./assets/images/logo.png")}
@@ -60,20 +121,22 @@ const PageScreen = ({ route }) => {
           />
         </View>
 
+        {/* ข้อความต้อนรับ */}
         <Text style={styles.welcomeText}>
           ยินดีต้อนรับ{"\n"}สู่ HarnKeng ,{"\n"}
-          <Text style={styles.userName}>{userName} !</Text>
+          <Text style={styles.userName}>{userName}</Text>
         </Text>
 
+        {/* การ์ดข้อมูล */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
             ค่าใช้จ่ายทั้งหมด <Text style={styles.amount}>25,000 ฿</Text>
           </Text>
 
           <View style={styles.itemRow}>
-            <Icon
-              name="ticket-alt"
-              size={28}
+            <FontAwesome
+              name="ticket"
+              size={26}
               color="#1E90FF"
               style={styles.itemIcon}
             />
@@ -85,9 +148,9 @@ const PageScreen = ({ route }) => {
           </View>
 
           <View style={styles.itemRow}>
-            <Icon
-              name="utensils"
-              size={28}
+            <FontAwesome
+              name="cutlery"
+              size={26}
               color="#FF5722"
               style={styles.itemIcon}
             />
@@ -99,9 +162,10 @@ const PageScreen = ({ route }) => {
           </View>
         </View>
 
+        {/* ปุ่มไปหน้าถัดไป */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => navigation.navigate("Page1Screen", { email })} // เปลี่ยนตรงนี้
+          onPress={() => navigation.navigate("Page1Screen", { email })}
         >
           <Text style={styles.buttonText}>ถัดไป</Text>
         </TouchableOpacity>
@@ -110,8 +174,15 @@ const PageScreen = ({ route }) => {
   );
 };
 
+/* ---- Styles ---- */
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F8FFF8",
+  },
   innerContainer: {
     width: "100%",
     justifyContent: "flex-start",

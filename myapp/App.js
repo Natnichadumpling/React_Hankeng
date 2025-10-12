@@ -8,9 +8,9 @@ import Home2Screen from "./Home2Screen";
 import Home3Screen from "./Home3Screen";
 import Home4Screen from "./Home4Screen";
 import LoginScreen from "./LoginScreen";
-import SingupScreen from "./SingupScreen";
-import Singup2Screen from "./Singup2Screen";
-import Singup3Screen from "./Singup3Screen";
+import SingupScreen from "./SingupScreen"; // ชื่อถูกต้อง
+import Singup2Screen from "./Singup2Screen"; // ชื่อถูกต้อง
+import Singup3Screen from "./Singup3Screen"; // ชื่อถูกต้อง
 import ChangeScreen from "./ChangeScreen";
 import ProScreen from "./ProScreen";
 import PageScreen from "./PageScreen";
@@ -32,6 +32,7 @@ import TabBar from "./components/TabBar";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
 const BottomTabNavigator = () => {
   return (
     <Tab.Navigator tabBar={(props) => <TabBar {...props} />}>

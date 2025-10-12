@@ -6,19 +6,43 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  ScrollView,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { hashPassword } from "./utils/hashPassword";
 
 const SingupScreen = () => {
   const navigation = useNavigation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // ตรวจสอบความยาวรหัสผ่าน
+  const isPasswordValid = password.length >= 8;
+  // ตรวจสอบว่าอีเมลมีรูปแบบที่ถูกต้องหรือไม่
+  const isEmailValid = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/.test(email);
+
+  const handleNext = async () => {
+    if (!email.trim()) {
+      Alert.alert("แจ้งเตือน", "กรุณากรอกอีเมล");
+      return;
+    }
+    if (!isEmailValid) {
+      Alert.alert("แจ้งเตือน", "กรุณากรอกอีเมลที่ถูกต้อง");
+      return;
+    }
+    if (!isPasswordValid) {
+      Alert.alert("แจ้งเตือน", "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
+      return;
+    }
+    const hashed = await hashPassword(password);
+    navigation.navigate("Singup2Screen", {
+      email,
+      hashedPassword: hashed,
+    });
+  };
 
   return (
     <KeyboardAvoidingView
@@ -38,12 +62,16 @@ const SingupScreen = () => {
           </View>
 
           <Text style={styles.title}>สมัครใช้งาน</Text>
+
           <TextInput
             style={styles.input}
             placeholder="ที่อยู่อีเมล"
             value={email}
             onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
+
           <TextInput
             style={styles.input}
             placeholder="รหัสผ่าน"
@@ -51,19 +79,25 @@ const SingupScreen = () => {
             value={password}
             onChangeText={setPassword}
           />
-          <Text style={styles.validationText}>
-            *ต้องมีตัวอักขระอย่างน้อย 8 ตัว
+
+          <Text
+            style={[styles.validationText, { color: isPasswordValid ? "green" : "#b91c1c" }]}
+          >
+            * ต้องมีตัวอักขระอย่างน้อย 8 ตัว
           </Text>
 
+          {/* ปุ่มถัดไป */}
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: "rgb(67, 154, 67)" }]}
-            onPress={async () => {
-              const hashed = await hashPassword(password);
-              navigation.navigate("Singup2Screen", {
-                email,
-                hashedPassword: hashed,
-              });
-            }}
+            style={[
+              styles.button,
+              {
+                backgroundColor: isPasswordValid && isEmailValid
+                  ? "rgb(67, 154, 67)"
+                  : "rgba(100, 100, 100, 0.3)",
+              },
+            ]}
+            onPress={handleNext}
+            disabled={!isPasswordValid || !isEmailValid}
           >
             <Text style={styles.buttonText}>ถัดไป</Text>
           </TouchableOpacity>
@@ -78,16 +112,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     justifyContent: "flex-start",
-  },
-  appBar: {
-    backgroundColor: "transparent",
-    elevation: 0,
-    paddingTop: 20,
-    paddingLeft: 10,
-  },
-  closeButton: {
-    position: "absolute",
-    left: 0,
   },
   body: {
     flex: 1,
@@ -104,6 +128,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 40,
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 4,
   },
   logo: {
     width: 100,
@@ -124,11 +153,11 @@ const styles = StyleSheet.create({
     paddingLeft: 15,
     backgroundColor: "#f0f0f0",
     marginBottom: 10,
+    color: "#000",
   },
   validationText: {
     fontSize: 14,
     fontWeight: "bold",
-    color: "#232323",
     alignSelf: "flex-start",
     marginBottom: 20,
   },
@@ -139,10 +168,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     marginBottom: 10,
+    transitionDuration: "0.3s",
   },
   buttonText: {
     color: "white",
     fontSize: 20,
+    fontWeight: "bold",
   },
 });
 
