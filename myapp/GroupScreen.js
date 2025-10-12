@@ -1,3 +1,28 @@
+  // อัปโหลดรูปภาพไปยัง Supabase Storage และบันทึก URL ลงฐานข้อมูล
+  const uploadGroupImage = async (uri) => {
+    try {
+      if (!uri) return null;
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      const fileExt = uri.split('.').pop() || 'jpg';
+      const fileName = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `group_images/${fileName}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('group-images')
+        .upload(filePath, blob, { cacheControl: '3600', upsert: false });
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        Alert.alert('อัปโหลดรูปไม่สำเร็จ', uploadError.message);
+        return null;
+      }
+      const { data: urlData } = supabase.storage.from('group-images').getPublicUrl(filePath);
+      return urlData?.publicUrl || null;
+    } catch (err) {
+      console.error('Upload failed:', err);
+      Alert.alert('อัปโหลดรูปไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด');
+      return null;
+    }
+  };
 import React, { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "./supabaseClient";
@@ -70,16 +95,15 @@ const GroupScreen = () => {
       console.log("DocumentPicker result:", res);
       if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
         setGroupImage(res.assets[0].uri);
-    const activityType = selectedCategory.isOther && otherActivity ? otherActivity : selectedCategory.name;
         console.log("groupImage set to:", res.assets[0].uri);
       } else {
         setGroupImage(null);
         console.log("groupImage set to null");
+        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
       }
     } catch (err) {
       Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
     }
-        const [otherActivity, setOtherActivity] = useState("");
   };
 
   const addGroupToDatabase = async () => {
@@ -97,6 +121,10 @@ const GroupScreen = () => {
       created_by = data?.session?.user?.email || null;
     } catch (e) {}
     const activityType = selectedCategory && selectedCategory.isOther && otherActivity ? otherActivity : selectedCategory?.name;
+    let imageUrl = null;
+    if (groupImage) {
+      imageUrl = await uploadGroupImage(groupImage);
+    }
     const { data, error } = await supabase
       .from("groups")
       .insert([
@@ -104,7 +132,7 @@ const GroupScreen = () => {
           name: groupName,
           created_by,
           image: selectedCategory.image,
-          image_url: groupImage || null,
+          image_url: imageUrl,
           activity_type: activityType,
         },
       ])
