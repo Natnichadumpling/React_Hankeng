@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
+import { supabase } from "./supabaseClient"; // ปรับ path ตามโครงสร้างโปรเจคของคุณ
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -30,7 +31,6 @@ const useSettlement = (routeParams) => {
     items.forEach((it) => {
       const { name, price, sharedBy = [], paidByMap = {} } = it;
       if (!price || !sharedBy.length) return;
-
       const share = price / sharedBy.length;
       const totalPaid = Object.values(paidByMap).reduce(
         (s, v) => s + (v || 0),
@@ -49,12 +49,10 @@ const useSettlement = (routeParams) => {
       Object.entries(paidByMap).forEach(([payer, amt]) => {
         const ratio = (amt || 0) / totalPaid;
         if (ratio <= 0) return;
-
         sharedBy.forEach((debtor) => {
           const portion = share * ratio;
           const key = `${debtor}|${payer}`;
           const bucket = ensure(key);
-
           bucket.total += portion;
           bucket.items.push({
             name,
@@ -79,7 +77,6 @@ const useSettlement = (routeParams) => {
   const transfers = useMemo(() => {
     const debtors = [];
     const creditors = [];
-
     Object.entries(balances).forEach(([name, val]) => {
       if (val < -0.01) debtors.push({ name, amount: Math.abs(val) });
       else if (val > 0.01) creditors.push({ name, amount: val });
@@ -113,8 +110,54 @@ export default function Group6Screen({ route, navigation }) {
   const allItems = route?.params?.items || [];
   const people = route?.params?.people || [];
   const groupName = route?.params?.groupName || "กลุ่มของเรา";
-
+  
   const [selectedItem, setSelectedItem] = useState(null);
+  const [currentUserName, setCurrentUserName] = useState(null);
+  const [bankInfoMap, setBankInfoMap] = useState({});
+
+  // ดึงข้อมูล user ที่ login อยู่
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // ดึงชื่อ user จาก profiles table
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile) {
+          setCurrentUserName(profile.name);
+        }
+      }
+    };
+    fetchCurrentUser();
+  }, []);
+
+  // ดึงข้อมูลธนาคารของทุกคนในกลุ่ม
+  useEffect(() => {
+    const fetchBankInfo = async () => {
+      if (people.length === 0) return;
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('name, bank_name, bank_account')
+        .in('name', people);
+
+      if (profiles) {
+        const bankMap = {};
+        profiles.forEach(profile => {
+          bankMap[profile.name] = {
+            bank_name: profile.bank_name,
+            bank_account: profile.bank_account
+          };
+        });
+        setBankInfoMap(bankMap);
+      }
+    };
+    fetchBankInfo();
+  }, [people]);
 
   const filteredItems = selectedItem
     ? allItems.filter((it) => it.name === selectedItem)
@@ -124,19 +167,20 @@ export default function Group6Screen({ route, navigation }) {
     groupName,
     people,
     items: filteredItems,
-  }
-);
+  });
 
   const [settledMap, setSettledMap] = useState({});
   const [showSettled, setShowSettled] = useState(true);
   const [expanded, setExpanded] = useState({});
 
   const toggleExpand = (k) => setExpanded((s) => ({ ...s, [k]: !s[k] }));
+
   const expandAll = () => {
     const m = {};
     transfers.forEach((t) => (m[`${t.from}|${t.to}`] = true));
     setExpanded(m);
   };
+
   const collapseAll = () => setExpanded({});
 
   const visibleTransfers = transfers.filter((t) => {
@@ -220,11 +264,12 @@ export default function Group6Screen({ route, navigation }) {
             items: [],
           };
 
+          // เช็คว่าผู้รับเงิน (t.to) เป็น currentUser หรือไม่
+          const shouldShowBankInfo = currentUserName && t.to === currentUserName;
+          const bankInfo = bankInfoMap[t.to];
+
           return (
-            <View
-              key={key}
-              style={[styles.card, isSettled && styles.cardSettled]}
-            >
+            <View key={key} style={[styles.card, isSettled && styles.cardSettled]}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLine}>
                   {t.from} ต้องจ่ายให้ {t.to} จำนวน ฿{t.amount.toFixed(2)}
@@ -244,6 +289,23 @@ export default function Group6Screen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
 
+              {/* แสดงข้อมูลธนาคารเฉพาะเมื่อผู้รับเงินเป็น currentUser */}
+              {shouldShowBankInfo && bankInfo && (bankInfo.bank_name || bankInfo.bank_account) && (
+                <View style={styles.bankInfoBox}>
+                  <Text style={styles.bankInfoTitle}>ข้อมูลบัญชีผู้รับเงิน:</Text>
+                  {bankInfo.bank_name && (
+                    <Text style={styles.bankInfoText}>
+                      🏦 ธนาคาร: {bankInfo.bank_name}
+                    </Text>
+                  )}
+                  {bankInfo.bank_account && (
+                    <Text style={styles.bankInfoText}>
+                      💳 เลขบัญชี: {bankInfo.bank_account}
+                    </Text>
+                  )}
+                </View>
+              )}
+
               <View style={styles.cardHeaderRow}>
                 <Text style={styles.cardTitle}>
                   <Text style={styles.nameFrom}>{t.from}</Text>
@@ -262,7 +324,6 @@ export default function Group6Screen({ route, navigation }) {
                     {expanded[key] ? "ซ่อนรายละเอียด" : "ดูรายละเอียด"}
                   </Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   onPress={() =>
                     setSettledMap((m) => {
@@ -306,6 +367,7 @@ export default function Group6Screen({ route, navigation }) {
                   )}
 
                   {neg.items.length > 0 && <View style={styles.divider} />}
+
                   {neg.items.length > 0 && (
                     <>
                       <Text style={styles.detailTitle}>
@@ -347,7 +409,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f8fafc" },
   title: { fontSize: 22, fontWeight: "800", color: "#111827" },
   subtitle: { fontSize: 14, color: "#6b7280", marginBottom: 12 },
-
   filterBox: { marginBottom: 12 },
   filterLabel: { fontWeight: "700", marginBottom: 6, color: "#111827" },
   filterBtn: {
@@ -359,7 +420,6 @@ const styles = StyleSheet.create({
   },
   filterBtnOn: { backgroundColor: "#2563eb" },
   filterBtnText: { color: "#111827", fontWeight: "700" },
-
   controlsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -368,7 +428,6 @@ const styles = StyleSheet.create({
   },
   ctrlBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   ctrlBtnText: { color: "#fff", fontWeight: "700" },
-
   emptyBox: {
     padding: 16,
     backgroundColor: "#fff",
@@ -377,7 +436,6 @@ const styles = StyleSheet.create({
     borderColor: "#e5e7eb",
   },
   muted: { color: "#6b7280" },
-
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -392,7 +450,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardSettled: { opacity: 0.6 },
-
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -413,7 +470,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   evidenceText: { color: "#fff", fontWeight: "700", fontSize: 12 },
-
+  bankInfoBox: {
+    backgroundColor: "#ecfdf5",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#10b981",
+  },
+  bankInfoTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#047857",
+    marginBottom: 4,
+  },
+  bankInfoText: {
+    fontSize: 13,
+    color: "#065f46",
+    fontWeight: "600",
+    marginBottom: 2,
+  },
   cardHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -424,7 +500,6 @@ const styles = StyleSheet.create({
   nameFrom: { color: "#ef4444", fontWeight: "800" },
   nameTo: { color: "#10b981", fontWeight: "800" },
   amount: { fontWeight: "800", color: "#f59e0b" },
-
   actionsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -440,7 +515,6 @@ const styles = StyleSheet.create({
   chipOn: { backgroundColor: "#059669" },
   chipOff: { backgroundColor: "#1f2937" },
   chipText: { color: "#fff", fontWeight: "700", fontSize: 12 },
-
   detailBox: {
     marginTop: 10,
     backgroundColor: "#f9fafb",

@@ -14,49 +14,84 @@ import {
   Platform,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Picker } from "@react-native-picker/picker";
-import { supabase } from "./supabaseClient";
+import { supabase } from "./supabaseClient"; // ✅ ต้องมี client ของคุณอยู่แล้ว
 
-const Singup3Screen = () => {
+const Signup3Screen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { email, hashedPassword, name, phone } = route.params || {};
-  const [selectedCountryCode] = useState("+66");
-  const [phoneNumber] = useState("");
 
-  const handleSignup = async () => {
-    const { data: existing, error: checkErr } = await supabase
+  // รับค่าจากหน้าก่อนหน้า
+  const { email, hashedPassword, name, phone } = route.params || {};
+
+  const [selectedBank, setSelectedBank] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [showList, setShowList] = useState(false);
+
+  const BANKS = [
+    { id: "kbank", name: "กสิกรไทย", logo: require("./assets/images/kbank.png") },
+    { id: "scb", name: "ไทยพาณิชย์", logo: require("./assets/images/scb.png") },
+    { id: "ktb", name: "กรุงไทย", logo: require("./assets/images/ktb.png") },
+  ];
+
+  const handleSave = async () => {
+    if (!selectedBank) return Alert.alert("กรุณาเลือกธนาคาร");
+    if (!accountNumber.trim()) return Alert.alert("กรุณากรอกเลขบัญชี");
+    if (!email) return Alert.alert("ไม่พบข้อมูลอีเมลจากขั้นตอนก่อนหน้า");
+
+    // ตรวจสอบว่าผู้ใช้มีในระบบหรือไม่
+    const { data: existingUser, error: userError } = await supabase
       .from("users")
       .select("email")
-      .eq("email", email);
+      .eq("email", email)
+      .maybeSingle();
 
-    if (checkErr) {
-      Alert.alert("เกิดข้อผิดพลาด", checkErr.message);
-      return;
-    }
-    if (existing && existing.length > 0) {
-      Alert.alert("อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น");
-      return;
+    if (userError) {
+      console.error("Error checking existing user:", userError);
+      return Alert.alert("เกิดข้อผิดพลาด", userError.message);
     }
 
-    const userData = {
-      email: email || "",
-      password: hashedPassword || "",
-      name: name || "",
-      phone: phone || `${selectedCountryCode}${phoneNumber}`,
-    };
+    if (!existingUser) {
+      // ถ้ายังไม่มีผู้ใช้ → INSERT ผู้ใช้ใหม่ทั้งหมด
+      const { error: insertError } = await supabase
+        .from("users")
+        .insert([
+          {
+            email,
+            password: hashedPassword,
+            name,
+            phone,
+            bank_name: selectedBank,
+            bank_account: accountNumber.trim(),
+          },
+        ]);
 
-    const { error } = await supabase.from("users").insert([userData]);
-    if (error) {
-      Alert.alert("เกิดข้อผิดพลาด", error.message);
+      if (insertError) {
+        console.error("Error inserting new user:", insertError);
+        return Alert.alert("ไม่สามารถสมัครสมาชิกได้", insertError.message);
+      }
     } else {
-      Alert.alert("สมัครสมาชิกสำเร็จ");
-      navigation.navigate("HomeScreen");
-    }
-  };
+      // ถ้ามีแล้ว → อัปเดตข้อมูลบัญชีธนาคาร
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({
+          bank_name: selectedBank,
+          bank_account: accountNumber.trim(),
+        })
+        .eq("email", email);
 
-  const codeFromRoute = phone?.slice(0, 3) || "+66";
-  const numFromRoute = phone?.slice(3) || "";
+      if (updateError) {
+        console.error("Error updating bank info:", updateError);
+        return Alert.alert("ไม่สามารถอัปเดตข้อมูลบัญชีได้", updateError.message);
+      }
+    }
+
+    // ✅ แจ้งเตือนแล้วกลับไปหน้า HomeScreen เพื่อให้เข้าสู่ระบบใหม่
+    Alert.alert(
+      "สำเร็จ",
+      "สมัครสมาชิกเรียบร้อยแล้ว! โปรดเข้าสู่ระบบใหม่อีกครั้ง",
+      [{ text: "ตกลง", onPress: () => navigation.navigate("HomeScreen") }]
+    );
+  };
 
   return (
     <ImageBackground
@@ -69,72 +104,101 @@ const Singup3Screen = () => {
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
+          <ScrollView contentContainerStyle={styles.content}>
             <View style={styles.formWrap}>
               <Image
                 source={require("./assets/images/logo.png")}
                 style={styles.logo}
               />
-              <Text style={styles.title}>สมัครใช้งาน</Text>
-              <TextInput
-                style={styles.input}
-                value={name || ""}
-                editable={false}
-                placeholder="ชื่อผู้ใช้"
-                placeholderTextColor="rgba(18, 17, 17, 0.7)"
-              />
+              <Text style={styles.title}>เพิ่มบัญชีธนาคาร</Text>
 
-              <View style={styles.phoneRow}>
-                <View style={styles.pickerBox}>
-                  <Picker
-                    selectedValue={codeFromRoute}
-                    enabled={false}
-                    style={styles.picker}
-                    dropdownIconColor="#101010ff"
-                  >
-                    <Picker.Item
-                      label={codeFromRoute}
-                      value={codeFromRoute}
-                      color="#000"
-                    />
-                  </Picker>
-                </View>
-                <TextInput
-                  style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                  value={numFromRoute}
-                  editable={false}
-                  placeholder="หมายเลขโทรศัพท์"
-                  placeholderTextColor="rgba(19, 18, 18, 0.7)"
-                />
-              </View>
-
-              <Text style={styles.hint}>*ต้องมีตัวอักขระอย่างน้อย 8 ตัว</Text>
-
+              {/* เลือกธนาคาร */}
+              <Text style={styles.label}>เลือกธนาคาร</Text>
               <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary]}
-                onPress={handleSignup}
+                style={styles.dropdown}
+                onPress={() => setShowList(!showList)}
               >
-                <Text style={styles.btnText}>สมัครสมาชิก</Text>
+                {selectedBank ? (
+                  <View style={styles.bankRow}>
+                    <Image
+                      source={BANKS.find((b) => b.id === selectedBank)?.logo}
+                      style={styles.bankLogo}
+                    />
+                    <Text style={styles.bankText}>
+                      {BANKS.find((b) => b.id === selectedBank)?.name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.placeholder}>เลือกธนาคาร</Text>
+                )}
               </TouchableOpacity>
 
+              {showList && (
+                <View style={styles.dropdownList}>
+                  {BANKS.map((bank) => (
+                    <TouchableOpacity
+                      key={bank.id}
+                      style={[
+                        styles.dropdownItem,
+                        selectedBank === bank.id && styles.dropdownItemSelected,
+                      ]}
+                      onPress={() => {
+                        setSelectedBank(bank.id);
+                        setShowList(false);
+                      }}
+                    >
+                      <View style={styles.bankRow}>
+                        <Image source={bank.logo} style={styles.bankLogo} />
+                        <Text
+                          style={[
+                            styles.bankText,
+                            selectedBank === bank.id && styles.bankTextSelected,
+                          ]}
+                        >
+                          {bank.name}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {/* เลขบัญชี */}
+              <Text style={styles.label}>เลขบัญชี</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="เช่น 123-456-7890"
+                keyboardType="numeric"
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+                placeholderTextColor="#777"
+              />
+              <Text style={styles.hint}>*กรุณากรอกเลขบัญชีให้ถูกต้อง</Text>
+
+              {/* ปุ่มบันทึก */}
+              <TouchableOpacity
+                style={[styles.btn, styles.btnPrimary]}
+                onPress={handleSave}
+              >
+                <Text style={styles.btnText}>บันทึกบัญชีธนาคาร</Text>
+              </TouchableOpacity>
+
+              {/* เงื่อนไข / นโยบาย */}
               <View style={styles.centerBlock}>
                 <Text style={styles.normalText}>
-                  การสมัครใช้งานถือว่าคุณยอมรับ
+                  การดำเนินการนี้ถือว่าคุณยอมรับ
                 </Text>
                 <View style={styles.termsRow}>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("Home2Screen")}
                   >
-                    <Text style={styles.link}>ข้อกำหนดการให้บริการ</Text>
+                    <Text style={styles.linkGreen}>ข้อกำหนดการให้บริการ</Text>
                   </TouchableOpacity>
                   <Text style={styles.normalText}> และ </Text>
                   <TouchableOpacity
                     onPress={() => navigation.navigate("Home3Screen")}
                   >
-                    <Text style={styles.link}>นโยบายความเป็นส่วนตัว</Text>
+                    <Text style={styles.linkGreen}>นโยบายความเป็นส่วนตัว</Text>
                   </TouchableOpacity>
                   <Text style={styles.normalText}> ของ HarnKeng</Text>
                 </View>
@@ -147,6 +211,7 @@ const Singup3Screen = () => {
   );
 };
 
+/* ---- styles ---- */
 const styles = StyleSheet.create({
   bg: { flex: 1 },
   bgImg: { resizeMode: "cover" },
@@ -157,26 +222,12 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     justifyContent: "center",
   },
-
   formWrap: {
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",
     alignItems: "center",
   },
-  appBar: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    right: 8,
-    zIndex: 2,
-  },
-  backBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  backText: { color: "#050505ff", fontSize: 16, fontWeight: "700" },
-
   logo: {
     width: 110,
     height: 110,
@@ -186,48 +237,66 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "800",
-    color: "#0c0c0cff",
-    marginBottom: 14,
+    color: "#004F3D",
+    marginBottom: 22,
   },
-  input: {
+  label: {
+    alignSelf: "flex-start",
+    color: "#065F46",
+    fontWeight: "600",
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  dropdown: {
     width: "100%",
-    height: 50,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.97)",
+    height: 52,
+    borderWidth: 1.6,
+    borderColor: "#A7C7B4",
     borderRadius: 12,
     paddingHorizontal: 14,
-    backgroundColor: "rgba(255, 251, 251, 0)",
-    color: "#060606ff",
-    marginBottom: 12,
-  },
-  phoneRow: {
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-
-  pickerBox: {
-    width: 100,
-    height: 50,
-    borderWidth: 1,
-    borderColor: "rgba(0, 0, 0, 0.35)",
-    borderRadius: 12,
-    backgroundColor: "rgba(209, 200, 200, 0)",
-    marginRight: 10,
+    backgroundColor: "#F8FFFB",
     justifyContent: "center",
+    marginBottom: 10,
+  },
+  dropdownList: {
+    width: "100%",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.4,
+    borderColor: "#A7C7B4",
+    borderRadius: 12,
+    marginBottom: 12,
     overflow: "hidden",
   },
-  picker: {
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  dropdownItemSelected: { backgroundColor: "#E0F2FE" },
+  bankRow: { flexDirection: "row", alignItems: "center" },
+  bankLogo: { width: 28, height: 28, marginRight: 10, resizeMode: "contain" },
+  bankText: { fontSize: 15, color: "#0F172A" },
+  bankTextSelected: { fontWeight: "700", color: "#0369A1" },
+  placeholder: { fontSize: 15, color: "#9CA3AF" },
+  input: {
     width: "100%",
-    height: 50,
-    color: "#060606ff",
+    height: 52,
+    borderWidth: 1.6,
+    borderColor: "#A7C7B4",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    backgroundColor: "#F8FFFB",
+    color: "#0C0C0C",
   },
   hint: {
     width: "100%",
     fontSize: 12,
-    color: "rgba(0, 0, 0, 0.9)",
+    color: "#666",
     marginBottom: 16,
+    marginTop: 4,
   },
   btn: {
     width: "100%",
@@ -237,22 +306,36 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 18,
   },
-  btnPrimary: { backgroundColor: "rgba(58, 162, 58, 1)" },
-  btnText: { color: "#100f0fff", fontSize: 18, fontWeight: "800" },
-  centerBlock: { alignItems: "center", marginBottom: 16 },
-  normalText: { fontSize: 14, color: "#000000ff" },
-  link: {
-    fontSize: 14,
-    color: "#107122ff",
-    textDecorationLine: "underline",
-    fontWeight: "700",
+  btnPrimary: {
+    backgroundColor: "#4DBB9A",
+    shadowColor: "#4DBB9A",
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  btnText: { color: "#fff", fontSize: 17, fontWeight: "800" },
+
+  // ✅ ส่วนจัดข้อความท้ายหน้า
+  centerBlock: {
+    alignItems: "center",
+    marginTop: 12,
   },
   termsRow: {
-    marginTop: 4,
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
+    alignItems: "center",
+  },
+  normalText: {
+    fontSize: 13,
+    color: "#0F172A",
+  },
+  linkGreen: {
+    color: "#16A34A",
+    fontWeight: "700",
+    textDecorationLine: "underline",
   },
 });
 
-export default Singup3Screen;
+export default Signup3Screen;

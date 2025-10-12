@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -12,9 +12,8 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "./supabaseClient";
-import { hashPassword } from "./utils/hashPassword";
-import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CryptoJS from "crypto-js";
 
 const LoginScreen = () => {
   const navigation = useNavigation();
@@ -24,56 +23,98 @@ const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
 
   const validateEmail = (email) => {
-    const re =
-      /^(([^<>()\[\]\\.,;:\s@\"]+(\.[^<>()\[\]\\.,;:\s@\"]+)*)|(".+"))@(([^<>()[\]\\.,;:\s@\"]+\.)+[^<>()[\]\\.,;:\s@\"]{2,})$/i;
-    return re.test(String(email).toLowerCase());
+    // ตรวจสอบว่าอีเมลมี @ และ . หรือไม่
+    return email.includes('@') && email.includes('.');
   };
 
   const handleLogin = async () => {
+    // ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
     if (!email || !password) {
       global.alert("กรุณากรอกอีเมลและรหัสผ่าน");
       return;
     }
+    
+    // ตรวจสอบรูปแบบอีเมล
     if (!validateEmail(email)) {
       global.alert("รูปแบบอีเมลไม่ถูกต้อง");
       return;
     }
+    
+    // ตรวจสอบความยาวรหัสผ่าน
     if (password.length < 8) {
       global.alert("รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร");
       return;
     }
+
     setLoading(true);
-    const hashedInput = await hashPassword(password);
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .eq("password", hashedInput);
-    setLoading(false);
-    if (error || !data || data.length === 0) {
-      global.alert("เข้าสู่ระบบไม่สำเร็จ\nอีเมลหรือรหัสผ่านไม่ถูกต้อง");
-    } else {
+    
+    try {
+      // ค้นหาผู้ใช้ในฐานข้อมูลด้วยอีเมลเท่านั้น
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("email", email);
+
+      // ตรวจสอบ error จากฐานข้อมูล
+      if (error) {
+        console.error("Database error:", error);
+        setLoading(false);
+        global.alert("เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล");
+        return;
+      }
+
+      // ตรวจสอบว่าพบผู้ใช้หรือไม่
+      if (!data || data.length === 0) {
+        setLoading(false);
+        global.alert("ไม่พบผู้ใช้นี้ในระบบ\nกรุณาตรวจสอบอีเมลอีกครั้ง");
+        return;
+      }
+
       const userData = data[0];
+      const storedPassword = userData.password;
+      
+      // แปลงรหัสผ่านที่ผู้ใช้กรอกเป็น SHA-256
+      const sha256Hash = CryptoJS.SHA256(password).toString();
+      
+      console.log("=== Password Comparison ===");
+      console.log("Input password:", password);
+      console.log("SHA256 of input:", sha256Hash);
+      console.log("Stored password:", storedPassword);
+      console.log("Match:", sha256Hash === storedPassword);
+
+      setLoading(false);
+
+      // เปรียบเทียบ SHA-256 hash
+      if (sha256Hash !== storedPassword) {
+        global.alert("รหัสผ่านไม่ถูกต้อง\nกรุณาลองใหม่อีกครั้ง");
+        return;
+      }
+
+      // เข้าสู่ระบบสำเร็จ
+      console.log("✅ เข้าสู่ระบบสำเร็จ!");
+      console.log("ข้อมูลผู้ใช้:", userData);
+
       try {
+        // บันทึกข้อมูลผู้ใช้ใน AsyncStorage
         await AsyncStorage.setItem("userEmail", userData.email);
         await AsyncStorage.setItem("userName", userData.name);
-        console.log(
-          "User email and name saved to AsyncStorage:",
-          userData.email,
-          userData.name
-        );
+        console.log("บันทึกข้อมูลผู้ใช้ใน AsyncStorage สำเร็จ");
       } catch (storageError) {
-        console.error(
-          "Failed to save user data to AsyncStorage:",
-          storageError
-        );
+        console.error("ไม่สามารถบันทึกข้อมูลผู้ใช้ใน AsyncStorage:", storageError);
       }
+
+      // นำทางไปหน้า PageScreen พร้อมส่งข้อมูลผู้ใช้
       navigation.navigate("PageScreen", {
         userData: {
           name: userData.name,
           email: userData.email,
         },
       });
+      
+    } catch (err) {
+      setLoading(false);
+      console.error("เกิดข้อผิดพลาดในการเข้าสู่ระบบ:", err);
+      global.alert("เกิดข้อผิดพลาดในการเข้าสู่ระบบ\nกรุณาลองใหม่อีกครั้ง");
     }
   };
 
@@ -95,6 +136,8 @@ const LoginScreen = () => {
             />
           </View>
           <Text style={styles.title}>เข้าสู่ระบบ</Text>
+          
+          {/* ช่องกรอกอีเมล */}
           <TextInput
             style={[styles.input, { marginBottom: 12 }]}
             placeholder="ที่อยู่อีเมล"
@@ -104,6 +147,8 @@ const LoginScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+          
+          {/* ช่องกรอกรหัสผ่าน พร้อมปุ่มแสดง/ซ่อนรหัสผ่าน */}
           <View style={[styles.passwordRow, { marginBottom: 12 }]}>
             <TextInput
               style={[styles.input, { flex: 1, marginBottom: 0 }]}
@@ -124,9 +169,13 @@ const LoginScreen = () => {
               </Text>
             </TouchableOpacity>
           </View>
+          
+          {/* ข้อความแจ้งเตือนความยาวรหัสผ่าน */}
           <Text style={styles.validationText}>
             *ต้องมีตัวอักขระอย่างน้อย 8 ตัว
           </Text>
+          
+          {/* ปุ่มเข้าสู่ระบบ */}
           <TouchableOpacity
             testID="loginButton"
             style={[
@@ -142,6 +191,8 @@ const LoginScreen = () => {
               <Text style={styles.buttonText}>เข้าสู่ระบบ</Text>
             )}
           </TouchableOpacity>
+          
+          {/* ลิงก์ลืมรหัสผ่าน */}
           <TouchableOpacity
             onPress={() => navigation.navigate("ForgotPassword")}
           >
