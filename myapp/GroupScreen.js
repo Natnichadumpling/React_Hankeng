@@ -12,14 +12,17 @@ import {
   ImageBackground,
   Alert,
   SafeAreaView,
+  Modal,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 
 const GroupScreen = () => {
+  const [otherModalVisible, setOtherModalVisible] = useState(false);
   const navigation = useNavigation();
   const [groupName, setGroupName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [groupImage, setGroupImage] = useState(null);
+  const [otherActivity, setOtherActivity] = useState("");
 
   const categories = [
     {
@@ -42,10 +45,19 @@ const GroupScreen = () => {
       icon: require("./assets/images/exercise.png"),
       image: "exercise.png",
     },
+    {
+      name: "กิจกรรมอื่นๆ",
+      icon: require("./assets/images/i.jpg"), // ใช้ภาพ i.jpg
+      image: "i.jpg",
+      isOther: true,
+    },
   ];
 
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
+    if (category.isOther) {
+      setOtherModalVisible(true);
+    }
   };
 
   const handleFilePicker = async () => {
@@ -58,6 +70,7 @@ const GroupScreen = () => {
       console.log("DocumentPicker result:", res);
       if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
         setGroupImage(res.assets[0].uri);
+    const activityType = selectedCategory.isOther && otherActivity ? otherActivity : selectedCategory.name;
         console.log("groupImage set to:", res.assets[0].uri);
       } else {
         setGroupImage(null);
@@ -66,6 +79,7 @@ const GroupScreen = () => {
     } catch (err) {
       Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
     }
+        const [otherActivity, setOtherActivity] = useState("");
   };
 
   const addGroupToDatabase = async () => {
@@ -79,11 +93,10 @@ const GroupScreen = () => {
     }
     let created_by = null;
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      created_by = session?.user?.email || null;
+      const { data } = await supabase.auth.getSession();
+      created_by = data?.session?.user?.email || null;
     } catch (e) {}
+    const activityType = selectedCategory && selectedCategory.isOther && otherActivity ? otherActivity : selectedCategory?.name;
     const { data, error } = await supabase
       .from("groups")
       .insert([
@@ -92,7 +105,7 @@ const GroupScreen = () => {
           created_by,
           image: selectedCategory.image,
           image_url: groupImage || null,
-          activity_type: selectedCategory.name,
+          activity_type: activityType,
         },
       ])
       .select();
@@ -101,10 +114,8 @@ const GroupScreen = () => {
     if (!error && data && data[0]) {
       let userId = null;
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        userId = session?.user?.id || null;
+        const { data } = await supabase.auth.getSession();
+        userId = data?.session?.user?.id || null;
       } catch (e) {
         console.log("ERROR getSession:", e);
       }
@@ -120,13 +131,14 @@ const GroupScreen = () => {
         );
         return !error;
       }
+          const activityType = selectedCategory?.isOther && otherActivity ? otherActivity : selectedCategory.name;
 
       const activityPayload = {
         type: "create_group",
         description: `คุณสร้างกลุ่ม "${groupName}"`,
         group_id: data[0].id,
         group_name: groupName,
-        group_activity_type: selectedCategory.name,
+        group_activity_type: activityType,
       };
       if (userId) activityPayload.user_id = userId;
 
@@ -185,6 +197,36 @@ const GroupScreen = () => {
         source={require("./assets/images/p1.png")}
         style={styles.container}
       >
+        <Modal
+          visible={otherModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setOtherModalVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+                <Image source={require("./assets/images/i.jpg")}
+                  style={{ width: 72, height: 72, marginBottom: 18, borderRadius: 36, borderWidth: 2, borderColor: '#4A90E2' }}
+                  resizeMode="cover"
+                />
+                <Text style={styles.modalTitle}>กรอกชื่อกิจกรรมอื่นๆ</Text>
+                <Text style={styles.modalLabel}>โปรดระบุชื่อกิจกรรมที่ต้องการ</Text>
+                <TextInput
+                  style={[styles.input, { marginBottom: 18, borderRadius: 10, borderWidth: 1, borderColor: '#ddd', paddingHorizontal: 12, fontSize: 16, backgroundColor: '#f7f7f7' }]}
+                  placeholder="ชื่อกิจกรรมอื่นๆ"
+                  value={otherActivity}
+                  onChangeText={setOtherActivity}
+                  placeholderTextColor="#aaa"
+                />
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={() => setOtherModalVisible(false)}
+                >
+                  <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>ตกลง</Text>
+                </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.header}>
             <TouchableOpacity
@@ -280,6 +322,48 @@ const GroupScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 280,
+  },
+  modalButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    marginTop: 8,
+    alignItems: 'center',
+    shadowColor: '#4A90E2',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  modalLabel: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 12,
+  },
   container: {
     flex: 1,
   },
