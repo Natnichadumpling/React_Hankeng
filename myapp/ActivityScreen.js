@@ -95,19 +95,16 @@ const ActivityScreen = ({ navigation }) => {
         activity.group_activity_type === selectedGroupType)
   );
 
-  // --- ฟังก์ชันที่แก้ไขแล้ว ---
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date); // ส่วนต่างเวลา (มิลลิวินาที)
+    const diffTime = Math.abs(now - date);
 
-    // คำนวณส่วนต่างในหน่วยต่างๆ
     const diffMinutes = Math.floor(diffTime / (1000 * 60));
     const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // เพิ่มเงื่อนไขแสดงผลให้ละเอียดขึ้น
     if (diffMinutes < 1) {
       return "เมื่อสักครู่";
     }
@@ -120,7 +117,7 @@ const ActivityScreen = ({ navigation }) => {
     if (diffDays < 7) {
       return `${diffDays} วันที่แล้ว`;
     }
-    // ถ้าเกิน 7 วัน ให้แสดงวันที่แบบปกติ
+
     return date.toLocaleDateString("th-TH", {
       day: "numeric",
       month: "short",
@@ -135,7 +132,6 @@ const ActivityScreen = ({ navigation }) => {
         style={styles.container}
         resizeMode="cover"
       >
-        {/* Header without Back Button */}
         <View style={styles.headerOverlay}>
           <View style={styles.header}>
             <View style={styles.headerTitleContainer}>
@@ -149,7 +145,6 @@ const ActivityScreen = ({ navigation }) => {
             ></TouchableOpacity>
           </View>
 
-          {/* Search Bar */}
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Text style={styles.searchIcon}>🔍</Text>
@@ -233,7 +228,6 @@ const ActivityScreen = ({ navigation }) => {
             </View>
           )}
 
-          {/* Activities Section */}
           <View style={styles.activitiesSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>กิจกรรมล่าสุด</Text>
