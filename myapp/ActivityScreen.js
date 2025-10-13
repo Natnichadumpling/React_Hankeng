@@ -95,25 +95,37 @@ const ActivityScreen = ({ navigation }) => {
         activity.group_activity_type === selectedGroupType)
   );
 
+  // --- ฟังก์ชันที่แก้ไขแล้ว ---
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    const diffTime = Math.abs(now - date); // ส่วนต่างเวลา (มิลลิวินาที)
 
+    // คำนวณส่วนต่างในหน่วยต่างๆ
+    const diffMinutes = Math.floor(diffTime / (1000 * 60));
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // เพิ่มเงื่อนไขแสดงผลให้ละเอียดขึ้น
+    if (diffMinutes < 1) {
+      return "เมื่อสักครู่";
+    }
+    if (diffMinutes < 60) {
+      return `${diffMinutes} นาทีที่แล้ว`;
+    }
     if (diffHours < 24) {
       return `${diffHours} ชั่วโมงที่แล้ว`;
-    } else if (diffHours < 168) {
-      const diffDays = Math.floor(diffHours / 24);
-      return `${diffDays} วันที่แล้ว`;
-    } else {
-      return date.toLocaleDateString("th-TH", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      });
     }
+    if (diffDays < 7) {
+      return `${diffDays} วันที่แล้ว`;
+    }
+    // ถ้าเกิน 7 วัน ให้แสดงวันที่แบบปกติ
+    return date.toLocaleDateString("th-TH", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   return (
