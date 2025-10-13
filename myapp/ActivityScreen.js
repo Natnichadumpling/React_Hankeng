@@ -67,6 +67,51 @@ const ActivityScreen = ({ navigation }) => {
       setIsLoading(false);
     };
     fetchActivities();
+    // Realtime subscription: listen for new activities
+    const channel = supabase
+      .channel("public:activities")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "activities" },
+        async (payload) => {
+          try {
+            const newActivity = payload.new;
+
+            // If this is a create_group activity but missing group metadata,
+            // fetch the group's name and activity type so the UI can display it.
+            if (
+              newActivity.type === "create_group" &&
+              !newActivity.group_name &&
+              newActivity.group_id
+            ) {
+              try {
+                const { data: groupData, error: groupError } = await supabase
+                  .from("groups")
+                  .select("name, group_activity_type")
+                  .eq("id", newActivity.group_id)
+                  .single();
+                if (!groupError && groupData) {
+                  newActivity.group_name = groupData.name;
+                  newActivity.group_activity_type = groupData.group_activity_type;
+                }
+              } catch (innerErr) {
+                console.warn("Could not fetch group metadata for activity:", innerErr);
+              }
+            }
+
+            setActivities((prev) => [newActivity, ...(prev || [])]);
+            console.log("Realtime: new activity received", newActivity);
+          } catch (e) {
+            console.error("Realtime handler error:", e);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      // cleanup realtime subscription
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   React.useEffect(() => {

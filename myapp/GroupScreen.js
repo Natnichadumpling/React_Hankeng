@@ -106,6 +106,22 @@ const GroupScreen = () => {
       const groupId = data?.id;
       const image_url = data?.image_url;
 
+      // ✅ บันทึกกิจกรรมการสร้างกลุ่มลงในตาราง activities เพื่อให้ ActivityScreen ได้รับข้อมูล
+      try {
+        await supabase.from("activities").insert([
+          {
+            type: "create_group",
+            description: `สร้างกลุ่ม ${groupName}`,
+            group_id: groupId,
+            group_name: groupName,
+            group_activity_type: selectedCategory || null,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (activityErr) {
+        console.warn("Could not insert activity record:", activityErr?.message || activityErr);
+      }
+
       Alert.alert("สำเร็จ", "สร้างกลุ่มเรียบร้อยแล้ว!");
 
       // ✅ ไปยังหน้า Group2Screen พร้อมส่งข้อมูลไปด้วย
