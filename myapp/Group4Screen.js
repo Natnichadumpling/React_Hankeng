@@ -31,11 +31,11 @@ const Group4Screen = ({ navigation, route }) => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messagesError, setMessagesError] = useState(null);
   const [messageText, setMessageText] = useState("");
-  const [selectedCurrency, setSelectedCurrency] = useState(""); // 'THB' | 'USD'
+  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [amount, setAmount] = useState("");
   const [convertedAmount, setConvertedAmount] = useState(null);
 
-  const [rateTHB, setRateTHB] = useState(null); // จำนวนบาทต่อ 1 USD
+  const [rateTHB, setRateTHB] = useState(null);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [rateError, setRateError] = useState(null);
 
@@ -52,7 +52,6 @@ const Group4Screen = ({ navigation, route }) => {
 
   const isSendDisabled = selectedImages.length === 0 && !messageText.trim();
 
-  // โหลดข้อความแชทจากฐานข้อมูล Supabase
   useEffect(() => {
     const fetchMessagesAndExpenses = async () => {
       if (!groupId) {
@@ -1308,7 +1307,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#4caf50",
   },
-  
 });
 
 export default Group4Screen;

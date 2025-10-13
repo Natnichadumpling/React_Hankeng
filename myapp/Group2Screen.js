@@ -22,7 +22,7 @@ const Group2Screen = ({ navigation }) => {
   useEffect(() => {
     const onBackPress = () => {
       navigation.navigate("Page2Screen");
-      return true; // prevent default behavior
+      return true;
     };
 
     const subscription = BackHandler.addEventListener(

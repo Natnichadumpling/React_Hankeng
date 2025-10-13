@@ -20,7 +20,6 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
-// ✅ อัปโหลดรูปแบบ base64 → Supabase
 const uploadImageUri = async (uri) => {
   try {
     if (!uri) return null;
@@ -32,23 +31,29 @@ const uploadImageUri = async (uri) => {
       localUri = dest;
     }
 
-    // อ่านไฟล์เป็น base64
-    const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: "base64" });
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: "base64",
+    });
     const extMatch = /\.(\w+)$/.exec(localUri);
     const ext = extMatch ? extMatch[1].toLowerCase() : "jpg";
-    const fileName = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const fileName = `group_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}.${ext}`;
     const filePath = `group_images/${fileName}`;
 
-    // แปลง base64 → Uint8Array
     const byteArray = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
-    const { error } = await supabase.storage.from("group-images").upload(filePath, byteArray, {
-      contentType: `image/${ext}`,
-      upsert: false,
-    });
+    const { error } = await supabase.storage
+      .from("group-images")
+      .upload(filePath, byteArray, {
+        contentType: `image/${ext}`,
+        upsert: false,
+      });
     if (error) throw error;
 
-    const { data: urlData } = supabase.storage.from("group-images").getPublicUrl(filePath);
+    const { data: urlData } = supabase.storage
+      .from("group-images")
+      .getPublicUrl(filePath);
     return urlData?.publicUrl || null;
   } catch (err) {
     console.error("Upload error:", err);
@@ -70,10 +75,13 @@ const GroupScreen = () => {
     { name: "เครื่องดื่ม", icon: require("./assets/images/drink.png") },
     { name: "ท่องเที่ยว", icon: require("./assets/images/travel.png") },
     { name: "ออกกำลังกาย", icon: require("./assets/images/exercise.png") },
-    { name: "กิจกรรมอื่นๆ", icon: require("./assets/images/i.jpg"), isOther: true },
+    {
+      name: "กิจกรรมอื่นๆ",
+      icon: require("./assets/images/i.jpg"),
+      isOther: true,
+    },
   ];
 
-  // ✅ บันทึกข้อมูลกลุ่มลงฐานข้อมูล
   const handleNext = async () => {
     if (!groupName.trim()) {
       Alert.alert("กรุณากรอกชื่อกลุ่ม");
@@ -87,7 +95,6 @@ const GroupScreen = () => {
         imageUrl = await uploadImageUri(groupImage);
       }
 
-      // ✅ บันทึกข้อมูลลงตาราง groups และดึง group_id กลับมา
       const { data, error } = await supabase
         .from("groups")
         .insert([
@@ -106,7 +113,6 @@ const GroupScreen = () => {
       const groupId = data?.id;
       const image_url = data?.image_url;
 
-      // ✅ บันทึกกิจกรรมการสร้างกลุ่มลงในตาราง activities เพื่อให้ ActivityScreen ได้รับข้อมูล
       try {
         await supabase.from("activities").insert([
           {
@@ -119,12 +125,14 @@ const GroupScreen = () => {
           },
         ]);
       } catch (activityErr) {
-        console.warn("Could not insert activity record:", activityErr?.message || activityErr);
+        console.warn(
+          "Could not insert activity record:",
+          activityErr?.message || activityErr
+        );
       }
 
       Alert.alert("สำเร็จ", "สร้างกลุ่มเรียบร้อยแล้ว!");
 
-      // ✅ ไปยังหน้า Group2Screen พร้อมส่งข้อมูลไปด้วย
       navigation.navigate("Group2Screen", {
         groupId,
         groupName,
@@ -140,7 +148,8 @@ const GroupScreen = () => {
   const pickFromGallery = async () => {
     setShowImagePickerModal(false);
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permission =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Alert.alert("ต้องการสิทธิ์", "กรุณาอนุญาตเข้าถึงแกลเลอรี่");
         return;
@@ -186,12 +195,18 @@ const GroupScreen = () => {
           style={{ flex: 1 }}
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          {/* ✅ Modal เลือกรูปภาพ */}
-          <Modal visible={showImagePickerModal} transparent animationType="fade">
+          <Modal
+            visible={showImagePickerModal}
+            transparent
+            animationType="fade"
+          >
             <View style={styles.modalOverlay}>
               <View style={styles.modalBox}>
                 <Text style={styles.modalTitle}>เลือกรูปภาพจาก</Text>
-                <TouchableOpacity style={styles.modalButton} onPress={pickFromGallery}>
+                <TouchableOpacity
+                  style={styles.modalButton}
+                  onPress={pickFromGallery}
+                >
                   <Text style={styles.modalText}>📷 แกลเลอรี่</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -210,22 +225,25 @@ const GroupScreen = () => {
             </View>
           </Modal>
 
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Text style={styles.backText}>← กลับ</Text>
             </TouchableOpacity>
             <Text style={styles.title}>สร้างกลุ่ม</Text>
             <TouchableOpacity onPress={handleNext} disabled={isUploading}>
-              <Text style={styles.saveText}>{isUploading ? "..." : "ถัดไป"}</Text>
+              <Text style={styles.saveText}>
+                {isUploading ? "..." : "ถัดไป"}
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* เนื้อหา */}
           <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.imageSection}>
               {groupImage ? (
-                <Image source={{ uri: groupImage }} style={styles.previewImage} />
+                <Image
+                  source={{ uri: groupImage }}
+                  style={styles.previewImage}
+                />
               ) : (
                 <TouchableOpacity
                   style={styles.imagePlaceholder}
@@ -264,7 +282,8 @@ const GroupScreen = () => {
                     <Text
                       style={[
                         styles.categoryText,
-                        selectedCategory === cat.name && styles.selectedCategoryText,
+                        selectedCategory === cat.name &&
+                          styles.selectedCategoryText,
                       ]}
                     >
                       {cat.name}
@@ -275,7 +294,6 @@ const GroupScreen = () => {
             </View>
           </ScrollView>
 
-          {/* ✅ ปุ่มถัดไป */}
           <View style={styles.footer}>
             <TouchableOpacity
               style={[styles.nextButton, isUploading && styles.disabledButton]}
@@ -293,7 +311,6 @@ const GroupScreen = () => {
   );
 };
 
-// 🎨 สไตล์
 const styles = StyleSheet.create({
   container: { flex: 1 },
   background: { flex: 1 },

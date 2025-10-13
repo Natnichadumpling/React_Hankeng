@@ -67,7 +67,6 @@ const ActivityScreen = ({ navigation }) => {
       setIsLoading(false);
     };
     fetchActivities();
-    // Realtime subscription: listen for new activities
     const channel = supabase
       .channel("public:activities")
       .on(
@@ -77,8 +76,6 @@ const ActivityScreen = ({ navigation }) => {
           try {
             const newActivity = payload.new;
 
-            // If this is a create_group activity but missing group metadata,
-            // fetch the group's name and activity type so the UI can display it.
             if (
               newActivity.type === "create_group" &&
               !newActivity.group_name &&
@@ -109,7 +106,7 @@ const ActivityScreen = ({ navigation }) => {
       .subscribe();
 
     return () => {
-      // cleanup realtime subscription
+
       supabase.removeChannel(channel);
     };
   }, []);
@@ -219,7 +216,6 @@ const ActivityScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
           bounces={true}
         >
-          {/* Filter Section */}
           {groupTypes.length > 0 && (
             <View style={styles.filterSection}>
               <Text style={styles.filterLabel}>ประเภทกลุ่ม</Text>
