@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
-import { supabase } from "./supabaseClient"; // ปรับ path ตามโครงสร้างโปรเจคของคุณ
+import { supabase } from "./supabaseClient";
 
 const round2 = (x) => Math.round(x * 100) / 100;
 
@@ -112,38 +112,51 @@ export default function Group6Screen({ route, navigation }) {
   const groupName = route?.params?.groupName || "กลุ่มของเรา";
   
   const [selectedItem, setSelectedItem] = useState(null);
-  const [currentUserName, setCurrentUserName] = useState(null);
-  const [bankInfoMap, setBankInfoMap] = useState({});
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
+  const [currentUserDisplayName, setCurrentUserDisplayName] = useState(null);
+  const [peopleBankInfo, setPeopleBankInfo] = useState({});
 
-  // ดึงข้อมูล user ที่ login อยู่
+  
   useEffect(() => {
     const fetchCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (user) {
-        // ดึงชื่อ user จาก profiles table
+        setCurrentUserEmail(user.email);
+        
+        
         const { data: profile } = await supabase
-          .from('profiles')
+          .from('users') 
           .select('name')
-          .eq('id', user.id)
+          .eq('email', user.email)
           .single();
         
-        if (profile) {
-          setCurrentUserName(profile.name);
+        if (profile && profile.name) {
+          setCurrentUserDisplayName(profile.name);
+          console.log('Current User Name:', profile.name); 
         }
       }
     };
     fetchCurrentUser();
   }, []);
 
-  // ดึงข้อมูลธนาคารของทุกคนในกลุ่ม
+  
   useEffect(() => {
-    const fetchBankInfo = async () => {
+    const fetchPeopleBankInfo = async () => {
       if (people.length === 0) return;
 
-      const { data: profiles } = await supabase
-        .from('profiles')
+      console.log('Fetching bank info for:', people); 
+
+      
+      const { data: profiles, error } = await supabase
+        .from('users')
         .select('name, bank_name, bank_account')
         .in('name', people);
+
+      if (error) {
+        console.error('Error fetching bank info:', error);
+        return;
+      }
 
       if (profiles) {
         const bankMap = {};
@@ -153,10 +166,11 @@ export default function Group6Screen({ route, navigation }) {
             bank_account: profile.bank_account
           };
         });
-        setBankInfoMap(bankMap);
+        setPeopleBankInfo(bankMap);
+        console.log('Bank Info Loaded:', bankMap);
       }
     };
-    fetchBankInfo();
+    fetchPeopleBankInfo();
   }, [people]);
 
   const filteredItems = selectedItem
@@ -229,7 +243,7 @@ export default function Group6Screen({ route, navigation }) {
           onPress={() => setShowSettled((s) => !s)}
           style={[
             styles.ctrlBtn,
-            { backgroundColor: showSettled ? "#ef4444" : "#6b7280" },
+            { backgroundColor: showSettled ? "#7fccecff" : "#6b7280" },
           ]}
         >
           <Text style={styles.ctrlBtnText}>
@@ -238,13 +252,13 @@ export default function Group6Screen({ route, navigation }) {
         </TouchableOpacity>
         <TouchableOpacity
           onPress={expandAll}
-          style={[styles.ctrlBtn, { backgroundColor: "#2563eb" }]}
+          style={[styles.ctrlBtn, { backgroundColor: "#7fccecff" }]}
         >
           <Text style={styles.ctrlBtnText}>ขยายทั้งหมด</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={collapseAll}
-          style={[styles.ctrlBtn, { backgroundColor: "#374151" }]}
+          style={[styles.ctrlBtn, { backgroundColor: "#7fccecff" }]}
         >
           <Text style={styles.ctrlBtnText}>ย่อทั้งหมด</Text>
         </TouchableOpacity>
@@ -264,16 +278,21 @@ export default function Group6Screen({ route, navigation }) {
             items: [],
           };
 
-          // เช็คว่าผู้รับเงิน (t.to) เป็น currentUser หรือไม่
-          const shouldShowBankInfo = currentUserName && t.to === currentUserName;
-          const bankInfo = bankInfoMap[t.to];
+        
+          const receiverBankInfo = peopleBankInfo[t.to] || {};
+          
+          console.log(`Transfer: ${t.from} → ${t.to}`, receiverBankInfo); 
 
           return (
             <View key={key} style={[styles.card, isSettled && styles.cardSettled]}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLine}>
-                  {t.from} ต้องจ่ายให้ {t.to} จำนวน ฿{t.amount.toFixed(2)}
+                  <Text style={{fontWeight: 'normal'}}>{t.from}</Text>
+                  <Text> ต้องจ่ายให้ </Text>
+                  <Text style={{fontWeight: 'normal'}}>{t.to}</Text>
+                  <Text> จำนวน ฿{t.amount.toFixed(2)}</Text>
                 </Text>
+
                 <TouchableOpacity
                   onPress={() =>
                     navigation.navigate("Group4Screen", {
@@ -281,6 +300,8 @@ export default function Group6Screen({ route, navigation }) {
                       from: t.from,
                       to: t.to,
                       amount: t.amount,
+                      groupId: route?.params?.groupId,
+                      userId: route?.params?.userId,
                     })
                   }
                   style={styles.evidenceBtn}
@@ -289,18 +310,17 @@ export default function Group6Screen({ route, navigation }) {
                 </TouchableOpacity>
               </View>
 
-              {/* แสดงข้อมูลธนาคารเฉพาะเมื่อผู้รับเงินเป็น currentUser */}
-              {shouldShowBankInfo && bankInfo && (bankInfo.bank_name || bankInfo.bank_account) && (
+              {receiverBankInfo && (receiverBankInfo.bank_name || receiverBankInfo.bank_account) && (
                 <View style={styles.bankInfoBox}>
-                  <Text style={styles.bankInfoTitle}>ข้อมูลบัญชีผู้รับเงิน:</Text>
-                  {bankInfo.bank_name && (
+                  <Text style={styles.bankInfoTitle}>ข้อมูลบัญชีของ {t.to}:</Text>
+                  {receiverBankInfo.bank_name && (
                     <Text style={styles.bankInfoText}>
-                      🏦 ธนาคาร: {bankInfo.bank_name}
+                      🏦 ธนาคาร: {receiverBankInfo.bank_name}
                     </Text>
                   )}
-                  {bankInfo.bank_account && (
+                  {receiverBankInfo.bank_account && (
                     <Text style={styles.bankInfoText}>
-                      💳 เลขบัญชี: {bankInfo.bank_account}
+                      💳 เลขบัญชี: {receiverBankInfo.bank_account}
                     </Text>
                   )}
                 </View>
@@ -418,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginRight: 6,
   },
-  filterBtnOn: { backgroundColor: "#2563eb" },
+  filterBtnOn: { backgroundColor: "#7bd1a1ff" },
   filterBtnText: { color: "#111827", fontWeight: "700" },
   controlsRow: {
     flexDirection: "row",
@@ -459,12 +479,12 @@ const styles = StyleSheet.create({
   summaryLine: {
     fontSize: 16,
     fontWeight: "800",
-    color: "#dc2626",
+    color: "#000000ff",
     flex: 1,
     marginRight: 8,
   },
   evidenceBtn: {
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#7fccecff",
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -497,7 +517,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   cardTitle: { fontSize: 16, fontWeight: "700", color: "#111827" },
-  nameFrom: { color: "#ef4444", fontWeight: "800" },
+  nameFrom: { color: "#fe8d8dff", fontWeight: "800" },
   nameTo: { color: "#10b981", fontWeight: "800" },
   amount: { fontWeight: "800", color: "#f59e0b" },
   actionsRow: {
@@ -534,7 +554,7 @@ const styles = StyleSheet.create({
   detailName: { fontWeight: "600", color: "#111827" },
   detailInfo: { color: "#6b7280", fontSize: 12 },
   plus: { color: "#10b981", fontWeight: "800" },
-  minus: { color: "#ef4444", fontWeight: "800" },
+  minus: { color: "#fe8d8dff", fontWeight: "800" },
   divider: { height: 1, backgroundColor: "#e5e7eb", marginVertical: 8 },
   equation: { marginTop: 6, alignItems: "flex-end" },
 });
