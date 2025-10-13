@@ -14,6 +14,7 @@ import {
   Modal,
   TextInput,
   ActivityIndicator,
+  BackHandler,
 } from "react-native";
 
 const API_URL =
@@ -434,7 +435,17 @@ const Group4Screen = ({ navigation, route }) => {
     }
   };
 
-  const goBack = () => navigation.goBack();
+  const goBack = () => navigation.navigate("Page2Screen");
+
+  useEffect(() => {
+    const onBackPress = () => {
+      navigation.navigate("Page2Screen");
+      return true;
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+  }, [navigation]);
 
   const handleImageSelect = async () => {
     setShowImagePicker(false);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ImageBackground,
   ScrollView,
   SafeAreaView,
+  BackHandler,
 } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import * as Clipboard from "expo-clipboard";
@@ -17,6 +18,16 @@ import * as Clipboard from "expo-clipboard";
 const Group2Screen = ({ navigation }) => {
   const route = useRoute();
   const { groupId, groupName, imageUrl } = route.params || {};
+
+  useEffect(() => {
+    const onBackPress = () => {
+      navigation.navigate("Page2Screen");
+      return true; // prevent default behavior
+    };
+
+    BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => BackHandler.removeEventListener("hardwareBackPress", onBackPress);
+  }, [navigation]);
 
   const groupLink = groupId
     ? `https://example.com/groups/${groupId}`
@@ -51,7 +62,7 @@ const Group2Screen = ({ navigation }) => {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => navigation.navigate("GroupScreen")}
+              onPress={() => navigation.navigate("Page2Screen")}
             >
               <Text style={styles.backArrow}>← กลับ</Text>
             </TouchableOpacity>
