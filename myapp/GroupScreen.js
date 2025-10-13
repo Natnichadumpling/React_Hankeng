@@ -1,30 +1,7 @@
-  // อัปโหลดรูปภาพไปยัง Supabase Storage และบันทึก URL ลงฐานข้อมูล
-  const uploadGroupImage = async (uri) => {
-    try {
-      if (!uri) return null;
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `group_images/${fileName}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('group-images')
-        .upload(filePath, blob, { cacheControl: '3600', upsert: false });
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        Alert.alert('อัปโหลดรูปไม่สำเร็จ', uploadError.message);
-        return null;
-      }
-      const { data: urlData } = supabase.storage.from('group-images').getPublicUrl(filePath);
-      return urlData?.publicUrl || null;
-    } catch (err) {
-      console.error('Upload failed:', err);
-      Alert.alert('อัปโหลดรูปไม่สำเร็จ', err.message || 'เกิดข้อผิดพลาด');
-      return null;
-    }
-  };
 import React, { useState } from "react";
 import * as DocumentPicker from "expo-document-picker";
+import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { supabase } from "./supabaseClient";
 import {
   View,
@@ -36,186 +13,150 @@ import {
   Image,
   ImageBackground,
   Alert,
-  SafeAreaView,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 
+// ✅ อัปโหลดรูปแบบ base64 → Supabase
+const uploadImageUri = async (uri) => {
+  try {
+    if (!uri) return null;
+    let localUri = uri;
+
+    if (localUri.startsWith("content://")) {
+      const dest = FileSystem.cacheDirectory + `upload_${Date.now()}.jpg`;
+      await FileSystem.copyAsync({ from: localUri, to: dest });
+      localUri = dest;
+    }
+
+    // อ่านไฟล์เป็น base64
+    const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: "base64" });
+    const extMatch = /\.(\w+)$/.exec(localUri);
+    const ext = extMatch ? extMatch[1].toLowerCase() : "jpg";
+    const fileName = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`;
+    const filePath = `group_images/${fileName}`;
+
+    // แปลง base64 → Uint8Array
+    const byteArray = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+    const { error } = await supabase.storage.from("group-images").upload(filePath, byteArray, {
+      contentType: `image/${ext}`,
+      upsert: false,
+    });
+    if (error) throw error;
+
+    const { data: urlData } = supabase.storage.from("group-images").getPublicUrl(filePath);
+    return urlData?.publicUrl || null;
+  } catch (err) {
+    console.error("Upload error:", err);
+    Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถอัปโหลดรูปได้");
+    return null;
+  }
+};
+
 const GroupScreen = () => {
-  const [otherModalVisible, setOtherModalVisible] = useState(false);
   const navigation = useNavigation();
   const [groupName, setGroupName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState(null);
   const [groupImage, setGroupImage] = useState(null);
-  const [otherActivity, setOtherActivity] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
 
   const categories = [
-    {
-      name: "อาหาร",
-      icon: require("./assets/images/food.png"),
-      image: "food.png",
-    },
-    {
-      name: "เครื่องดื่ม",
-      icon: require("./assets/images/drink.png"),
-      image: "drink.png",
-    },
-    {
-      name: "ท่องเที่ยว",
-      icon: require("./assets/images/travel.png"),
-      image: "travel.png",
-    },
-    {
-      name: "ออกกำลังกาย",
-      icon: require("./assets/images/exercise.png"),
-      image: "exercise.png",
-    },
-    {
-      name: "กิจกรรมอื่นๆ",
-      icon: require("./assets/images/i.jpg"), // ใช้ภาพ i.jpg
-      image: "i.jpg",
-      isOther: true,
-    },
+    { name: "อาหาร", icon: require("./assets/images/food.png") },
+    { name: "เครื่องดื่ม", icon: require("./assets/images/drink.png") },
+    { name: "ท่องเที่ยว", icon: require("./assets/images/travel.png") },
+    { name: "ออกกำลังกาย", icon: require("./assets/images/exercise.png") },
+    { name: "กิจกรรมอื่นๆ", icon: require("./assets/images/i.jpg"), isOther: true },
   ];
 
-  const handleCategorySelect = (category) => {
-    setSelectedCategory(category);
-    if (category.isOther) {
-      setOtherModalVisible(true);
+  // ✅ บันทึกข้อมูลกลุ่มลงฐานข้อมูล
+  const handleNext = async () => {
+    if (!groupName.trim()) {
+      Alert.alert("กรุณากรอกชื่อกลุ่ม");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      let imageUrl = groupImage;
+      if (groupImage && !/^https?:\/\//i.test(groupImage)) {
+        imageUrl = await uploadImageUri(groupImage);
+      }
+
+      // ✅ บันทึกข้อมูลลงตาราง groups และดึง group_id กลับมา
+      const { data, error } = await supabase
+        .from("groups")
+        .insert([
+          {
+            name: groupName,
+            image: groupImage,
+            image_url: imageUrl,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const groupId = data?.id;
+      const image_url = data?.image_url;
+
+      Alert.alert("สำเร็จ", "สร้างกลุ่มเรียบร้อยแล้ว!");
+
+      // ✅ ไปยังหน้า Group2Screen พร้อมส่งข้อมูลไปด้วย
+      navigation.navigate("Group2Screen", {
+        groupId,
+        groupName,
+        imageUrl: image_url,
+      });
+    } catch (err) {
+      Alert.alert("เกิดข้อผิดพลาด", err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleFilePicker = async () => {
+  const pickFromGallery = async () => {
+    setShowImagePickerModal(false);
     try {
-      const res = await DocumentPicker.getDocumentAsync({
-        type: "image/*",
-        copyToCacheDirectory: true,
-        multiple: false,
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("ต้องการสิทธิ์", "กรุณาอนุญาตเข้าถึงแกลเลอรี่");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
       });
-      console.log("DocumentPicker result:", res);
-      if (res.assets && res.assets.length > 0 && res.assets[0].uri) {
-        setGroupImage(res.assets[0].uri);
-        console.log("groupImage set to:", res.assets[0].uri);
-      } else {
-        setGroupImage(null);
-        console.log("groupImage set to null");
-        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
+
+      if (!result.canceled && result.assets && result.assets[0]?.uri) {
+        setGroupImage(result.assets[0].uri);
       }
     } catch (err) {
-      Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเลือกไฟล์ภาพได้");
+      Alert.alert("ไม่สามารถเลือกรูปได้", err.message);
     }
   };
 
-  const addGroupToDatabase = async () => {
-    if (!groupName || !selectedCategory) {
-      console.log(
-        "groupName or selectedCategory is missing:",
-        groupName,
-        selectedCategory
-      );
-      return false;
-    }
-    let created_by = null;
+  const pickFromFiles = async () => {
+    setShowImagePickerModal(false);
     try {
-      const { data } = await supabase.auth.getSession();
-      created_by = data?.session?.user?.email || null;
-    } catch (e) {}
-    const activityType = selectedCategory && selectedCategory.isOther && otherActivity ? otherActivity : selectedCategory?.name;
-    let imageUrl = null;
-    if (groupImage) {
-      imageUrl = await uploadGroupImage(groupImage);
-    }
-    const { data, error } = await supabase
-      .from("groups")
-      .insert([
-        {
-          name: groupName,
-          created_by,
-          image: selectedCategory.image,
-          image_url: imageUrl,
-          activity_type: activityType,
-        },
-      ])
-      .select();
-    console.log("AFTER GROUP INSERT", data, error);
-
-    if (!error && data && data[0]) {
-      let userId = null;
-      try {
-        const { data } = await supabase.auth.getSession();
-        userId = data?.session?.user?.id || null;
-      } catch (e) {
-        console.log("ERROR getSession:", e);
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "image/*",
+        copyToCacheDirectory: true,
+      });
+      if (result.type === "success" && result.uri) {
+        setGroupImage(result.uri);
       }
-      console.log("DEBUG groupName:", groupName);
-      console.log("DEBUG selectedCategory:", selectedCategory);
-      console.log("DEBUG userId:", userId);
-      console.log("DEBUG group_id:", data[0].id);
-
-      if (!data[0].id) {
-        console.log(
-          "Cannot insert activities: group_id is missing",
-          data[0].id
-        );
-        return !error;
-      }
-          const activityType = selectedCategory?.isOther && otherActivity ? otherActivity : selectedCategory.name;
-
-      const activityPayload = {
-        type: "create_group",
-        description: `คุณสร้างกลุ่ม "${groupName}"`,
-        group_id: data[0].id,
-        group_name: groupName,
-        group_activity_type: activityType,
-      };
-      if (userId) activityPayload.user_id = userId;
-
-      console.log("Insert to activities:", activityPayload);
-
-      try {
-        const { data: actData, error: actError } = await supabase
-          .from("activities")
-          .insert([activityPayload])
-          .select();
-        console.log("Insert activities result:", actData, actError);
-      } catch (e) {
-        console.log("ERROR insert activities:", e);
-      }
-    } else {
-      console.log("Supabase insert error (groups):", error);
-    }
-    return !error;
-  };
-
-  const handleDone = async () => {
-    if (groupName && selectedCategory) {
-      const success = await addGroupToDatabase();
-      if (success) {
-        navigation.navigate("Group2Screen", {
-          groupName,
-          category: selectedCategory.name,
-        });
-      } else {
-        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเพิ่มกลุ่มได้");
-      }
-    } else {
-      Alert.alert("แจ้งเตือน", "กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม");
-    }
-  };
-
-  const handleNext = async () => {
-    if (groupName && selectedCategory) {
-      const success = await addGroupToDatabase();
-      if (success) {
-        navigation.navigate("Group2Screen", {
-          groupName,
-          category: selectedCategory.name,
-        });
-      } else {
-        Alert.alert("เกิดข้อผิดพลาด", "ไม่สามารถเพิ่มกลุ่มได้");
-      }
-    } else {
-      Alert.alert("แจ้งเตือน", "กรุณากรอกชื่อกลุ่มและเลือกประเภทกิจกรรม");
+    } catch (err) {
+      Alert.alert("ไม่สามารถเลือกไฟล์ได้", err.message);
     }
   };
 
@@ -223,300 +164,219 @@ const GroupScreen = () => {
     <SafeAreaView style={styles.container}>
       <ImageBackground
         source={require("./assets/images/p1.png")}
-        style={styles.container}
+        style={styles.background}
       >
-        <Modal
-          visible={otherModalVisible}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setOtherModalVisible(false)}
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-                <Image source={require("./assets/images/i.jpg")}
-                  style={{ width: 72, height: 72, marginBottom: 18, borderRadius: 36, borderWidth: 2, borderColor: '#4A90E2' }}
-                  resizeMode="cover"
-                />
-                <Text style={styles.modalTitle}>กรอกชื่อกิจกรรมอื่นๆ</Text>
-                <Text style={styles.modalLabel}>โปรดระบุชื่อกิจกรรมที่ต้องการ</Text>
-                <TextInput
-                  style={[styles.input, { marginBottom: 18, borderRadius: 10, borderWidth: 1, borderColor: '#ddd', paddingHorizontal: 12, fontSize: 16, backgroundColor: '#f7f7f7' }]}
-                  placeholder="ชื่อกิจกรรมอื่นๆ"
-                  value={otherActivity}
-                  onChangeText={setOtherActivity}
-                  placeholderTextColor="#aaa"
-                />
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={() => setOtherModalVisible(false)}
-                >
-                  <Text style={{ color: '#fff', fontSize: 17, fontWeight: 'bold' }}>ตกลง</Text>
+          {/* ✅ Modal เลือกรูปภาพ */}
+          <Modal visible={showImagePickerModal} transparent animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBox}>
+                <Text style={styles.modalTitle}>เลือกรูปภาพจาก</Text>
+                <TouchableOpacity style={styles.modalButton} onPress={pickFromGallery}>
+                  <Text style={styles.modalText}>📷 แกลเลอรี่</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: "#34A853" }]}
+                  onPress={pickFromFiles}
+                >
+                  <Text style={styles.modalText}>📁 ไฟล์</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, { backgroundColor: "#999" }]}
+                  onPress={() => setShowImagePickerModal(false)}
+                >
+                  <Text style={styles.modalText}>ยกเลิก</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        </Modal>
-        <ScrollView style={styles.scrollContainer}>
+          </Modal>
+
+          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={styles.backArrow}>กลับ</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Text style={styles.backText}>← กลับ</Text>
             </TouchableOpacity>
             <Text style={styles.title}>สร้างกลุ่ม</Text>
-
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={handleDone}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.editText}>เสร็จ</Text>
+            <TouchableOpacity onPress={handleNext} disabled={isUploading}>
+              <Text style={styles.saveText}>{isUploading ? "..." : "ถัดไป"}</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.cameraSection, { alignItems: "center" }]}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                borderWidth: 1,
-                borderColor: "#ccc",
-                borderRadius: 12,
-                padding: 10,
-                backgroundColor: "#fafafa",
-                minWidth: 160,
-              }}
-            >
-              <TouchableOpacity
-                style={styles.cameraButton}
-                onPress={handleFilePicker}
-              >
-                <Text style={styles.cameraIcon}>📁</Text>
-              </TouchableOpacity>
-              {groupImage && (
-                <Image
-                  source={{ uri: groupImage }}
-                  style={{
-                    width: 60,
-                    height: 60,
-                    borderRadius: 10,
-                    marginLeft: 15,
-                    backgroundColor: "#eee",
-                  }}
-                />
+          {/* เนื้อหา */}
+          <ScrollView contentContainerStyle={styles.scrollContainer}>
+            <View style={styles.imageSection}>
+              {groupImage ? (
+                <Image source={{ uri: groupImage }} style={styles.previewImage} />
+              ) : (
+                <TouchableOpacity
+                  style={styles.imagePlaceholder}
+                  onPress={() => setShowImagePickerModal(true)}
+                >
+                  <Text style={styles.folderIcon}>📁</Text>
+                  <Text style={styles.pickText}>เลือกรูป</Text>
+                </TouchableOpacity>
               )}
+              <Text style={styles.noteText}>เพิ่มรูปภาพกลุ่ม (ไม่บังคับ)</Text>
             </View>
-            <Text style={styles.cameraText}>เพิ่มไฟล์ภาพ</Text>
+
+            <View style={styles.inputSection}>
+              <Text style={styles.label}>ชื่อกลุ่ม *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="กรอกชื่อกลุ่ม"
+                value={groupName}
+                onChangeText={setGroupName}
+              />
+            </View>
+
+            <View style={styles.categorySection}>
+              <Text style={styles.label}>ประเภทกิจกรรม *</Text>
+              <View style={styles.categoryContainer}>
+                {categories.map((cat, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.categoryItem,
+                      selectedCategory === cat.name && styles.selectedCategory,
+                    ]}
+                    onPress={() => setSelectedCategory(cat.name)}
+                  >
+                    <Image source={cat.icon} style={styles.categoryIcon} />
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        selectedCategory === cat.name && styles.selectedCategoryText,
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* ✅ ปุ่มถัดไป */}
+          <View style={styles.footer}>
+            <TouchableOpacity
+              style={[styles.nextButton, isUploading && styles.disabledButton]}
+              disabled={isUploading}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextButtonText}>
+                {isUploading ? "กำลังบันทึก..." : "ถัดไป →"}
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TextInput
-            style={styles.input}
-            placeholder="ชื่อกลุ่ม"
-            value={groupName}
-            onChangeText={setGroupName}
-          />
-
-          <Text style={styles.categoryLabel}>ประเภทกิจกรรม</Text>
-          <View style={styles.categoryContainer}>
-            {categories.map((category, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.categoryItem,
-                  selectedCategory?.name === category.name &&
-                    styles.selectedCategory,
-                ]}
-                onPress={() => handleCategorySelect(category)}
-              >
-                <Image source={category.icon} style={styles.categoryIcon} />
-                <Text style={styles.categoryText}>{category.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleNext}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.buttonText}>ถัดไป</Text>
-          </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
       </ImageBackground>
     </SafeAreaView>
   );
 };
 
+// 🎨 สไตล์
 const styles = StyleSheet.create({
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-    minWidth: 280,
-  },
-  modalButton: {
-    backgroundColor: '#4A90E2',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 32,
-    marginTop: 8,
-    alignItems: 'center',
-    shadowColor: '#4A90E2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  modalLabel: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 12,
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 40,
-  },
+  container: { flex: 1 },
+  background: { flex: 1 },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 30,
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderBottomWidth: 1,
+    borderColor: "#ddd",
   },
-  backButton: {
-    padding: 10,
-  },
-  backArrow: {
-    fontSize: 16,
-    color: "#007BFF",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  editButton: {
-    padding: 10,
-  },
-  editText: {
-    fontSize: 16,
-    color: "#007BFF",
-  },
-  logoContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  logo: {
-    width: 100,
-    height: 100,
-    resizeMode: "contain",
-  },
-  cameraSection: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  cameraButton: {
-    backgroundColor: "#e0e0e0",
-    padding: 15,
-    borderRadius: 50,
-  },
-  cameraIcon: {
-    fontSize: 30,
-    color: "#333",
-  },
-  cameraText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: "#333",
-  },
-  input: {
-    height: 50,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingLeft: 15,
-    marginBottom: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-  },
-  categoryLabel: {
-    fontSize: 16,
-    marginBottom: 10,
-    color: "#333",
-  },
-  categoryContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-around",
-    marginBottom: 20,
-  },
-  categoryItem: {
+  title: { fontSize: 22, fontWeight: "bold", color: "#333" },
+  backText: { fontSize: 16, color: "#007BFF" },
+  saveText: { fontSize: 16, color: "#007BFF", fontWeight: "600" },
+  scrollContainer: { padding: 20, paddingBottom: 100 },
+  imageSection: { alignItems: "center", marginVertical: 20 },
+  imagePlaceholder: {
     alignItems: "center",
     justifyContent: "center",
-    width: 70,
-    height: 70,
-    marginBottom: 15,
+    backgroundColor: "#f0f4ff",
+    borderRadius: 16,
+    padding: 20,
+  },
+  folderIcon: { fontSize: 40 },
+  pickText: { marginTop: 6, fontSize: 14, color: "#007BFF" },
+  previewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#007BFF",
+  },
+  noteText: { marginTop: 8, color: "#666" },
+  inputSection: { marginTop: 20 },
+  label: { fontWeight: "600", color: "#333", marginBottom: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
     borderRadius: 10,
-    backgroundColor: "#f0f0f0",
-    padding: 5,
-  },
-  selectedCategory: {
-    backgroundColor: "#c2f5d8ff",
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    resizeMode: "contain",
-  },
-  categoryText: {
-    marginTop: 5,
-    fontSize: 12,
-    color: "#333",
-    textAlign: "center",
-    paddingHorizontal: 5,
-  },
-  buttonContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    backgroundColor: "rgba(240, 242, 245, 0.9)",
-  },
-  button: {
-    backgroundColor: "#4CAF50",
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  buttonText: {
-    color: "#fff",
+    padding: 10,
+    backgroundColor: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
   },
+  categorySection: { marginTop: 20 },
+  categoryContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  categoryItem: {
+    width: "30%",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: "#eee",
+  },
+  selectedCategory: { borderColor: "#4CAF50", backgroundColor: "#e8f5e9" },
+  categoryIcon: { width: 40, height: 40 },
+  categoryText: { color: "#333" },
+  selectedCategoryText: { color: "#2E7D32", fontWeight: "bold" },
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    padding: 16,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+  },
+  nextButton: {
+    backgroundColor: "#4CAF50",
+    borderRadius: 12,
+    alignItems: "center",
+    paddingVertical: 16,
+  },
+  nextButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
+  disabledButton: { backgroundColor: "#ccc" },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+  },
+  modalTitle: { fontSize: 20, fontWeight: "bold", marginBottom: 20 },
+  modalButton: {
+    backgroundColor: "#4A90E2",
+    borderRadius: 10,
+    paddingVertical: 12,
+    width: "90%",
+    marginTop: 10,
+    alignItems: "center",
+  },
+  modalText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 });
 
 export default GroupScreen;
